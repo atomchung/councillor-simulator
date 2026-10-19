@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#163e39">
+  <meta name="description" content="在虛構的文山市場走一圈：準備議題、聽攤商提問，為自己的回答負責。四個時段的原創街區互動遊戲。">
+  <title>巷口，開始｜市場的一天</title>
+  <link rel="stylesheet" href="market.css">
+  <script defer src="market-engine.js"></script>
+  <script defer src="market-art.js"></script>
+  <script defer src="market-ui.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#interaction">跳到目前互動</a>
+  <header class="masthead">
+    <a class="wordmark" href="./" aria-label="巷口，開始"><span class="wordmark-block" aria-hidden="true">巷</span><span>巷口，開始<small>A DAY AT THE MARKET</small></span></a>
+    <div class="edition"><span class="edition-dot" aria-hidden="true"></span>文山・市場日 <span>互動試玩 07</span></div>
+    <nav aria-label="遊戲工具"><button data-action="journal">隨身筆記<span id="journal-count" class="count">0</span></button><button data-action="poll">民調</button><button data-action="restart" class="quiet-button">重玩</button></nav>
+  </header>
+  <main>
+    <section class="resource-strip" aria-label="資源與時間">
+      <div class="day-resource"><span class="eyebrow">這次只玩市場的一天</span><div class="time-line"><strong id="time-left">4</strong><span>／4 時段</span><span id="time-slots" class="time-slots" aria-hidden="true"></span></div></div>
+      <button class="money-resource" data-action="budget" aria-label="查看完整競選預算與保證金"><span class="eyebrow">完整競選預算</span><strong id="campaign-budget">100 萬</strong><span class="resource-note">預算說明 ↗</span></button>
+      <div class="deposit-resource"><span class="eyebrow">已鎖定保證金</span><strong id="deposit">16 萬</strong><span class="resource-note">不能拿來花</span></div>
+      <div class="available-resource"><span class="eyebrow">目前可用現金</span><strong id="available">84 萬</strong><span id="spent" class="resource-note">今日支出 0 元</span></div>
+    </section>
+    <div id="save-warning" class="notice" role="status" hidden></div>
+    <div class="game-layout">
+      <section class="world-column" aria-label="市場街區">
+        <div class="world-heading"><div><span class="eyebrow">WENSHAN · 早市小廣場</span><h1>今天，從一句回答開始。</h1></div><span id="location-label" class="location-chip">資料桌旁</span></div>
+        <div id="world" class="world" tabindex="0" role="group" aria-label="可步行的市場地圖。方向鍵或 WASD 移動，E 或 Enter 與附近地點互動。" aria-describedby="walk-help">
+          <div id="scene" class="scene" aria-hidden="true"></div>
+          <div id="world-people" class="world-people" aria-hidden="true"></div>
+          <div id="world-labels" class="world-labels"></div>
+          <div id="destination-marker" class="destination-marker" aria-hidden="true" hidden></div>
+          <div id="player" class="actor player" aria-hidden="true"></div>
+          <div id="walk-status" class="walk-status" aria-live="polite">選一個地點，走過去看看</div>
+          <button id="skip-animation" data-action="skip" class="skip-animation" hidden>略過移動</button>
+        </div>
+        <div class="walk-toolbar">
+          <p id="walk-help"><strong>走路不花時段。</strong><span>點地點移動；方向鍵 / WASD 走路，E / Enter 互動。</span></p>
+          <div class="direction-pad" aria-label="步行方向"><button data-direction="up" aria-label="往上走">↑</button><button data-direction="left" aria-label="往左走">←</button><button data-direction="down" aria-label="往下走">↓</button><button data-direction="right" aria-label="往右走">→</button><button data-action="interact" class="interact-key" aria-label="與附近地點互動">互動</button></div>
+        </div>
+        <div class="destination-list" aria-label="快速前往"><button data-place="desk"><span class="place-number">01</span>資料桌</button><button data-place="access"><span class="place-number">02</span>蔬菜攤・美姐</button><button data-place="drain"><span class="place-number">03</span>雜貨攤・阿仁</button><button data-place="exit"><span class="place-number">04</span>日終回顧</button></div>
+        <div id="rival-news" class="street-news" aria-live="polite"><span class="news-tag">街角消息</span><p>其他候選人也在走市場。你的每句回答，都可能被記住。</p></div>
+      </section>
+      <aside id="interaction" class="interaction" tabindex="-1" aria-label="目前互動"><div id="panel"></div></aside>
+    </div>
+    <section class="bottom-strip" aria-label="進度與玩法"><div><span class="eyebrow">我的準備</span><span id="knowledge-summary">還沒讀過資料</span></div><div><span class="eyebrow">今天的目標</span><span>聽完問題，留下經得起追問的回答。</span></div><button data-action="finish" id="finish-day" class="text-button">提早結束這一天 ↗</button></section>
+  </main>
+  <footer><p>虛構文山市場情境；選區背景為臺北市大安、文山。人物、事件、支持度與民調均為遊戲虛構，不是實際選情。</p><p>這只是市場一天，未進行正式開票；補貼與保證金返還未計入可用現金。<a href="legacy-v6/index.html">保留的 v6 版本 ↗</a></p></footer>
+  <div id="dialog-overlay" class="dialog-overlay" hidden><section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1"><div class="dialog-top"><h2 id="dialog-title"></h2><button id="close-dialog" data-action="close" aria-label="關閉視窗">×</button></div><div id="dialog-body"></div></section></div>
+  <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p class="notice">這個互動遊戲需要 JavaScript。開啟後重新載入即可開始。</p></noscript>
+</body>
+</html>

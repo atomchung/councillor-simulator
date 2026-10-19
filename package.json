@@ -1,0 +1,10 @@
+{
+  "name": "councillor-simulator",
+  "version": "10.1.0",
+  "private": true,
+  "scripts": {
+    "start": "node scripts/serve.cjs --open",
+    "test": "node tests/export-integrity.cjs && node tests/venue-engine.cjs && node tests/venue-interface.cjs && node tests/month-engine.cjs && node tests/month-interface.cjs && node tests/month-readability.cjs",
+    "test:quick": "node tests/export-integrity.cjs && node tests/venue-interface.cjs && node tests/month-readability.cjs"
+  }
+}

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#214b46">
+  <meta name="description" content="七個壓縮回合，每回合一個主要行動。準備議題、拜票、上節目、募款或招募夥伴，在原創方塊小鎮裡體驗一場虛構競選並開票結算。">
+  <title>巷口，開始｜競選到開票</title>
+  <link rel="stylesheet" href="day.css">
+  <script defer src="day-engine.js"></script>
+  <script defer src="day-art.js"></script>
+  <script defer src="day-ui.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#interaction">跳到今天的行動</a>
+  <header class="masthead">
+    <a class="wordmark" href="./"><span class="wordmark-block" aria-hidden="true">巷</span><span>巷口，開始<small>FROM STREET TO BALLOT</small></span></a>
+    <span class="edition"><i aria-hidden="true"></i>木柵小鎮 <span>試玩 08</span></span>
+    <nav aria-label="遊戲工具"><button data-action="journal">紀錄<span id="journal-count" class="count">0</span></button><button data-action="restart" class="quiet-button">重玩</button></nav>
+  </header>
+  <main>
+    <section class="hud" aria-label="競選進度">
+      <div class="hud-day"><span class="eyebrow">壓縮競選回合</span><strong id="day-label">第 1 回合<span>／ 7</span></strong><span id="day-dots" class="day-dots" aria-hidden="true"></span></div>
+      <button class="hud-money" data-action="budget" aria-label="展開完整預算明細"><span class="eyebrow">可用競選款 <span aria-hidden="true">↗</span></span><strong id="cash">84 萬</strong><small>預算明細</small></button>
+      <div><span class="eyebrow">知名度</span><strong id="recognition">4<span>%</span></strong><small>有人認得你，未必支持你</small></div>
+      <button class="hud-poll" data-action="poll" aria-label="查看最新虛構民調"><span class="eyebrow">最新虛構民調 <span aria-hidden="true">↗</span></span><strong id="poll-you">尚未抽樣</strong><small id="poll-rival">開始後顯示全選區樣本</small></button>
+    </section>
+    <div id="save-warning" class="notice" role="status" hidden></div>
+    <div class="game-layout">
+      <section class="world-column" aria-label="競選小鎮">
+        <div class="world-heading"><div><span id="day-kicker" class="eyebrow">臺北市文山區・木柵 / 示意街區</span><h1 id="world-title">從巷口，走進大家的日常。</h1></div><span class="location-chip" id="location-label">競選辦公室</span></div>
+        <div id="world" class="world" role="img" aria-label="臺北市文山區木柵的方塊示意小鎮，非實測配置。選擇今日行動後，角色會自動走到目的地。">
+          <div id="scene" class="scene" aria-hidden="true"></div>
+          <div id="map-labels" class="map-labels" aria-hidden="true"></div>
+          <div id="route-line" class="route-line" aria-hidden="true"></div>
+          <div id="destination-marker" class="destination-marker" aria-hidden="true" hidden></div>
+          <div id="rival" class="actor rival" aria-hidden="true"></div>
+          <div id="player" class="actor player" aria-hidden="true"></div>
+          <div id="action-effect" class="action-effect" aria-hidden="true"></div>
+          <div id="new-teammate" class="actor new-teammate" aria-hidden="true" hidden></div>
+          <span class="map-caption" aria-hidden="true">一個決定，一天的故事。</span>
+        </div>
+        <div class="travel-strip"><span id="walk-status" aria-live="polite">每回合選一個主要行動，角色會自己出發。</span><button id="skip-animation" data-action="skip" hidden>略過動畫 →</button></div>
+        <div class="town-notice"><span class="notice-symbol" aria-hidden="true">↗</span><div><span class="eyebrow" id="news-label">街角消息</span><p id="town-news">你忙著準備的時候，對手也在安排自己的行程。</p></div></div>
+        <div class="preparation-strip"><span class="eyebrow">隨身資料</span><div id="knowledge">還沒準備議題</div><span id="team-summary">獨自出發</span></div>
+      </section>
+      <aside id="interaction" class="interaction" tabindex="-1" aria-label="今天的行動與結果"><div id="panel"></div></aside>
+    </div>
+  </main>
+  <footer><p>臺北市文山區・木柵。地圖為示意；NPC、問題情境、支持與選情均為遊戲虛構。</p><p>1,000 名合成選民、19 人競逐 13 席的縮小情境；性別保障與競選補貼未模擬。<button class="text-button" data-action="rules">情境與規則 ↗</button><a href="legacy-v7/index.html">保留的市場日 v7 ↗</a></p></footer>
+  <div id="dialog-overlay" class="dialog-overlay" hidden><section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1"><div class="dialog-top"><h2 id="dialog-title"></h2><button data-action="close" id="close-dialog" aria-label="關閉視窗">×</button></div><div id="dialog-body"></div></section></div>
+  <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+  <noscript><p class="notice">這個互動遊戲需要 JavaScript。開啟後重新載入即可開始。</p></noscript>
+</body>
+</html>
