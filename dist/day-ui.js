@@ -1,4 +1,4 @@
-/* Campaign v10.2 one-click new-campaign controller: one committed action per day, optional animation, no manual walking. */
+/* Campaign v10.3 one-click new-campaign controller: one committed action per day, optional animation, no manual walking. */
 (function () {
   'use strict';
   const G = window.DayGame, Art = window.DayArt, $ = id => document.getElementById(id);
@@ -288,7 +288,10 @@
     const r=state.result;
     const endings={elected:['你當選了。','進入本局 '+r.seats+' 席名單，保證金返還。'],refunded:['落選，但保證金返還。','得票達本局返還門檻，保留下一次的可能。'],forfeited:['落選，保證金沒收。','得票未達本局返還門檻；未花完的競選款仍留在帳上。']};
     const ending=endings[r.outcome]||['本局已開票。','查看完整票數與資金結算。'];
-    return panel(G.DAYS+' 回合 · 開票結算','虛構縮小情境','<span class="ending-tag '+esc(r.outcome)+'">'+({elected:'當選',refunded:'落選・退保證金',forfeited:'落選・沒收保證金'}[r.outcome]||'已結算')+'</span><h2>'+ending[0]+'</h2><p>'+ending[1]+'</p><div class="result-stats"><div>本局得票<strong>'+r.playerVotes+' 票</strong></div><div>19 人中排名<strong>第 '+r.rank+' 名</strong></div><div>競選帳餘額<strong>'+wan(r.cash)+'</strong></div><div>'+(r.refunded?'返還保證金':'沒收保證金')+'<strong>'+wan(r.refunded||r.forfeited)+'</strong></div></div><p class="microcopy">'+r.eligible.toLocaleString('zh-TW')+' 名合成選民、19 名虛構候選人競逐 '+r.seats+' 席。本局未當選者返還門檻 '+r.refundThreshold+' 票。</p><button class="primary-button" data-action="tally">看完整開票與結算依據 →</button><p class="reflection">'+esc(r.reflection)+'</p>'+eventSummary(r.eventSummary)+(r.pending?.length?'<h3>還要交代的事</h3>'+promises(r.pending):'')+'<button class="secondary-button" data-action="journal">回看各回合行動</button><button class="text-button" data-action="restart">新的一局</button><p class="microcopy">遊戲即時返還不代表現實入帳時間。性別保障、競選補貼未模擬；獻金不是私人利潤。</p>');
+    const newGame='<button class="primary-button result-new-game" data-action="restart">新的一局 →</button><p class="commit-reason">立即換情境，直接開始第 1 回合。</p>';
+    const summary='<section class="ending-summary"><span class="ending-tag '+esc(r.outcome)+'">'+({elected:'當選',refunded:'落選・退保證金',forfeited:'落選・沒收保證金'}[r.outcome]||'已結算')+'</span><h2>'+ending[0]+'</h2><p>'+ending[1]+'</p><button class="primary-button ending-inline-restart" data-action="restart">新的一局 →</button></section>';
+    const stats='<div class="result-stats"><div>本局得票<strong>'+r.playerVotes+' 票</strong></div><div>19 人中排名<strong>第 '+r.rank+' 名</strong></div><div>競選帳餘額<strong>'+wan(r.cash)+'</strong></div><div>'+(r.refunded?'返還保證金':'沒收保證金')+'<strong>'+wan(r.refunded||r.forfeited)+'</strong></div></div>';
+    return panel(G.DAYS+' 回合 · 開票結算','試玩 10.3',summary+stats+'<p class="microcopy">'+r.eligible.toLocaleString('zh-TW')+' 名合成選民、19 名虛構候選人競逐 '+r.seats+' 席。本局未當選者返還門檻 '+r.refundThreshold+' 票。</p><button class="secondary-button" data-action="tally">看完整開票與結算依據 →</button><details class="ending-details"><summary>回顧本局與待辦</summary><p class="reflection">'+esc(r.reflection)+'</p>'+eventSummary(r.eventSummary)+(r.pending?.length?'<h3>還要交代的事</h3>'+promises(r.pending):'')+'<button class="secondary-button" data-action="journal">回看各回合行動</button></details><p class="microcopy">遊戲即時返還不代表現實入帳時間。性別保障、競選補貼未模擬；獻金不是私人利潤。</p>',newGame,true);
   }
   function sceneLine(text) {
     const raw=String(text||''),quote=raw.includes('「')?raw.slice(raw.indexOf('「')+1).replace(/」$/,''):raw,chars=Array.from(quote);

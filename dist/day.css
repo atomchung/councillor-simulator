@@ -206,3 +206,11 @@ summary:focus-visible{outline:3px solid #d27b35;outline-offset:3px}
 
 /* v10.2: restart stays available inside optional records without another confirmation. */
 .dialog-top .dialog-new-game{flex:0 0 auto;min-height:44px;padding:8px 10px;font-size:13px;font-weight:700;border:1px solid var(--line);border-radius:8px;white-space:nowrap}
+
+/* v10.3: new campaign is the ending's primary action, never buried under history. */
+.ending-summary .ending-inline-restart{display:block;width:100%;min-height:48px;margin:12px 0 15px;font-size:16px}
+.ending-details{margin:16px 0;padding-top:12px;border-top:1px solid var(--line)}
+.ending-details>summary{cursor:pointer;font-size:13px;font-weight:700}
+.interaction[data-phase="result"] .panel-primary{flex-shrink:0}
+@media(min-width:1024px){.interaction[data-phase="result"] .panel-primary{position:sticky;top:0;bottom:auto}.interaction[data-phase="result"] .panel-content{min-height:0;overflow-y:auto}}
+@media(max-width:1023px){.interaction[data-phase="result"]{margin-bottom:calc(130px + env(safe-area-inset-bottom,0px))}.interaction[data-phase="result"] .panel-primary{position:fixed;top:auto;bottom:0}.interaction[data-phase="result"] .panel-primary .primary-button{min-height:48px}.interaction[data-phase="result"] .panel-primary .commit-reason{margin:6px 0 0}}

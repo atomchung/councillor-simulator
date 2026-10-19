@@ -1,4 +1,4 @@
-模擬市議員 v10.2.0 release files
+模擬市議員 v10.3.0 release files
 .gitignore
 FILE_LIST.txt
 GAME_DESIGN.md

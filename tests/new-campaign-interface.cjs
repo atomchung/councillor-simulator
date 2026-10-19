@@ -27,4 +27,15 @@ for(const reduced of [false,true]){
 }
 const noStorage=harness({}, {storageError:true});noStorage.click({action:'restart'});eq(noStorage.state().phase,'plan','storage failure still starts game');eq(noStorage.state().budget.available,740000,'storage failure budget');ok(!noStorage.elements['save-warning'].hidden,'storage warning honest');
 ok(html.includes('>新的一局</button>'),'visible name');const ui=fs.readFileSync(root+'/day-ui.js','utf8');ok(!ui.includes("if(type==='restart')")&&!ui.includes('data-action="confirm-restart"'),'no restart confirmation flow');ok(!ui.includes('setTimeout'),'no stale timeout source introduced');
+// Restored long endings must expose a new-campaign action before, and outside, scrollable history.
+const completed=G.initial(73);G.start(completed);for(let i=0;i<G.DAYS;i++){G.begin(completed,'fundraise');G.arrive(completed);G.next(completed);}
+completed.result.pending=Array.from({length:25},(_,i)=>({topic:'access',status:'pending',text:'LONG-OLD-PROMISE-'+i,recipient:'虛構居民',due:'後續回覆',responses:[{day:2,quote:'原話保留'}]}));
+for(const width of [320,390,1366]){
+ const h=harness({[KEY]:JSON.stringify(completed)}, {width}),markup=h.panel(),primary=markup.indexOf('class="panel-primary primary-top"'),content=markup.indexOf('class="panel-content"'),inline=markup.indexOf('ending-inline-restart'),history=markup.indexOf('LONG-OLD-PROMISE-0');
+ eq(h.state().phase,'result','old completed save remains completed until requested');ok(primary>=0&&primary<content,'new game primary outside scrollable result '+width);ok(inline>=0&&inline<history,'inline new game precedes long history '+width);ok(markup.includes('<details class="ending-details"><summary>'),'old history collapsed by default');ok(markup.includes('試玩 10.3'),'ending shows current UI version');
+ for(const cls of ['result-new-game','ending-inline-restart']){
+  const a=harness({[KEY]:JSON.stringify(completed)}, {width}),re=new RegExp('<button[^>]*class="[^"]*'+cls+'[^>]*data-action="restart"[^>]*>'),match=a.panel().match(re);ok(match,'real ending button rendered '+cls);const node={dataset:{action:'restart'},disabled:false,closest(){return this;}};a.doc.emit('click',{target:node,detail:1});eq(a.state().day,1,'ending button resets '+cls);eq(a.state().phase,'plan','ending button directly plays '+cls);eq(a.state().budget.available,740000,'ending button salary once '+cls);ok(a.elements['dialog-overlay'].hidden,'ending button no dialog '+cls);
+ }
+}
+const paths=[...html.matchAll(/(?:src|href)="(day[^"?]+)\?v=([^"&]+)"/g)];eq(paths.length,5,'all runtime entry assets versioned');ok(paths.every(m=>m[2]==='10.3.0'),'entry assets share build version');for(const m of paths)ok(fs.existsSync(root+'/'+m[1]),'versioned file exists '+m[1]);ok(html.includes('name="game-build" content="10.3.0"'),'HTML build identifiable');
 console.log(JSON.stringify({result:'passed',checks,scope:'One-click fresh campaign across intro, plan, travel, performance, question, recap and result; optional dialogs, duplicate/stale clicks, payroll once, reload and legacy keys. DOM/controller only, not browser/time validation.'}));

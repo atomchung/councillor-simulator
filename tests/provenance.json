@@ -6,11 +6,11 @@
     "dist/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/day-engine.js": "148a81a003c57642b746489398c559b50fe118628f7fbc0f55d5d9b61f867d9d",
     "dist/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
-    "dist/day-ui.js": "9f4c3b8b50e0a0eeb267bc69cde1cc8d943094e1e8e0be3e8022f5112ce821eb",
-    "dist/day.css": "969fa8dc2398c228164c1221ff6f1a6d8f9aaf4936a79042288a75cfd94ce6b8",
+    "dist/day-ui.js": "14d700b43f0135beea0eec56d4df30bfcf8c3c04864731e3899444d1edc08234",
+    "dist/day.css": "af850e2d1dc20133e0ddfe4ccf60fe05a8b1dc10ad63d1a04e331304eae29028",
     "dist/engine.js": "a36e44f51e476fcd2452b638fd7aaccbd503f0c471d050d5bb9832ec7c78af31",
     "dist/game.js": "ab2b8f918704348fcc5b172753c6d59a18148296b8feeba4eedd8191c157ce37",
-    "dist/index.html": "5fa8b4ba18429305a10ea1953e065a4fc4fee31fcc9894358280441f112c6d0c",
+    "dist/index.html": "8a34d7bae6beedc1c105cb2612943f66d279807958d9587192eeafdd6cbf9ec8",
     "dist/legacy-v10/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/legacy-v10/day-engine.js": "6001069f1544b04d873d10f4acce57bfef46994d45c36b283bbe6ad6ba41cde5",
     "dist/legacy-v10/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
@@ -91,8 +91,8 @@
     "dist/walking.js": "3d9d81f30891de662c446e6b04fbe70ac28a1c44c8b721f0668b3f3fd69215f0"
   },
   "export_only_changes": [
-    "Local README, GAME_DESIGN, launch scripts, export integrity test and package scripts added.",
-    "Two test-only git provenance loops replaced by SHA256 checks; all playable dist files are byte-identical to the source commit."
+    "v10.2.0 export: local README, GAME_DESIGN, launch scripts, export integrity test and package scripts were added.",
+    "v10.2.0 export: two test-only git provenance loops were replaced by SHA-256 checks; at that release, all playable dist files matched the source runtime."
   ],
   "excluded": [
     ".git",
@@ -103,5 +103,18 @@
     "private user data",
     "deployment archives",
     "internal operational files"
+  ],
+  "runtime_updates": [
+    {
+      "version": "10.3.0",
+      "base_runtime_source": "3cbd6b7d0c24a300b0d9122423ae74cf435f77b7",
+      "updated_runtime_source": "47babc64f8610545c3cdf3eb55b34645359b3ede",
+      "modified_runtime_files": [
+        "dist/index.html",
+        "dist/day-ui.js",
+        "dist/day.css"
+      ],
+      "other_runtime_files": "Unchanged from the v10.2.0 export."
+    }
   ]
 }
