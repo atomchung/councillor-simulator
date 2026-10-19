@@ -4,13 +4,13 @@
     "dist/campaign-ui.js": "dea5cafe880c524d49f18f97eefc184c4a5985425a0088687d8d1cc5b7f13d7f",
     "dist/campaign.css": "192192709b6a21b349c99a7167ccc5c6513bc81142480a265266899bef3b85e0",
     "dist/day-art.js": "f5b7c48e188325da5ba61022d9e9e950343674d09832adac38a2b7afc21aef82",
-    "dist/day-engine.js": "c27ce2797e3213ff7bb66bc22b95e15a379d3f7e137e168cb02c9e722a7dc827",
+    "dist/day-engine.js": "299debb771e8941aa95e75e72373a28e939eea524585764e7af572faf675d707",
     "dist/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
-    "dist/day-ui.js": "5cea0cc03158f55635b9af67ca152f456fe518f2b9f76062fe066a59e34b7c5a",
-    "dist/day.css": "fbf83e272f68401c8f37deb119d27f64035dcf0f1edf648daef60201fb957a82",
+    "dist/day-ui.js": "628e659d49f57fde525a962e596e6a3db26b9b80c6f2135ec64c46b1ac9390f6",
+    "dist/day.css": "bf45f847759c94b2d74852eaa6b4474e3655e3291661b230f69ebbf1349bd0ef",
     "dist/engine.js": "a36e44f51e476fcd2452b638fd7aaccbd503f0c471d050d5bb9832ec7c78af31",
     "dist/game.js": "ab2b8f918704348fcc5b172753c6d59a18148296b8feeba4eedd8191c157ce37",
-    "dist/index.html": "da6abc8be26ff71d802c1617935eb93cd484077bce7e7f7005be227215bdfb31",
+    "dist/index.html": "a30c0c826e784fb31efb62c0336e34115adedbb4e1b940b92a17d56cb3085b2e",
     "dist/legacy-v10/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/legacy-v10/day-engine.js": "6001069f1544b04d873d10f4acce57bfef46994d45c36b283bbe6ad6ba41cde5",
     "dist/legacy-v10/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
@@ -94,7 +94,13 @@
     "dist/legacy-v10-3/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/legacy-v10-3/day-ui.js": "9d08afb778f0c965a4c2a42fb35efd474ac34e2f98422ddf87fe17baef94b05a",
     "dist/legacy-v10-3/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
-    "dist/legacy-v10-3/day.css": "af850e2d1dc20133e0ddfe4ccf60fe05a8b1dc10ad63d1a04e331304eae29028"
+    "dist/legacy-v10-3/day.css": "af850e2d1dc20133e0ddfe4ccf60fe05a8b1dc10ad63d1a04e331304eae29028",
+    "dist/legacy-v11/index.html": "a3ed2085fcd4aeca214ffeac169a1e5e25ea8d3c3fa0c5d5dea10a493e9475a0",
+    "dist/legacy-v11/day-engine.js": "c27ce2797e3213ff7bb66bc22b95e15a379d3f7e137e168cb02c9e722a7dc827",
+    "dist/legacy-v11/day-art.js": "f5b7c48e188325da5ba61022d9e9e950343674d09832adac38a2b7afc21aef82",
+    "dist/legacy-v11/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
+    "dist/legacy-v11/day-ui.js": "0e09c18714ab0ad942cf2cf9c1451a1ca01b54a42811d28dd2d630d72f83dfac",
+    "dist/legacy-v11/day.css": "fbf83e272f68401c8f37deb119d27f64035dcf0f1edf648daef60201fb957a82"
   },
   "export_only_changes": [
     "v10.2.0 export: local README, GAME_DESIGN, launch scripts, export integrity test and package scripts were added.",
@@ -135,6 +141,19 @@
       ],
       "added_legacy_runtime": "dist/legacy-v10-3",
       "other_runtime_files": "All pre-existing legacy runtime and current day-team-art remain unchanged. v10.3 index/controller links adjust relative paths only."
+    },
+    {
+      "version": "12.0.0",
+      "base_runtime_source": "4cdac98e065b31b661761a23ac24f77e70c2459c",
+      "updated_runtime_source": "this repository (v12 developed here on top of the v11 runtime)",
+      "modified_runtime_files": [
+        "dist/day-engine.js",
+        "dist/day-ui.js",
+        "dist/day.css",
+        "dist/index.html"
+      ],
+      "added_legacy_runtime": "dist/legacy-v11",
+      "other_runtime_files": "All pre-existing legacy runtime, day-art and day-team-art remain unchanged. The v11 index/controller copy adjusts relative links to legacy-v10-3 only."
     }
   ]
 }

@@ -5,6 +5,8 @@
 const G=require('../dist/day-engine');
 const EVAL_SEEDS=Number(process.env.BALANCE_SEEDS||300),SEARCH_SEEDS=Number(process.env.BALANCE_SEARCH_SEEDS||40);
 const LIMITS={fixedMax:.60,adaptiveMargin:.15,nearBest:.10,distinctRoutes:3,distinctMix:.6,randomMax:.15};
+// BALANCE_TUNING='{"careMiss":-0.05}' overrides engine tuning for one run while searching for values; never commit with it set.
+if(process.env.BALANCE_TUNING&&G.TUNING){const deep=(t,o)=>{for(const[k,v]of Object.entries(o))if(v&&typeof v==='object'&&!Array.isArray(v))deep(t[k],v);else t[k]=v;};deep(G.TUNING,JSON.parse(process.env.BALANCE_TUNING));}
 const ACTION_IDS=G.ACTIONS.map(a=>a.id),VENUE_IDS=Object.keys(G.VENUES);
 const range=(start,n)=>Array.from({length:n},(_,i)=>start+i),evalSeeds=range(1,EVAL_SEEDS),searchSeeds=range(10001,SEARCH_SEEDS);
 
@@ -12,7 +14,8 @@ const range=(start,n)=>Array.from({length:n},(_,i)=>start+i),evalSeeds=range(1,E
 function own(s){const answered={};for(const a of s.player.actions)if(a.answer)answered[a.topic]=a.answer;return{round:s.day,cash:s.budget.available,known:[...s.player.known],answered,team:(s.player.team?.members||[]).length,topics:G.availableTopics(s).map(t=>t.id)};}
 // An adaptive policy may also read what the plan screen shows before the decision. When a version adds
 // visible information (forecast, credibility, residents, turnout polls), add it here and nothing hidden.
-function visible(s){const last=s.journal.at(-1);return{...own(s),polls:s.polls.map(p=>({round:p.day,percentages:[...p.percentages]})),rivalLast:last?{action:last.rival.action,topic:last.rival.topic}:null,residents:Object.values(s.player.residents||{}).map(r=>({id:r.id,name:r.name,topic:r.topic,attitude:r.attitude,lastAnswer:r.lastAnswer})),events:G.eventView(s),cooperation:{contract:s.settings.contract,remaining:s.cooperation.remaining}};}
+function visible(s){const last=s.journal.at(-1);return{...own(s),polls:s.polls.map(p=>({round:p.day,percentages:[...p.percentages]})),rivalLast:last?{action:last.rival.action,topic:last.rival.topic}:null,residents:Object.values(s.player.residents||{}).map(r=>({id:r.id,name:r.name,topic:r.topic,attitude:r.attitude,lastAnswer:r.lastAnswer})),events:G.eventView(s),cooperation:{contract:s.settings.contract,remaining:s.cooperation.remaining},
+ forecast:G.forecast?.(s)||null,credibility:s.player.credibility??null,landscape:G.landscapeView?.(s)||null,rumor:G.rumorView?.(s)||null,challenges:G.pendingChallenges?.(s)||[],outlook:G.outlook?.(s)||null};}
 
 const isPlan=o=>!['honest','guarantee'].includes(o.id)&&!o.id.startsWith('tip_');
 function pick(q,rule){const open=q.options.filter(o=>o.unlocked),plans=open.filter(isPlan),plan=plans[0],by=id=>open.find(o=>o.id===id),order={'plan>guarantee':[plan,by('guarantee')],'planB>guarantee':[plans.at(-1),by('guarantee')],'plan>honest':[plan,by('honest')],guarantee:[by('guarantee'),plan],honest:[by('honest'),plan]}[rule]||[plan];return(order.find(Boolean)||by('tip_private')||open[0]).id;}
@@ -38,14 +41,31 @@ const DIAGNOSTICS=[
  route('診斷：全程街訪、不查資料、全部坦白',Array(10).fill(C),{research:false,answer:'honest'}),
 ];
 
-// Adaptive policies read visible() each round. v11 shows little worth reading, so this one is expected to
-// tie the fixed routes; versions that add visible information must add policies that use it.
-const ADAPTIVE=[{kind:'adaptive',name:'看現金與民調調整電視和募款',decide(s){
- const v=visible(s),topic=freshTopic(v),config={venue:VENUE_IDS[0],topic,teamMode:v.known.includes(topic)?'together':'research'},count=id=>s.player.actions.filter(a=>a.action===id).length;
- const polls=v.polls.slice(-2),slipping=polls.length===2&&polls[1].percentages[0]<polls[0].percentages[0];
- let action=count('tv')<=count('canvass')&&!slipping?'tv':'canvass';
- if(action==='tv'&&!G.preview(s,'tv',config).allowed)action=v.round<=8&&v.cash<120000?'fundraise':'canvass';
- return{action,config,answer:q=>pick(q,'plan>guarantee')};}}];
+// Adaptive policies read visible() each round: issue ranking from the poll, research results, the rival
+// rumour, open challenges with deadlines, the forecast and cash. They never read voters' hidden preferences.
+const plansOf=t=>G.TOPICS[t]?.plans||[],venueFor=t=>VENUE_IDS.find(v=>G.VENUES[v].topics.includes(t))||VENUE_IDS[0];
+function majority(v,t){const ins=v.landscape?.insight?.[t];return ins&&(ins.level==='precise'||!ins.close)?plansOf(t)[ins.side]?.id||null:null;}
+function informed(q,v,topic){const open=q.options.filter(o=>o.unlocked),by=id=>open.find(o=>o.id===id),want=majority(v,topic);if(want&&by(want))return want;return(by('honest')||open.find(isPlan)||by('tip_private')||open[0]).id;}
+function ranked(v){const share=t=>(v.landscape?.ranking?.find(r=>r.topic===t)?.share||0)*(v.landscape?.surge?.status==='active'&&v.landscape.surge.topic===t?1.5:1),clarity=t=>{const i=v.landscape?.insight?.[t];return!i?.75:i.level==='precise'||!i.close?1:.4;};return v.topics.filter(t=>t!=='tip').sort((a,b)=>share(b)*clarity(b)-share(a)*clarity(a));}
+function situational(s,{prepares=0,fundraises=1,tvFirst=false,recruits=0}={}){
+ const v=visible(s),count=id=>s.player.actions.filter(a=>a.action===id).length,due=v.challenges.find(c=>c.roundsLeft<=1),order=ranked(v);
+ let topic=due?.topic||order[0];
+ if(!due&&v.rumor?.topic&&v.answered[v.rumor.topic]&&majority(v,v.rumor.topic))topic=v.rumor.topic;
+ const research=t=>v.known.includes(t)?'together':'research',done=(action,t=topic)=>({action,config:{topic:t,venue:venueFor(t),teamMode:['tv','canvass'].includes(action)?research(t):'together'},answer:q=>informed(q,visible(s),t)});
+ if(!due&&count('recruit')<recruits&&v.round<=2)return done('recruit');
+ const shaky=order.slice(0,3).find(t=>v.landscape?.insight?.[t]?.level!=='precise');
+ if(!due&&shaky&&count('prepare')<prepares)return done('prepare',shaky);
+ const canTV=G.preview(s,'tv',{topic,teamMode:research(topic)}).allowed,rain=v.forecast?.now?.id==='rain';
+ if(canTV&&(tvFirst||rain||count('tv')<=count('canvass')))return done('tv');
+ if(!canTV&&v.round<=8&&count('fundraise')<fundraises&&v.cash<180000)return done('fundraise');
+ return done('canvass');
+}
+const ADAPTIVE=[
+ {kind:'adaptive',name:'讀風向：電視與街訪交替',decide:s=>situational(s)},
+ {kind:'adaptive',name:'做功課：先親自準備熱門議題',decide:s=>situational(s,{prepares:4,fundraises:0})},
+ {kind:'adaptive',name:'募款加碼：電視最大化',decide:s=>situational(s,{fundraises:3,tvFirst:true})},
+ {kind:'adaptive',name:'地面戰：先擴編再街訪',decide:s=>situational(s,{recruits:2,fundraises:0})},
+];
 
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
 function randomPolicy(){let r=Math.random;return{kind:'random',name:'完全隨機',reset(seed){r=mulberry(seed*7919+13);},decide(s){const ids=[...ACTION_IDS];for(let i=ids.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}const config={venue:VENUE_IDS[Math.floor(r()*VENUE_IDS.length)],teamMode:['together','research','canvass'][Math.floor(r()*3)]};return{action:ids.find(id=>G.preview(s,id,config).allowed)||F,config,answer:q=>{const open=q.options.filter(o=>o.unlocked);return open[Math.floor(r()*open.length)].id;}};}};}
@@ -91,6 +111,7 @@ const criteria=[
  {id:'distinct-routes',rule:'至少 3 條不同路線在最佳值 10 個百分點內',value:distinct.length,limit:LIMITS.distinctRoutes,pass:distinct.length>=LIMITS.distinctRoutes,routes:distinct.map(d=>d.name)},
  {id:'random-max',rule:'完全隨機當選率不超過 15%',value:pct(random.win),limit:pct(LIMITS.randomMax),pass:random.win<=LIMITS.randomMax}];
 console.table(results.map(r=>({類型:r.kind,打法:r.name,當選率:pct(r.win)+'%',平均票數:Math.round(r.votes*10)/10})));
+if(process.env.BALANCE_DEBUG)for(const r of contenders.filter(r=>r.win>=bestWin-.2))console.log(pct(r.win),r.name,JSON.stringify(Object.fromEntries(Object.entries(r.mix).map(([k,n])=>[k,Math.round(n*100)/100]))),distinct.map(d=>Math.round(distance(d.mix,r.mix)*100)/100).join('/'));
 const passed=criteria.every(c=>c.pass);
 console.log(JSON.stringify({result:passed?'passed':'failed',engine:G.REVISION,evalSeeds:EVAL_SEEDS,searchSeeds:SEARCH_SEEDS,criteria,scope:'Scripted engine policies on fixed seeds with default settings; a search that finds no dominant route does not prove none exists. Not browser, fun or play-time validation.'}));
 if(!passed)process.exitCode=1;

@@ -1,4 +1,4 @@
-模擬市議員 v11.0.0 release files
+模擬市議員 v12.0.0 release files
 .gitignore
 CONTRIBUTING.md
 FILE_LIST.txt
@@ -31,6 +31,12 @@ dist/legacy-v10/day-team-art.js
 dist/legacy-v10/day-ui.js
 dist/legacy-v10/day.css
 dist/legacy-v10/index.html
+dist/legacy-v11/day-art.js
+dist/legacy-v11/day-engine.js
+dist/legacy-v11/day-team-art.js
+dist/legacy-v11/day-ui.js
+dist/legacy-v11/day.css
+dist/legacy-v11/index.html
 dist/legacy-v5/engine.js
 dist/legacy-v5/game.js
 dist/legacy-v5/index.html
@@ -109,6 +115,7 @@ start.command
 tests/export-integrity.cjs
 tests/fixtures/v10-3-runtime-hashes.json
 tests/fixtures/v10-before-venues.json
+tests/fixtures/v11-runtime-hashes.json
 tests/month-engine.cjs
 tests/month-interface.cjs
 tests/month-readability.cjs
@@ -117,5 +124,7 @@ tests/provenance.json
 tests/strategy-balance.cjs
 tests/v11-engine.cjs
 tests/v11-interface.cjs
+tests/v12-engine.cjs
+tests/v12-interface.cjs
 tests/venue-engine.cjs
 tests/venue-interface.cjs

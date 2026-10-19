@@ -1,7 +1,7 @@
 'use strict';
 // Runs shipping engine, artwork and controller in a minimal DOM. This is not a browser render.
 const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
-const root=path.resolve(__dirname,'../dist'),html=fs.readFileSync(root+'/index.html','utf8'),css=fs.readFileSync(root+'/day.css','utf8'),G=require(root+'/day-engine.js');
+const root=path.resolve(__dirname,'../dist/legacy-v11'),html=fs.readFileSync(root+'/index.html','utf8'),css=fs.readFileSync(root+'/day.css','utf8'),G=require(root+'/day-engine.js');
 const ids=[...html.matchAll(/id="([^"]+)"/g)].map(m=>m[1]);assert.equal(ids.length,new Set(ids).size,'unique document IDs');
 let assertions=0;const check=(v,t)=>{assert.ok(v,t);assertions++;},equal=(a,b,t)=>{assert.deepEqual(a,b,t);assertions++;};
 const clone=x=>JSON.parse(JSON.stringify(x)),KEY='wenshan-campaign-v11';
