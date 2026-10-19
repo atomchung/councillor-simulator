@@ -203,3 +203,6 @@ summary:focus-visible{outline:3px solid #d27b35;outline-offset:3px}
 
 /* Keep venue-adaptive bubbles inside even the narrowest desktop scene column. */
 .conversation-bubble{min-width:0}
+
+/* v10.2: restart stays available inside optional records without another confirmation. */
+.dialog-top .dialog-new-game{flex:0 0 auto;min-height:44px;padding:8px 10px;font-size:13px;font-weight:700;border:1px solid var(--line);border-radius:8px;white-space:nowrap}

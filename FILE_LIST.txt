@@ -1,4 +1,4 @@
-模擬市議員 v10.1.0 release files
+模擬市議員 v10.2.0 release files
 .gitignore
 FILE_LIST.txt
 GAME_DESIGN.md
@@ -102,6 +102,7 @@ tests/fixtures/v10-before-venues.json
 tests/month-engine.cjs
 tests/month-interface.cjs
 tests/month-readability.cjs
+tests/new-campaign-interface.cjs
 tests/provenance.json
 tests/venue-engine.cjs
 tests/venue-interface.cjs

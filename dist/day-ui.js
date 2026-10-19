@@ -1,4 +1,4 @@
-/* Campaign v10 monthly-budget controller: one committed action per day, optional animation, no manual walking. */
+/* Campaign v10.2 one-click new-campaign controller: one committed action per day, optional animation, no manual walking. */
 (function () {
   'use strict';
   const G = window.DayGame, Art = window.DayArt, $ = id => document.getElementById(id);
@@ -288,7 +288,7 @@
     const r=state.result;
     const endings={elected:['你當選了。','進入本局 '+r.seats+' 席名單，保證金返還。'],refunded:['落選，但保證金返還。','得票達本局返還門檻，保留下一次的可能。'],forfeited:['落選，保證金沒收。','得票未達本局返還門檻；未花完的競選款仍留在帳上。']};
     const ending=endings[r.outcome]||['本局已開票。','查看完整票數與資金結算。'];
-    return panel(G.DAYS+' 回合 · 開票結算','虛構縮小情境','<span class="ending-tag '+esc(r.outcome)+'">'+({elected:'當選',refunded:'落選・退保證金',forfeited:'落選・沒收保證金'}[r.outcome]||'已結算')+'</span><h2>'+ending[0]+'</h2><p>'+ending[1]+'</p><div class="result-stats"><div>本局得票<strong>'+r.playerVotes+' 票</strong></div><div>19 人中排名<strong>第 '+r.rank+' 名</strong></div><div>競選帳餘額<strong>'+wan(r.cash)+'</strong></div><div>'+(r.refunded?'返還保證金':'沒收保證金')+'<strong>'+wan(r.refunded||r.forfeited)+'</strong></div></div><p class="microcopy">'+r.eligible.toLocaleString('zh-TW')+' 名合成選民、19 名虛構候選人競逐 '+r.seats+' 席。本局未當選者返還門檻 '+r.refundThreshold+' 票。</p><button class="primary-button" data-action="tally">看完整開票與結算依據 →</button><p class="reflection">'+esc(r.reflection)+'</p>'+eventSummary(r.eventSummary)+(r.pending?.length?'<h3>還要交代的事</h3>'+promises(r.pending):'')+'<button class="secondary-button" data-action="journal">回看各回合行動</button><button class="text-button" data-action="restart">再試一種安排</button><p class="microcopy">遊戲即時返還不代表現實入帳時間。性別保障、競選補貼未模擬；獻金不是私人利潤。</p>');
+    return panel(G.DAYS+' 回合 · 開票結算','虛構縮小情境','<span class="ending-tag '+esc(r.outcome)+'">'+({elected:'當選',refunded:'落選・退保證金',forfeited:'落選・沒收保證金'}[r.outcome]||'已結算')+'</span><h2>'+ending[0]+'</h2><p>'+ending[1]+'</p><div class="result-stats"><div>本局得票<strong>'+r.playerVotes+' 票</strong></div><div>19 人中排名<strong>第 '+r.rank+' 名</strong></div><div>競選帳餘額<strong>'+wan(r.cash)+'</strong></div><div>'+(r.refunded?'返還保證金':'沒收保證金')+'<strong>'+wan(r.refunded||r.forfeited)+'</strong></div></div><p class="microcopy">'+r.eligible.toLocaleString('zh-TW')+' 名合成選民、19 名虛構候選人競逐 '+r.seats+' 席。本局未當選者返還門檻 '+r.refundThreshold+' 票。</p><button class="primary-button" data-action="tally">看完整開票與結算依據 →</button><p class="reflection">'+esc(r.reflection)+'</p>'+eventSummary(r.eventSummary)+(r.pending?.length?'<h3>還要交代的事</h3>'+promises(r.pending):'')+'<button class="secondary-button" data-action="journal">回看各回合行動</button><button class="text-button" data-action="restart">新的一局</button><p class="microcopy">遊戲即時返還不代表現實入帳時間。性別保障、競選補貼未模擬；獻金不是私人利潤。</p>');
   }
   function sceneLine(text) {
     const raw=String(text||''),quote=raw.includes('「')?raw.slice(raw.indexOf('「')+1).replace(/」$/,''):raw,chars=Array.from(quote);
@@ -452,7 +452,6 @@
     if(type==='events'){title=extra==='tip'?'線索與查證紀錄':'本局事件紀錄';body=eventsMarkup(extra);}
     if(type==='journal'){title=G.DAYS+' 回合的行動紀錄';body=journalMarkup();}
     if(type==='dossier'){title=G.TOPICS[extra].title;body='<p>已讀資料，之後可引用。兩種方案都有取捨，不是保證加票的標準答案。</p>'+facts(extra)+'<h3>已解鎖的具體方案</h3>'+(G.TOPICS[extra].plans||[]).map(p=>'<div class="fact"><strong>'+esc(p.text)+'</strong><p>'+esc(p.detail)+'</p></div>').join('')+sourceMarkup((G.RULES.contextSources||[]).filter((_,i)=>i===({access:0,drain:1,welfare:2,sanitation:3,senior:4}[extra])));}
-    if(type==='restart'){title=state.started&&state.phase!=='result'?'重新開始這場競選？':'再排一次競選行程';body='<p>'+(state.started&&state.phase!=='result'?'這一局還沒結束。重玩會覆蓋這一局的競選進度；更早版本的存檔不變。':'選同一情境，比較不同安排；或換一個新的虛構情境。')+'</p><button class="primary-button" data-action="confirm-restart" data-mode="same">'+(state.started&&state.phase!=='result'?'確定重玩，同一情境':'同一情境重玩')+'</button><button class="secondary-button" data-action="confirm-restart" data-mode="new">'+(state.started&&state.phase!=='result'?'確定重玩，換新情境':'換一個新情境')+'</button><button class="text-button" data-action="close">取消，保留這一局</button>';}
     $('dialog-title').textContent=title;$('dialog-body').innerHTML=body;$('dialog-overlay').hidden=false;
     document.querySelector('main').inert=true;document.querySelector('.masthead').inert=true;
     $('world').classList.add('motion-paused');$('dialog').focus({preventScroll:true});
@@ -465,21 +464,23 @@
     const focus=lastFocus&&document.contains(lastFocus)?lastFocus:$('interaction');focus.focus?.({preventScroll:true});lastFocus=null;
     if(motion&&reduced.matches)finishTravel();
   }
-  function restart(mode) {
-    // Cancel old animation before closing a modal; reduced-motion cannot finish an abandoned day.
+  function restart() {
+    // Stop the previous journey before closing a dialog: reduced-motion must not settle the abandoned round.
     clearMotion();closeDialog();
-    let newSeed=mode==='same'?state.seed:seed();if(mode==='new'&&newSeed===state.seed)newSeed=(newSeed+1)>>>0;
-    state=G.initial(newSeed);position={...anchors.start};selectedTopic=null;selectedVenue=null;topicOptionsOpen=false;selectedAction=null;selectedAnswer=null;teamMode='together';responseMode='repeat';optionsOpen=false;error='';lastFrame=null;
-    setPosition();save();render();focusPanel();announce('新一局已重新準備，按開始再出發。');
+    let newSeed=seed();if(newSeed===state.seed)newSeed=(newSeed+1)>>>0;
+    state=G.initial(newSeed);G.start(state);
+    position={...anchors.start};selectedTopic=null;selectedVenue=null;topicOptionsOpen=false;selectedAction=null;selectedAnswer=null;teamMode='together';responseMode='repeat';optionsOpen=false;error='';saveError='';migrationNotice='';lastFrame=null;teamElapsed=0;locked=false;
+    $('dialog-body').innerHTML='';$('world').dataset.action='';$('world').classList.remove('motion-paused');
+    setPosition();save();render();focusPanel(true);announce('新的一局已開始。第 1 回合，可用 74 萬，選一個行動就出發。');
   }
   function focusChoice(selector) { $('panel').querySelector?.(selector)?.focus({preventScroll:true}); }
   function dispatch(data) {
     const settings=$('panel').querySelector?.('.plan-options');if(settings)optionsOpen=settings.open;
     const topicSettings=$('panel').querySelector?.('.topic-options');if(topicSettings)topicOptionsOpen=topicSettings.open;
     if(data.action==='close'){closeDialog();return;}
-    if(data.action==='confirm-restart'&&modal?.type==='restart'&&['same','new'].includes(data.mode)){restart(data.mode);return;}
+    if(data.action==='restart'){restart();return;}
     if(modal)return;
-    if(['budget','poll','journal','restart','dossier','events','tally','rules'].includes(data.action)){openDialog(data.action,data.topic);return;}
+    if(['budget','poll','journal','dossier','events','tally','rules'].includes(data.action)){openDialog(data.action,data.topic);return;}
     if(data.answer&&state.phase==='question'){answer(data.answer);return;}
     if(data.action==='skip'){if(motion)finishTravel();return;}
     if(data.action==='start'&&!state.started){if(G.start(state)){save();render();focusPanel(true);announce('本月兩位夥伴薪資已付，剩餘 74 萬。第一回合開始。');}return;}
@@ -493,7 +494,7 @@
     if(data.action==='confirm-action'){if(selectedAction)begin(selectedAction);return;}
     if(data.action==='next'&&state.phase==='recap'){if(G.next(state)){selectedAction=null;selectedAnswer=null;selectedTopic=null;selectedVenue=null;topicOptionsOpen=false;teamMode='together';responseMode='repeat';optionsOpen=false;if(state.phase==='plan'){position={...anchors.start};setPosition();}save();render();focusPanel(true);announce(state.phase==='result'?'本局虛構開票已結算。':'第 '+state.day+' 回合開始。');}return;}
   }
-  document.addEventListener('click',event=>{const el=event.target.closest('[data-action],[data-answer]');if(el&&!el.disabled)dispatch(el.dataset);});
+  document.addEventListener('click',event=>{const el=event.target.closest('[data-action],[data-answer]');if(el&&!el.disabled&&!(el.dataset.action==='restart'&&event.detail>1))dispatch(el.dataset);});
   $('dialog-overlay').addEventListener('click',event=>{if(event.target===$('dialog-overlay'))closeDialog();});
   $('dialog').addEventListener('keydown',event=>{
     if(!modal)return;
