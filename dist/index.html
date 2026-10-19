@@ -3,29 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="game-build" content="11.0.0">
+  <meta name="game-build" content="12.0.0">
   <meta name="theme-color" content="#214b46">
-  <meta name="description" content="30 天、10 個三日回合，月薪預付、每回合一個主要行動。選擇街區地點與居民對話、準備議題、拜票、上節目、募款或招募夥伴，在原創方塊小鎮裡體驗一場虛構競選並開票結算。">
+  <meta name="description" content="30 天、10 個三日回合，每回合一個主要行動。讀議題風向、查清楚多數人偏好的做法再回答、搶在對手之前回應質疑，在原創方塊小鎮裡體驗一場虛構競選並開票結算。">
   <title>巷口，開始｜競選到開票</title>
-  <link rel="stylesheet" href="day.css?v=11.0.0">
-  <script defer src="day-engine.js?v=11.0.0"></script>
-  <script defer src="day-art.js?v=11.0.0"></script>
-  <script defer src="day-team-art.js?v=11.0.0"></script>
-  <script defer src="day-ui.js?v=11.0.0"></script>
+  <link rel="stylesheet" href="day.css?v=12.0.0">
+  <script defer src="day-engine.js?v=12.0.0"></script>
+  <script defer src="day-art.js?v=12.0.0"></script>
+  <script defer src="day-team-art.js?v=12.0.0"></script>
+  <script defer src="day-ui.js?v=12.0.0"></script>
 </head>
 <body>
   <a class="skip-link" href="#interaction">跳到本回合的行動</a>
   <header class="masthead">
     <a class="wordmark" href="./"><span class="wordmark-block" aria-hidden="true">巷</span><span>巷口，開始<small>FROM STREET TO BALLOT</small></span></a>
-    <span class="edition"><i aria-hidden="true"></i>木柵小鎮 <span>試玩 11</span></span>
+    <span class="edition"><i aria-hidden="true"></i>木柵小鎮 <span>試玩 12</span></span>
     <nav aria-label="遊戲工具"><button data-action="journal">紀錄<span id="journal-count" class="count">0</span></button><span id="global-controls"><button id="new-game" data-action="restart" class="new-game-button" aria-label="新的一局，保留開局設定並直接開始第 1 回合" hidden>新的一局</button></span></nav>
   </header>
   <main>
     <section class="hud" aria-label="競選進度">
       <div class="hud-day"><span class="eyebrow">壓縮競選回合</span><strong id="day-label">第 1 回合<span>／ 10</span></strong><span id="day-dots" class="day-dots" aria-hidden="true"></span></div>
       <button class="hud-money" data-action="budget" aria-label="展開完整預算明細"><span class="eyebrow">競選款・遊戲元 <span aria-hidden="true">↗</span></span><strong id="cash">84 萬</strong><small>預算明細</small></button>
-      <div><span class="eyebrow">準備能說清楚的事</span><strong id="prepared-count">0<span>個議題</span></strong><small>準備資料，解鎖具體方案</small></div>
-      <button class="hud-poll" data-action="poll" aria-label="查看最新虛構民調"><span class="eyebrow">最新虛構民調 <span aria-hidden="true">↗</span></span><strong id="poll-you">尚未抽樣</strong><small id="poll-rival">開始後顯示全選區樣本</small></button>
+      <div class="hud-cred"><span class="eyebrow">可信度</span><strong id="credibility">50<span>／100</span></strong><small id="credibility-note">說清楚、做得到會累積</small></div>
+      <button class="hud-poll" data-action="poll" aria-label="查看選情估計、議題風向與最新虛構民調"><span class="eyebrow">選情・若現在開票 <span aria-hidden="true">↗</span></span><strong id="outlook">開始後估計</strong><small id="seat-line">當選線約 16–22 票</small></button>
     </section>
     <div id="save-warning" class="notice" role="status" hidden></div>
     <div class="game-layout">
@@ -53,7 +53,7 @@
       <aside id="interaction" class="interaction" tabindex="-1" aria-label="本回合的行動與結果"><div id="panel"></div></aside>
     </div>
   </main>
-  <footer><p>臺北市文山區・木柵。地圖為示意；NPC、問題情境、支持與選情均為遊戲虛構。</p><p>1,000 名合成選民、19 人競逐 13 席的縮小情境；性別保障與競選補貼未模擬。<button class="text-button" data-action="rules">情境與規則 ↗</button><a href="legacy-v10-3/index.html">繼續 v10.3 舊局 ↗</a></p></footer>
+  <footer><p>臺北市文山區・木柵。地圖為示意；NPC、問題情境、支持與選情均為遊戲虛構。</p><p>1,000 名合成選民、19 人競逐 13 席的縮小情境；性別保障與競選補貼未模擬。<button class="text-button" data-action="rules">情境與規則 ↗</button><a href="legacy-v11/index.html">繼續 v11 舊局 ↗</a></p></footer>
   <div id="dialog-overlay" class="dialog-overlay" hidden><section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1"><div class="dialog-top"><h2 id="dialog-title"></h2><span id="dialog-tools"></span><button data-action="close" id="close-dialog" aria-label="關閉視窗">×</button></div><div id="dialog-body"></div></section></div>
   <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="notice">這個互動遊戲需要 JavaScript。開啟後重新載入即可開始。</p></noscript>
