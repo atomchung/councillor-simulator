@@ -1,3 +1,2 @@
-模擬市議員 v10.3.0
-Base runtime source: 3cbd6b7d0c24a300b0d9122423ae74cf435f77b7
-Updated runtime source: 47babc64f8610545c3cdf3eb55b34645359b3ede
+模擬市議員 v11.0.0
+Runtime source SHA: 4cdac98e065b31b661761a23ac24f77e70c2459c

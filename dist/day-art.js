@@ -213,6 +213,100 @@
     return s+'</g>';
   }
 
+  function templeGround() {
+    // A new left-hand quarter widens the town instead of consuming the central
+    // crossroads. Its front apron joins the market's already open arrival path.
+    const boundary=[[-195,220],[42,220],[42,510],[-50,510],[-195,440]];
+    const top=boundary.map(p=>P(...p));
+    let s='<g data-place="temple-ground">';
+    for(let i=2;i<boundary.length;i++) {
+      const a=boundary[i],b=boundary[(i+1)%boundary.length];
+      s+=poly([P(...a),P(...b),P(...b,-19),P(...a,-19)],i===3?'#b5c29e':'#aab995');
+    }
+    s+=poly(top,'#d5dbbb');
+    s+=isoTile(-181,245,140,103,'#c3c7a9',2);
+    s+=isoTile(-142,342,176,113,'#e9e1ca',2);
+    s+=isoTile(-25,445,300,40,'#eae3cb',2);
+    s+=isoTile(-130,356,147,84,'#e2d6b9',2.2);
+    // Generous, flush paving. The quiet grid describes a public forecourt;
+    // neither a ceremonial stage nor a campaign gathering occupies this space.
+    for(const u of [-106,-70,-34,2])s+=isoLine(P(u,357,2.3),P(u,438,2.3),'#cbbf9f',.9,'opacity=".65"');
+    for(const v of [378,400,422])s+=isoLine(P(-128,v,2.3),P(17,v,2.3),'#cbbf9f',.9,'opacity=".65"');
+    return s+'</g>';
+  }
+
+  function temple() {
+    // An original, fictional temple: tiled swallowtail eaves, red columns,
+    // timber screens and a roomy, accessible public forecourt. No real temple,
+    // congregation, deity or religious voting preference is being depicted.
+    const u=-175,v=250,w=115,d=85,h=62;
+    let s='<g data-place="temple" data-landmark="廟前廣場">';
+    s+=isoBox(u-6,v-5,w+12,d+13,5,'#c5c3ab','#aba991','#969b83',2);
+    s+=isoBox(u,v,w,d,h,'#d9b989','#e6cba3','#bb9773',7);
+    // Open central passage and timber lattice panels on either side.
+    s+=front(u+40,v+d+.4,35,7,45,'#5c5c4b');
+    s+=front(u+46,v+d+.6,23,7,40,'#84775b');
+    s+=front(u+48,v+d+.8,19,7,33,'#bba887');
+    for(const a of [u+9,u+85]){
+      s+=front(a,v+d+.5,21,17,28,'#926a4f');
+      s+=front(a+2,v+d+.8,17,19,24,'#b39970');
+      for(let j=1;j<4;j++)s+=isoLine(P(a+2+j*4.2,v+d+1,19),P(a+2+j*4.2,v+d+1,43),'#785a45',1.2);
+      for(const z of [26,34])s+=isoLine(P(a+2,v+d+1,z),P(a+19,v+d+1,z),'#785a45',1.2);
+    }
+    for(const b of [v+14,v+44]){
+      s+=side(u+w+.3,b,24,20,25,'#785e4a');
+      s+=side(u+w+.5,b+3,18,23,19,'#c1a77d');
+      for(let j=1;j<3;j++)s+=isoLine(P(u+w+.7,b+3+j*6,23),P(u+w+.7,b+3+j*6,42),'#866348',1.1);
+    }
+    // Square red columns sit in the same shallow projection as the people.
+    for(const a of [u+3,u+34,u+78,u+w-7]){
+      s+=isoBox(a,v+d+3,7,7,5,'#c0b895','#a39c80','#898f75',2);
+      s+=isoBox(a+1,v+d+4,5,5,53,'#aa6b4b','#a25640','#7f483b',7);
+      s+=isoBox(a-1,v+d+2,9,9,4,'#c8a273','#b28758','#906b47',58);
+    }
+    s+=front(u-2,v+d+5,w+4,55,8,'#9b5d43');
+    s+=front(u+24,v+d+5.2,68,39,15,'#5b715d');
+    s+=frontLabel(u+28,v+d+5.5,43,'廟前廣場',12.7,'#fff0c5');
+    // Broad faceted roof with gently upturned ends and two visible tile bands.
+    const backL=P(u-11,v-9,h+5),backR=P(u+w+11,v-9,h+5),
+      ridgeL=P(u-9,v+d*.46,h+29),ridgeR=P(u+w+9,v+d*.46,h+29),
+      frontL=P(u-14,v+d+15,h+12),frontR=P(u+w+14,v+d+15,h+12),
+      lowL=P(u+8,v+d+11,h+2),lowR=P(u+w-8,v+d+11,h+2);
+    s+=poly([backL,backR,ridgeR,ridgeL],'#b5825c');
+    s+=poly([ridgeL,ridgeR,frontR,lowR,lowL,frontL],'#b66e4d');
+    s+=poly([backR,ridgeR,frontR,P(u+w+8,v+d*.55,h+5)],'#8e5540');
+    for(let i=0;i<12;i++) {
+      const a=u-3+i*10;
+      s+=isoLine(P(a,v+d*.46,h+28),P(a,v+d+10,h+3),'#d39363',1.15,'opacity=".8"');
+    }
+    for(const t of [.36,.68]) {
+      const z=(h+28)*(1-t)+(h+3)*t,b=v+d*.46+(d+10-d*.46)*t;
+      s+=isoLine(P(u+2,b,z),P(u+w-2,b,z),'#9e583e',1.3);
+    }
+    s+=path('M'+frontL.join(' ')+'Q'+P(u-2,v+d+14,h-2).join(' ')+' '+lowL.join(' ')+'L'+lowR.join(' ')+'Q'+P(u+w+2,v+d+14,h-2).join(' ')+' '+frontR.join(' '),'#805140',4,'stroke-linejoin="round"');
+    s+=isoLine(ridgeL,ridgeR,'#d4ae75',4);
+    // Small abstract ridge flourishes: recognisably local roof craft, no emblem.
+    for(const [a,dir] of [[u-9,-1],[u+w+9,1]]){
+      const [x,y]=P(a,v+d*.46,h+29);
+      s+=path(`M${x} ${y} q${dir*10} -1 ${dir*14} -12 q${-dir*1} 8 ${dir*5} 10`,'#b98c57',3,'stroke-linecap="round"');
+    }
+    // A flush side ramp meets the raised threshold; thin rails make the
+    // accessibility detail visible without occupying the arrival square.
+    s+=poly([P(-72,334,7),P(-52,334,7),P(-52,381,2),P(-72,381,2)],'#c9c4a7');
+    for(const a of [-71,-53]){
+      s+=isoLine(P(a,337,18),P(a,378,12),'#73816e',1.8);
+      for(const b of [337,357,378])s+=isoLine(P(a,b,2),P(a,b,b===337?18:b===357?15:12),'#73816e',1.4);
+    }
+    // Rest seating and a small information board remain outside the route.
+    s+=isoBox(-129,370,30,9,4,'#cbb58b','#ae9269','#8b795b',10);
+    for(const a of [-126,-105])s+=isoBox(a,372,4,5,10,'#a58f68','#a58f68','#7c775a',2);
+    s+=isoBox(-122,365,27,3,11,'#cbb58b','#ae9269','#8b795b',14);
+    s+=isoBox(9,379,4,4,32,'#8c9475','#7e886b','#68735e',2);
+    s+=front(-7,385,34,23,20,'#71846c')+front(-4,385.3,28,26,14,'#f2e6c6');
+    s+=frontLabel(-2,385.5,31,'公共空間',6.8,'#526c59');
+    return s+'</g>';
+  }
+
   function teaHills() {
     let s='<g data-landmark="貓空茶山">';
     s+=poly([[0,116],[80,68],[143,82],[229,28],[311,62],[394,40],[485,101],[586,70],[676,102],[757,53],[861,78],[965,32],[1083,63],[1150,49],[1200,85],[1200,267],[0,267]],'#dbe3cd');
@@ -224,7 +318,7 @@
       s+=path(`M1000 ${160+i*12} Q1090 ${112+i*12} 1220 ${150+i*11}`,i%2?'#95b08c':'#a6bf97',5,'stroke-linecap="round" opacity=".7"');
     }
     s+=label(40,35,'木柵意象縮景｜非實際地圖',12,'#6d8274','letter-spacing="1"');
-    s+=label(117,93,'貓空茶山',17,'#4f715b','paint-order="stroke" stroke="#e7edda" stroke-width="5" stroke-linejoin="round"');
+    s+=label(1104,129,'貓空茶山',17,'#4f715b','text-anchor="middle" paint-order="stroke" stroke="#e7edda" stroke-width="5" stroke-linejoin="round"');
     return s+'</g>';
   }
 
@@ -334,7 +428,7 @@
 
   const world = {
     start:[275,290], prepare:[135,205], canvass:[155,465],
-    tv:[430,235], fundraise:[375,425], recruit:[240,120]
+    tv:[430,235], fundraise:[375,425], recruit:[240,120], temple:[-5,465]
   };
   const anchors = Object.freeze(Object.fromEntries(Object.entries(world).map(([key,p])=>{
     const [x,y]=P(...p,2);return [key,Object.freeze({x,y})];
@@ -344,7 +438,8 @@
     canvass:[[275,290],[275,465],[155,465]],
     tv:[[275,290],[430,290],[430,235]],
     fundraise:[[275,290],[275,425],[375,425]],
-    recruit:[[275,290],[275,120],[240,120]]
+    recruit:[[275,290],[275,120],[240,120]],
+    temple:[[275,290],[275,465],[-5,465]]
   };
   const paths = Object.freeze(Object.fromEntries(Object.entries(routeWorld).map(([id,waypoints])=>[id,Object.freeze(waypoints.map(p=>{
     const [x,y]=P(...p,2);return Object.freeze({x,y});
@@ -352,10 +447,11 @@
   function route(id) { return (paths[id] || [anchors.start]).map(p=>({x:p.x,y:p.y})); }
 
   function scene() {
-    let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-label="木柵意象縮景：木柵市場上方的圖書館、文山行政中心與公車站、YouBike、景美溪道南河濱及貓空茶山。五個行動場地以步道相連，居民皆為原創方塊人。非實際地圖。" class="day-art-svg">';
-    s+='<title>木柵意象縮景｜非實際地圖</title><desc>原創 2.5D 木柵街區，以可辨識的地景元素組成非實際比例的意象縮景。左方木柵市場上層為木柵圖書館，遠方有文山行政中心、公車站與 YouBike；景美溪彎過道南河濱綠色自行車道，後方為層層貓空茶山。社區工作室、市場、訪談小棚、座談廣場等五個行動目的地均由步道相連，所有角色皆為人類。地標只是場景背景，不代表任何機關支持或背書。</desc>';
+    let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-label="木柵意象縮景：木柵市場上方的圖書館、文山行政中心與公車站、YouBike、景美溪道南河濱、貓空茶山與原創廟前廣場。行動場地以步道相連，居民皆為原創方塊人。非實際地圖。" class="day-art-svg">';
+    s+='<title>木柵意象縮景｜非實際地圖</title><desc>原創 2.5D 木柵街區，以可辨識的地景元素組成非實際比例的意象縮景。左方木柵市場上層為木柵圖書館，遠方有文山行政中心、公車站與 YouBike；景美溪彎過道南河濱綠色自行車道，後方為層層貓空茶山。社區工作室、市場、訪談小棚、座談廣場等行動目的地均由步道相連；新增廟前廣場是虛構的公共空間與無障礙動線交流場地，不指涉特定廟宇，也不代表宗教群體的政治立場，所有角色皆為人類。地標只是場景背景，不代表任何機關支持或背書。</desc>';
     s+=rect(0,0,1200,650,'#f5f0df');
     s+=teaHills()+riverside()+civicBlock();
+    s+=templeGround();
     s+=poly([[72,342],[594,615],[1141,352],[606,113]],'#839373','opacity=".09"');
     // The visible front fascia and shaded sides are essential to the town's depth.
     s+=isoBox(0,0,560,560,19,'#cbd4af','#b5c29e','#a0b494',-19);
@@ -366,7 +462,7 @@
     s+=isoTile(24,266,510,48,'#eae3cb',2);
     s+=isoTile(108,184,168,40,'#eae3cb',2);
     s+=isoTile(230,100,47,40,'#eae3cb',2);
-    s+=isoTile(126,445,151,40,'#eae3cb',2);
+    s+=isoTile(-25,445,302,40,'#eae3cb',2);
     s+=isoTile(410,214,40,76,'#eae3cb',2);
     s+=isoTile(275,405,114,40,'#eae3cb',2);
     for(const v of [236,327,374,425,479])s+=isoLine(P(252,v,2.2),P(298,v,2.2),'#d5ccb2',1.2,'opacity=".55"');
@@ -375,6 +471,7 @@
     s+=isoTree(36,235,.95);
     s+=office();
     s+=isoTree(502,30,.85);
+    s+=temple();
     s+=market();
     s+=studio();
     // Adults occupy the edge of an approach; none blocks the walking route.

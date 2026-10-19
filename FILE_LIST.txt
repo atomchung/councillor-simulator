@@ -1,4 +1,4 @@
-模擬市議員 v10.3.0 release files; current requirements docs appended 2026-10-19
+模擬市議員 v11.0.0 release files
 .gitignore
 CONTRIBUTING.md
 FILE_LIST.txt
@@ -18,6 +18,12 @@ dist/day.css
 dist/engine.js
 dist/game.js
 dist/index.html
+dist/legacy-v10-3/day-art.js
+dist/legacy-v10-3/day-engine.js
+dist/legacy-v10-3/day-team-art.js
+dist/legacy-v10-3/day-ui.js
+dist/legacy-v10-3/day.css
+dist/legacy-v10-3/index.html
 dist/legacy-v10/day-art.js
 dist/legacy-v10/day-engine.js
 dist/legacy-v10/day-team-art.js
@@ -100,11 +106,14 @@ package.json
 scripts/serve.cjs
 start.command
 tests/export-integrity.cjs
+tests/fixtures/v10-3-runtime-hashes.json
 tests/fixtures/v10-before-venues.json
 tests/month-engine.cjs
 tests/month-interface.cjs
 tests/month-readability.cjs
 tests/new-campaign-interface.cjs
 tests/provenance.json
+tests/v11-engine.cjs
+tests/v11-interface.cjs
 tests/venue-engine.cjs
 tests/venue-interface.cjs
