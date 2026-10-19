@@ -7,6 +7,7 @@
     "test": "node tests/export-integrity.cjs && npm run test:v11 && npm run test:v10",
     "test:quick": "node tests/export-integrity.cjs && node tests/v11-interface.cjs",
     "test:v11": "node tests/v11-engine.cjs && node tests/v11-interface.cjs",
-    "test:v10": "node tests/venue-engine.cjs && node tests/venue-interface.cjs && node tests/month-engine.cjs && node tests/month-interface.cjs && node tests/month-readability.cjs && node tests/new-campaign-interface.cjs"
+    "test:v10": "node tests/venue-engine.cjs && node tests/venue-interface.cjs && node tests/month-engine.cjs && node tests/month-interface.cjs && node tests/month-readability.cjs && node tests/new-campaign-interface.cjs",
+    "test:balance": "node tests/strategy-balance.cjs"
   }
 }

@@ -6,6 +6,7 @@ GAME_DESIGN.md
 README.md
 REQUIREMENTS.md
 SHA256SUMS.txt
+V12_HANDOFF.md
 VERSION.txt
 dist/campaign-engine.js
 dist/campaign-ui.js
@@ -113,6 +114,7 @@ tests/month-interface.cjs
 tests/month-readability.cjs
 tests/new-campaign-interface.cjs
 tests/provenance.json
+tests/strategy-balance.cjs
 tests/v11-engine.cjs
 tests/v11-interface.cjs
 tests/venue-engine.cjs
