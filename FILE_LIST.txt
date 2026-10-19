@@ -1,8 +1,10 @@
-模擬市議員 v10.3.0 release files
+模擬市議員 v10.3.0 release files; current requirements docs appended 2026-10-19
 .gitignore
+CONTRIBUTING.md
 FILE_LIST.txt
 GAME_DESIGN.md
 README.md
+REQUIREMENTS.md
 SHA256SUMS.txt
 VERSION.txt
 dist/campaign-engine.js
