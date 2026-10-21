@@ -352,7 +352,7 @@
   // What may be asked here and which issue an assistant researches this round; researching the wrong one means being caught out.
   function researchNote(picks, free) {
     if (!free) return '還沒有助手；招募後，準備政見的回合每位助手可以多查一題。';
-    if (!picks.length) return '點選議題，每位助手查一題（最多 ' + free + ' 題）。已研究過的題再查一次會看到各群比例。';
+    if (!picks.length) return '點選議題，每位助手查一題（最多 ' + free + ' 題），下回合起用得到。已研究過的題再查一次會看到各群比例。';
     return '助手會查：' + picks.map(t => '「' + esc(G.TOPICS[t].title) + '」' + (state.player.known.includes(t) ? '（深入）' : '')).join('、') + '。剩 ' + (free - picks.length) + ' 位助手' + (onSite(selectedAction) ? '陪你出門。' : '跟你一起準備。');
   }
   // On a trip: what may be asked here and whether you are ready. Research itself happens on a preparation round, before the trip.
@@ -375,7 +375,7 @@
     const team = [];
     if (id !== 'press') team.push(toggle('booth', booth, '小額募款攤', '1 位助手去擺攤，+' + wan(G.TUNING.booth[0]) + '–' + wan(G.TUNING.booth[1]) + '，少 1 人跟你拉票', free < 1));
     if (tip?.available && tip.canInvestigate && id !== 'press') team.push(toggle('investigate', investigateOn, '查小馬經費', '+' + wan(tip.investigationCost) + '・第 ' + (tip.investigations + 1) + '/2 次，不占你的回合'));
-    const crewNote = onSite(id) && p.crew !== null && p.crew !== undefined ? '<p class="research-note crew-note">陪你出門 ' + p.crew + ' 人：' + (p.crew < 2 ? '人手不夠，你自己拉票的效果打折' : p.crew === 2 ? '基本陣容' : '人多聲勢大，你自己拉票更有效') + '（×' + p.crewFactor.toFixed(2) + '）。留人做研究或擺攤，陪你的人就少。</p>' : '';
+    const crewNote = onSite(id) && p.crew !== null && p.crew !== undefined ? '<p class="research-note crew-note">陪你出門 ' + p.crew + ' 人：' + (p.crew < 2 ? '人手不夠，你自己拉票的效果打折' : p.crew === 2 ? '基本陣容' : '人多聲勢大，你自己拉票更有效') + '（×' + p.crewFactor.toFixed(2) + '）。留人做研究或擺攤，陪你的人就少；今天查的題下回合起才用得到。</p>' : '';
     return (id === 'prepare' ? researchRow() : id !== 'press' ? askRow() + (onSite(id) ? researchRow() : '') + crewNote : '') + (rows.length ? '<div class="addon-picks" role="group" aria-label="加碼"><span class="pick-label">加碼</span>' + rows.join('') + '</div>' : '') + (team.length ? '<div class="addon-picks team-picks" role="group" aria-label="後勤"><span class="pick-label">後勤</span>' + team.join('') + '</div>' : '');
   }
   // TV draws one of three issues; a bought brief picks the issue, a public reply to 小馬 makes it his attack.
@@ -736,7 +736,7 @@
       + '<h3>身分</h3><ul class="rules-list"><li>政二代（簡單）：錢多、基本盤大，市場和廟口的里長一去就幫；但沒準備過議題，被問倒扣得更多，爆料也比較多。</li><li>現任議員（普通）：有團隊，里長都認識你，開局熟悉 3 題但只知道大方向；但有上一屆的紀錄，小馬常拿來開刀，爆料也比較多。</li><li>全新素人（困難）：錢最少、里長不認識你，募款常談不成；但開局已查過 2 題，街訪效果較好，很少有黑料，小馬一開始也不打你。</li></ul>'
       + '<h3>三幕</h3><ul class="rules-list"><li>第 1–3 回合：摸清三群、找第一桶金。</li><li>第 4–7 回合：議題升溫；第 5 回合起每回合都可能爆出黑料，一局最多兩次。</li><li>第 8–10 回合：政見發表會，第 9–10 回合可以選前催票。</li></ul>'
       + '<h3>議題與三群人</h3><ul class="rules-list"><li>題庫有 16 題，每局抽 12 題；長輩最在意的健保、中年最在意的育兒、青年最在意的居住每局都有。</li><li>各群挺哪個做法有固定邏輯，只有強弱每局不同；每個做法至少有一群人支持。</li><li>白天街上以長輩和中年為主，青年大約一成；電視觀眾偏年長，青年要靠直播接觸。</li></ul>'
-      + '<h3>研究與回答</h3><ul class="rules-list"><li>沒研究的題：哪個做法都可以說，但你不知道三群會怎麼反應。</li><li>研究過：看得到三群喜不喜歡。深入研究（兩人查同一題，或你親自準備）：再多一個大概的票數範圍，不會是精確數字。</li><li>答中在意這題的人想要的做法會加分，答反扣一樣多。</li><li>陪你出門的助手：2 人是基本陣容，3–4 人你自己拉票更有效，少於 2 人打折。留人研究或擺攤，陪你的人就少。</li><li>空頭保證：吃承諾的那群加分、討厭空話的那群扣分；被小馬拆穿又沒更正，開票前相信的人會轉走。</li><li>黨的立場：每黨三題。照著說同黨選民加分，違反流失約兩倍。</li></ul>'
+      + '<h3>研究與回答</h3><ul class="rules-list"><li>沒研究的題：哪個做法都可以說，但你不知道三群會怎麼反應。</li><li>研究過：看得到三群喜不喜歡。深入研究（兩人查同一題，或你親自準備）：再多一個大概的票數範圍，不會是精確數字。</li><li>答中在意這題的人想要的做法會加分，答反扣一樣多。</li><li>助手研究的結果下回合起才用得到，當天到場還是不知道三群怎麼想；花錢買專訪題綱例外，節目開錄前就查好。</li><li>陪你出門的助手：2 人是基本陣容，3–4 人你自己拉票更有效，少於 2 人打折。留人研究或擺攤，陪你的人就少。</li><li>空頭保證：吃承諾的那群加分、討厭空話的那群扣分；被小馬拆穿又沒更正，開票前相信的人會轉走。</li><li>黨的立場：每黨三題。照著說同黨選民加分，違反流失約兩倍。</li></ul>'
       + '<h3>里長與頭人</h3><ul class="rules-list"><li>木柵市場、廟前廣場、社區廣場各有里長。里長還不熟你時，那裡的人先保留；里長點頭後帶來組織票，那裡的人也不會因為你常來而膩。</li><li>六位頭人：建商、宮廟、里長聯誼會、商圈協會、派系（有黨籍才有）、政論製作人。募款時可以去拜訪其中一位，或會在第 2–3、5–6 回合主動來談；他們給錢、組織票或免費上節目，換你公開支持他們要的做法。之後改口，他們會撤回支持。</li><li>拿建商的錢，比較容易爆出黑料。</li></ul>'
       + '<h3>直播</h3><ul class="rules-list"><li>用 1–2 位助手開直播，不花錢，主要接觸青年；網友從青年最在意的三題挑一題問你。觸及人數不穩定，可能爆紅，也可能沒人看。</li></ul>'
       + '<h3>小馬</h3><ul class="rules-list"><li>他攻擊你時，只有相關的兩個地點和電視會問這件事；可以去回應、花 ' + wan(G.COSTS.clarify) + ' 發澄清文宣，或不理他（逾期會再掉票）。</li><li>你可以點名反擊他，也可以加碼查他的經費（每次 ' + wan(G.COSTS.tipCheck) + '，不占回合）再開記者會；沒查證就指控，可能當場被識破。</li><li>第 8 回合政見發表會，不去的話他獨占舞台；深入查過題目，台上能壓制他。</li></ul>'

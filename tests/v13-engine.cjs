@@ -54,16 +54,22 @@ for(let seed=1;seed<=10;seed++){const s=fresh(seed);
 // Research: one assistant on an issue you choose, a second one for depth; concrete answers only on researched issues.
 {const s=fresh(8),v=G.venueView(s)[0],t=v.pool[0],p=G.preview(s,'canvass',{venue:v.id,research:t});eq(p.researchTopics,[t],'one assistant researches the chosen issue');eq(p.teamAssignments.map(m=>m.task),['research','follow'],'the other comes along');eq(p.totalCost,0,'research costs time, not money');
  eq(G.preview(s,'canvass',{venue:v.id,research:t,deep:true}).researchTopics,[t,t],'deeper research takes a second assistant');
- const x=copy(s);G.begin(x,'canvass',{venue:v.id,research:t,deep:true});eq(x.player.insight[t].level,'precise','deep research shows the shares');
- const y=copy(s);G.begin(y,'canvass',{venue:v.id,research:t});eq(y.player.insight[t].level,'direction','light research shows the sides');
- const z=copy(s);round(z,'canvass',{venue:v.id,research:t},best);G.next(z);settleCrisis(z);eq(G.preview(z,'canvass',{venue:v.id,research:t}).researchTopics,[t],'a known issue can be researched again');const zz=copy(z);G.begin(zz,'canvass',{venue:v.id,research:t});eq(zz.player.insight[t].level,'precise','researching a known issue again shows the shares');}
+ // Helpers' research is ready from the next round: nothing on the day, the result once the round ends.
+ const finishDay=x=>{G.arrive(x);if(x.phase==='question')G.answer(x,G.question(x).options.find(o=>o.unlocked).id);return x;};
+ const x=copy(s);G.begin(x,'canvass',{venue:v.id,research:t,deep:true});ok(!x.player.insight[t],'research is not ready on the day');finishDay(x);eq(x.player.insight[t].level,'precise','deep research shows the shares after the round');
+ const y=copy(s);G.begin(y,'canvass',{venue:v.id,research:t});finishDay(y);eq(y.player.insight[t].level,'direction','light research shows the sides after the round');
+ const z=copy(s);round(z,'canvass',{venue:v.id,research:t},best);G.next(z);settleCrisis(z);eq(G.preview(z,'canvass',{venue:v.id,research:t}).researchTopics,[t],'a known issue can be researched again');const zz=copy(z);G.begin(zz,'canvass',{venue:v.id,research:t});eq(zz.player.insight[t].level,'direction','a second look waits for the round to end');finishDay(zz);eq(zz.player.insight[t].level,'precise','researching a known issue again shows the shares');}
 {let street=0,stage=0,n=0;for(let seed=1;seed<=20;seed++){const s=fresh(seed),v=G.venueView(s)[0],a=copy(s);G.begin(a,'canvass',{venue:v.id});G.arrive(a);const q=G.question(a),t=a.pending.topic;
   {const plans=q.options.filter(o=>G.TOPICS[t].plans.some(p=>p.id===o.id));ok(plans.length===2&&plans.every(o=>o.unlocked&&!o.estimate&&o.faces.every(f=>f==='unknown')),'without research every approach can be said, blind');}ok(q.options.find(o=>o.id==='honest').tags.some(x=>x.kind==='unprepared'),'not answering is tagged');G.answer(a,'honest');street+=a.recap.player.stumble.votes;
   const b=copy(s);G.begin(b,'tv');G.arrive(b);if(!b.player.known.includes(b.pending.topic)){G.answer(b,'honest');stage+=b.recap.player.stumble.votes;n++;}}
  ok(street<0&&n>0&&stage/n<street/20,'caught unprepared costs, more on TV: '+Math.round(street/20)+' / '+Math.round(stage/n));}
 
 // Residents say what their own group wants; a split group just asks.
-{let strong=0;for(let seed=1;seed<=30;seed++){const s=fresh(seed),v=G.venueView(s)[0],sp=G.speakerFor(s,v.id),t=G.venueTopic(s,v.id),lean=s.landscape.groups[sp.group].lean[t];eq(sp.group,v.main,'the speaker belongs to the main crowd');G.begin(s,'canvass',{venue:v.id,research:t});G.arrive(s);const q=G.question(s);eq(q.speakerGroup,sp.group,'question names the speaker\'s group');
+{let strong=0;for(let seed=1;seed<=30;seed++){const s=fresh(seed),v0=G.venueView(s)[0],pool=v0.pool;
+ // Research lands a round later, so read the place's issues on a preparation round first: you take one, the assistants the others.
+ G.begin(s,'prepare',{topic:pool[0],research:pool.slice(1)});G.arrive(s);if(s.phase==='question')G.answer(s,G.question(s).options.find(o=>o.unlocked).id);G.next(s);settleCrisis(s);
+ const v=G.venueView(s).find(x=>x.id===v0.id),sp=G.speakerFor(s,v.id),t=G.venueTopic(s,v.id),lean=s.landscape.groups[sp.group].lean[t];eq(sp.group,v.main,'the speaker belongs to the main crowd');G.begin(s,'canvass',{venue:v.id});G.arrive(s);const q=G.question(s);eq(q.speakerGroup,sp.group,'question names the speaker\'s group');
+ if(!s.player.insight?.[t])continue;
  if(Math.abs(lean-.5)>=.2){eq(q.text,G.VOICES[t][G.GROUPS[sp.group].id][side(lean)],'the resident states their group\'s demand in their own words');eq(q.options.find(o=>o.id===planOf(t,side(lean))).faces[sp.group],'up','what they asked for pleases their group');strong++;}else eq(q.text,G.TOPICS[t].ask,'a split group just asks');}
  ok(strong>=10,'demands exercised '+strong);}
 
@@ -73,7 +79,7 @@ for(let seed=1;seed<=20;seed++){
  eq(G.answerFaces(s,t,'guarantee'),s.landscape.groups.map(g=>tone[g.promise][0]),'guarantee faces follow attitudes');eq(G.answerFaces(s,t,'honest'),s.landscape.groups.map(g=>tone[g.promise][1]),'honest faces follow attitudes');
  eq(G.answerFaces(s,t,planOf(t,0)),['unknown','unknown','unknown'],'approach faces unknown before research');
  const faces=(x,topic)=>x.landscape.groups.map(g=>{const close=Math.abs(g.lean[topic]-.5)<.2,match=side(g.lean[topic])===0;return close?(match?'slight':'flat'):(match?'up':'down');});
- const h=copy(s),hv=G.venueView(h)[0],topic=G.venueTopic(h,hv.id);G.begin(h,'canvass',{venue:hv.id,research:topic});eq(G.answerFaces(h,topic,planOf(topic,0)),faces(h,topic),'faces after research');
+ const h=copy(s),hv=G.venueView(h)[0],topic=G.venueTopic(h,hv.id);G.begin(h,'canvass',{venue:hv.id,research:topic});eq(G.answerFaces(h,topic,planOf(topic,0)),['unknown','unknown','unknown'],'faces stay unknown on the research day');G.arrive(h);if(h.phase==='question')G.answer(h,G.question(h).options.find(o=>o.unlocked).id);eq(G.answerFaces(h,topic,planOf(topic,0)),faces(h,topic),'faces after research');
  const p=copy(s);round(p,'prepare',{topic:t});eq(G.answerFaces(p,t,planOf(t,0)),faces(p,t),'faces after your own reading');eq(p.player.insight[t].level,'precise','your own reading adds the shares');ok(p.player.studied[t],'and makes you more persuasive');
 }
 
@@ -216,7 +222,7 @@ for(let seed=1;seed<=200&&(expired<4||answered<4);seed++){
 ok(hits>=4&&expired>=4&&answered>=4,'attack paths exercised: hits '+hits+', expired '+expired+', answered '+answered);
 
 // Calling out 小馬: offered once he has a public stance on the issue; it costs him among those who agree with you.
-{let countered=0;for(let seed=1;seed<=120&&countered<6;seed++){const s=fresh(seed,{background:'heir'});while(s.day<G.DAYS-1&&s.phase==='plan'){settleCrisis(s);const v=G.venueView(s).find(v=>G.counterPlan(s,G.venueTopic(s,v.id)));if(v){const t=G.venueTopic(s,v.id),want=G.counterPlan(s,t).id;G.begin(s,'canvass',{venue:v.id,research:t});G.arrive(s);const o=G.question(s).options.find(o=>o.id==='counter');ok(o&&o.unlocked&&o.tags.some(x=>x.kind==='counter'),'counter offered once he has a public stance');eq(o.faces,G.answerFaces(s,t,want),'counter faces are those of the opposite approach');
+{let countered=0;for(let seed=1;seed<=120&&countered<6;seed++){const s=fresh(seed,{background:'heir'});while(s.day<G.DAYS-1&&s.phase==='plan'){settleCrisis(s);const able=G.venueView(s).filter(v=>G.counterPlan(s,G.venueTopic(s,v.id))),v=able.find(v=>s.player.insight?.[G.venueTopic(s,v.id)]);if(!v&&able.length){round(s,'prepare',{topic:G.venueTopic(s,able[0].id)});G.next(s);continue;}if(v){const t=G.venueTopic(s,v.id),want=G.counterPlan(s,t).id;G.begin(s,'canvass',{venue:v.id});G.arrive(s);const o=G.question(s).options.find(o=>o.id==='counter');ok(o&&o.unlocked&&o.tags.some(x=>x.kind==='counter'),'counter offered once he has a public stance');eq(o.faces,G.answerFaces(s,t,want),'counter faces are those of the opposite approach');
   G.answer(s,'counter');const c=s.recap.player.counter;ok(c&&c.rival<0,'calling him out costs him');ok(c.you<=0,'and some listeners think you are picking a fight');eq(s.recap.player.answer,want,'your stance becomes the opposite of his');countered++;break;}skip(s);}}
  ok(countered===6,'counter exercised');}
 
@@ -251,7 +257,7 @@ for(let seed=1;seed<=20;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){s
  for(const x of s.result.roundsSummary){ok(Math.abs(x.direct+x.team+x.rebuttal+x.billboard+x.offer+x.plan+x.byRival+x.events-x.votes)<=4,'round parts add up '+seed+'/'+x.day);eq(x.quiet,G.QUIET.includes(x.action)&&!s.journal.find(j=>j.day===x.day).player.dealt,'quiet flag '+x.action);if(x.quiet)eq(x.direct,0,'a quiet round moves no votes itself '+x.action);}}
 // Estimates beside answers read only what the screen shows (hidden leanings, concerns, receptivity and party are never used),
 // and on average they follow what an answer actually does.
-{const pairs=[],groups=[];for(let seed=1;seed<=80;seed++){const s=fresh(seed,{background:['newcomer','heir','incumbent'][seed%3],affiliation:['independent','kmt','dpp'][seed%3]});for(let d=1;d<=G.DAYS&&s.phase!=='result';d++){settleCrisis(s);const vs=G.venueView(s),v=vs[d%vs.length],id=d===G.DEBATE_ROUND?'debate':d%3?'canvass':'tv',cfg=id==='canvass'?{venue:v.id,research:v.pool[d%3]}:id==='tv'?{research:G.tvPool(s)[0]}:{research:s.debate.topic};
+{const pairs=[],groups=[];for(let seed=1;seed<=120;seed++){const s=fresh(seed,{background:['newcomer','heir','incumbent'][seed%3],affiliation:['independent','kmt','dpp'][seed%3]});for(let d=1;d<=G.DAYS&&s.phase!=='result';d++){settleCrisis(s);const vs=G.venueView(s),v=vs[d%vs.length],id=d===G.DEBATE_ROUND?'debate':d%3?'canvass':'tv',cfg=id==='canvass'?{venue:v.id,research:v.pool[d%3]}:id==='tv'?{research:G.tvPool(s)[0]}:{research:s.debate.topic};
   if(!G.preview(s,id,cfg).allowed){round(s,'fundraise');G.next(s);continue;}G.begin(s,id,cfg);G.arrive(s);const q=G.question(s),topic=s.pending.topic;
   if(d===2){const blind=copy(s);for(const x of blind.voters){x.pref=x.pref.split('').reverse().join('');x.cares=['sanitation'];x.rec=[.4,.4];x.accuracy=.5;x.p='none';}for(const o of q.options.filter(o=>o.estimate))eq(G.answerEstimate(blind,topic,o.id),o.estimate,'estimate ignores hidden voter state '+seed+' '+o.id);}
   for(const o of q.options){if(!o.unlocked)eq(o.estimate,null,'no estimate for a locked answer');else if(G.TOPICS[topic].plans.some(p=>p.id===o.id))ok(s.player.insight?.[topic]?.level==='precise'?o.estimate?.groups?.length===3:o.estimate===null,'only deep research gives an approach an estimate');}

@@ -326,7 +326,7 @@ function previewActor(s,a,b,id,config={}){
  if(id==='debate'&&s.day!==DEBATE_ROUND)reason=`政見發表會只在第 ${DEBATE_ROUND} 回合舉行。`;else if(id==='press'&&a.index===0&&s.day<3)reason='還沒有可以爆料的資料。';else if(id==='dig'&&a.index!==0)reason='只有你會挖黑料。';else if(id==='dig'&&s.day<DIG.from)reason=`第 ${DIG.from} 回合起才能挖黑料。`;else if(id==='dig'&&(a.counts.dig||0)>=DIG.max)reason=`這局已經挖過 ${DIG.max} 次。`;else if(id==='recruit'&&retained>=9)reason='團隊已達人數上限。';else if(id==='recruit'&&s.day===DAYS)reason='最後一回合，來不及請人了。';
  if(!reason&&me&&id==='online'&&!teamAvailable)reason='要至少 1 位助手才能經營新媒體。';
  if(!reason&&me&&s.crisis?.status==='pending')reason='先處理突發危機。';else if(!reason&&me&&id==='rally'&&topicsOf(s).filter(t=>lastPlan(a,t)).length<2)reason='至少公開表態 2 題才能辦造勢。';
- const response=responsePlan(a,id,topic,config,s);if(researchTopics.includes(topic)&&PUBLIC.includes(id)&&!response.followup&&id!=='debate')response.responseReason='助手先打聽好了，你可以提出具體方案。';
+ const response=responsePlan(a,id,topic,config,s);
  const investigating=addons.investigate,eventCost=0;
  if(a.index===0&&topic&&!availableTopics(s).some(t=>t.id===topic))reason='這項資料還沒出現。';
  const total=baseCost+teamCost+eventCost+addonCost;if(!reason&&b.available<total)reason=`這回合需要 ${total.toLocaleString('zh-TW')} 元，還差 ${(total-b.available).toLocaleString('zh-TW')} 元。`;
@@ -341,7 +341,11 @@ function begin(s,id,config={}){const p=preview(s,id,config);if(!p.allowed)return
  // TV without a bought brief draws its question on air from the three-issue pool.
  if(p.id==='online'){const streamers=p.teamAssignments.filter(m=>m.task==='stream').length;s.pending.viral=TUNING.viral[Math.floor(rand(s.seed,'viral',s.day)*TUNING.viral.length)];s.pending.streamers=streamers;}
  if(['tv','canvass','online'].includes(p.id)&&!p.topic){s.pending.topic=p.id==='canvass'?venueTopic(s,p.venue):p.pool[Math.floor(rand(s.seed,p.id==='tv'?'tv-question':'online-question',s.day)*p.pool.length)];s.pending.drawn=true;s.player.actions.at(-1).topic=s.pending.topic;Object.assign(s.pending,responsePlan(s.player,p.id,s.pending.topic,config,s));}
- const counts={};for(const t of(p.researchTopics||[]).filter(t=>t&&t!=='tip'))counts[t]=(counts[t]||0)+1;if(p.addons?.brief&&!s.player.known.includes(p.topic))counts[p.topic]=Math.max(1,counts[p.topic]||0);const studied=Object.keys(counts);for(const t of studied){const was=s.player.known.includes(t);learn(s.player,t);reveal(s,t,counts[t]>=2||was?'deep':'helper');}if(studied.length)s.pending.teamNote=studied.map(t=>`助手${counts[t]>=2?'深入研究':'研究'}了「${TOPICS[t].title}」。${insightLine(s,t)}`).join(' ');s.phase='travel';return true;}
+ // Helpers' research lands when the round ends, so what they find today is ready from the next round; a bought TV brief is prepared before the show.
+ const counts={};for(const t of(p.researchTopics||[]).filter(t=>t&&t!=='tip'))counts[t]=(counts[t]||0)+1;if(p.addons?.brief&&!s.player.known.includes(p.topic)){learn(s.player,p.topic);reveal(s,p.topic,'helper');}s.pending.research=counts;s.phase='travel';return true;}
+function landResearch(s,report){const counts=s.pending?.research||{},studied=Object.keys(counts);for(const t of studied){const was=s.player.known.includes(t);learn(s.player,t);reveal(s,t,counts[t]>=2||was?'deep':'helper');}
+ for(const r of report?.teamReports||[])if(r.knowledge&&counts[r.knowledge])r.result=insightLine(s,r.knowledge)+'（下回合起用得到）';
+ if(report&&studied.length)report.teamNote=studied.map(t=>`助手${counts[t]>=2?'深入研究':'研究'}了「${TOPICS[t].title}」，下回合起用得到。${insightLine(s,t)}`).join(' ');}
 // How each group would react to an answer, from what you can know: research for approaches, the public attitude for promises.
 function answerFaces(s,topic,mode){
  if(!TOPICS[topic]?.plans?.length)return GROUPS.map(()=> 'unknown');
@@ -635,7 +639,7 @@ function eventAftermath(s){const t=s.events.tip;if(!t.verifyAt||t.verification||
  if(pub)for(let i=0;i<POPULATION;i++){if(rand(s.seed,'tip-followup',i)>=.065)continue;const v=s.voters[i],d=pub.mode==='tip_accuse'?(t.truth==='false'?-.045:t.truth==='unclear'?-.02:.015):t.truth==='issue'?(v.accuracy>.45?.012:.004):0,r=t.truth==='issue'?-.03:pub.mode==='tip_accuse'&&t.truth==='false'?.01:0;apply(v,0,d);const b1=v.support[1];apply(v,1,r);rival+=(v.support[1]-b1)*PER_VOTER;contacts++;if(d>0)positive++;else reserved++;}
  t.verification={round:s.day,text,publicationId:pub?.id,quote:pub?.quote||''};t.responseDue=pub?.mode==='tip_accuse'&&t.truth!=='issue';return[{title:'爆料的核對結果',text,quote:pub?.quote,reason:pub?.mode==='tip_accuse'?(t.truth==='issue'?'你的指控被證實。':'你的指控沒被證實，有人覺得你亂爆料；可以再開記者會更正。'):'核對結果出來了。',effects:{contacts,positive,reserved,votes:expectedVotes(s,0)-before,rival}}];}
 function complete(s,answerId){
- const pollBefore=copy(s.polls.at(-1)),raceBefore=s.journal.at(-1)?.race||null,start=[expectedVotes(s,0),expectedVotes(s,1)],report=resolveAction(s,s.player,s.budget,s.pending,answerId),afterPlayer=[expectedVotes(s,0),expectedVotes(s,1)];report.rivalLoss=afterPlayer[1]-start[1];
+ const pollBefore=copy(s.polls.at(-1)),raceBefore=s.journal.at(-1)?.race||null,start=[expectedVotes(s,0),expectedVotes(s,1)],report=resolveAction(s,s.player,s.budget,s.pending,answerId),landed=landResearch(s,report),afterPlayer=[expectedVotes(s,0),expectedVotes(s,1)];report.rivalLoss=afterPlayer[1]-start[1];
  const rebuttals=answerChallenges(s,report),afterRebuttal=expectedVotes(s,0),boards=billboardTick(s),afterBoards=expectedVotes(s,0),lapsed=lapseOffers(s),rival=rivalTurn(s,report),afterRival=[expectedVotes(s,0),expectedVotes(s,1)],events=[...rebuttals,...eventAftermath(s),...expireChallenges(s)],afterEvents=expectedVotes(s,0),poll=samplePoll(s,s.day);s.polls.push(poll);
  // Offers settled earlier this round (accepted, or declined and taken by the rival) are counted here too.
  // Moves settled in the plan phase before this round's action: clarifications, the crisis and the clean-campaign pledge.
