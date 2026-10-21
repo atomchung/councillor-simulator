@@ -824,7 +824,7 @@ body.v13[data-act="3"] .world .scene{filter:sepia(.2) saturate(1.1) hue-rotate(-
 /* Matte-toy visual system: presentation tokens shared by every screen. */
 :root{--ink:#263c48;--muted:#5d6b70;--paper:#f6f4ec;--card:#fffdf7;--line:#dedfd4;--green:#285d61;--mint:#e4eeea;--shadow:0 8px 24px #263c4809;font-family:system-ui,-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
 body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
-.v13 .masthead{position:static;display:grid;grid-template-columns:minmax(0,1fr) auto;max-width:1500px;padding:20px 28px;gap:18px;align-items:center}
+.v13 .masthead{position:static;height:auto;flex:none;display:grid;grid-template-columns:minmax(0,1fr) auto;max-width:1500px;padding:20px 28px;gap:18px;align-items:center}
 .v13 .wordmark{font-size:23px;letter-spacing:-.5px;white-space:normal}
 .v13 .wordmark-block{font-size:17px;width:auto;min-width:60px;padding:10px;transform:none;border-radius:10px;background:var(--green);color:#fff}
 .v13 .masthead nav{flex-wrap:wrap;justify-content:flex-end;gap:4px}.v13 .masthead nav button{font-size:12px}
@@ -861,3 +861,13 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 .v13 .interaction,.v13 #panel,.v13 .panel-content{height:auto;max-height:none;flex:none}
 .v13 .panel-content{display:block}.v13 .panel-content>*+*{margin-top:16px}
 .v13 .identity-card .identity-bad{color:var(--muted)}
+
+/* Engine-backed event history and a dismissible result card. */
+.v13 .event-timeline{margin-top:16px;padding:20px;background:var(--paper,#fffdf7);border:1px solid #dedfd4;border-radius:18px;color:#263c48}
+.timeline-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.timeline-heading h2{font-size:16px;margin:0}.timeline-heading>span,.event-round{font-size:12px;color:#5d6b70}
+.event-timeline ol{list-style:none;padding:0;margin:12px 0 0}.event-timeline li{display:grid;grid-template-columns:32px 1fr auto;gap:12px;padding:12px 0;border-top:1px solid #e7e8df;align-items:start}.event-timeline strong{font-size:14px}.event-timeline p{font-size:13px;line-height:1.6;margin:4px 0 0;color:#5d6b70}.event-timeline [data-tone="pending"] strong{color:#9a4e21}.event-votes{font-size:13px;white-space:nowrap;font-variant-numeric:tabular-nums}.event-timeline summary{cursor:pointer;min-height:44px;padding-top:14px;font-size:13px;color:#285d61}
+.v13 .event-feedback{position:fixed;right:24px;bottom:24px;width:min(440px,calc(100vw - 32px));max-height:80dvh;overflow:auto;z-index:40;background:#fffdf7;border:1px solid #c7cec3;border-radius:22px;padding:22px;box-shadow:0 20px 65px #263c4833;animation:event-enter .28s ease-out}
+.event-feedback[hidden],.event-timeline[hidden]{display:none!important}.event-card-top{display:flex;align-items:center;justify-content:space-between;color:#9a4e21;font-size:12px;font-weight:700;letter-spacing:.06em}.event-card-top button{min-width:44px;min-height:44px;font-size:26px;background:none;border:0;cursor:pointer;color:#263c48}.event-feedback h2{font-size:24px;margin:6px 0 12px}.event-feedback p{font-size:14px;line-height:1.65}.event-impact{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:16px 0;border-block:1px solid #dedfd4;font-size:16px}.event-impact strong{color:#285d61;font-size:23px}.event-impact small{display:block;font-size:12px;font-weight:400;color:#5d6b70;margin-top:4px}.event-groups{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;padding-top:14px}.event-feedback .microcopy{font-size:12px;color:#5d6b70}
+@keyframes event-enter{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+@media(max-width:500px){.v13 .event-feedback{right:16px;bottom:16px;padding:18px}.v13 .event-timeline{padding:16px}.event-timeline li{grid-template-columns:24px 1fr;gap:8px}.event-votes{grid-column:2}.event-impact{font-size:14px}.event-impact strong{font-size:21px}}
+@media(prefers-reduced-motion:reduce){.v13 .event-feedback{animation:none}}

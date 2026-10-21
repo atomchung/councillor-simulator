@@ -11,4 +11,22 @@ for(const name of ['district','candidates','market-square','street','river']){co
 const testSource=fs.readFileSync(__dirname+'/v13-interface.cjs','utf8');const prefix=testSource.slice(0,testSource.indexOf('\nconst ui=fs.readFileSync'));
 const scope={require,__dirname,console,module:{exports:{}}};vm.runInNewContext(prefix+'\nmodule.exports={harness,G};',scope);const {harness,G}=scope.module.exports;
 const h=harness();h.click({action:'start'});h.go('canvass','market');const before=h.state();h.click({action:'art-switch'});assert.deepEqual(h.state(),before);h.click({action:'art-switch'});assert.deepEqual(h.state(),before);h.commit();h.click({action:'skip'});assert.equal(h.state().phase,'question');assert.ok(h.scene().includes('market-square.png'));const q=G.question(h.state());h.answer(q.options.find(o=>o.unlocked).id);assert.equal(h.state().phase,'recap');checks+=5;
+// Find a naturally occurring crisis, then prove the card/history do not settle it twice.
+let crisisHarness;
+for(let seed=1;seed<30&&!crisisHarness;seed++){
+ const t=harness({}, {seed,reduced:true});t.click({action:'start'});
+ for(let day=1;day<10;day++){if(t.state().crisis?.status==='pending'){crisisHarness=t;break;}t.run('fundraise');t.next();}
+}
+assert.ok(crisisHarness,'a real engine crisis occurs');
+const c=crisisHarness, day=c.state().day;
+assert.ok(c.elements['event-timeline'].innerHTML.includes('突發危機・等待處理'));
+c.click({action:'crisis',choice:'apologize'});
+assert.equal(c.elements['event-feedback'].hidden,false);
+assert.ok(c.elements['event-feedback'].innerHTML.includes('公開道歉切割'));
+const settled=JSON.stringify(c.state());c.click({action:'crisis',choice:'apologize'},true);assert.equal(JSON.stringify(c.state()),settled);
+assert.equal((c.elements['event-timeline'].innerHTML.match(new RegExp('data-event-key="crisis-day-'+day+'"','g'))||[]).length,1);
+c.click({action:'dismiss-event'},true);assert.equal(c.elements['event-feedback'].hidden,true);
+const reloaded=harness(c.snapshot());assert.equal(reloaded.elements['event-feedback'].hidden,true);assert.ok(reloaded.elements['event-timeline'].innerHTML.includes('公開道歉切割'));
+c.run('fundraise');c.next();assert.ok(c.elements['event-timeline'].innerHTML.includes('crisis-day-'+day));
+c.click({action:'restart'});assert.equal(c.elements['event-timeline'].hidden,true);assert.equal(c.elements['event-feedback'].hidden,true);assert.ok(!c.elements['event-timeline'].innerHTML.includes('crisis-day-'+day));checks+=13;
 console.log(JSON.stringify({result:'passed',checks,scope:'Sprite bounds, soles, semantic identity mapping, map routes, actual pack toggles and a production question/recap; no browser claim.'}));

@@ -71,6 +71,7 @@
       if (raw) saveNotice = '遊戲改版了，舊進度不能沿用，已開新局。';
     }
   } catch (_) { state = G.initial(seed()); saveError = '目前無法讀取本機存檔。'; }
+  let dismissedFeedback = typeof state._ui?.dismissedFeedback === 'string' ? state._ui.dismissedFeedback : '';
   const roundDays = G.ROUND_DAYS || 3;
   const period = day => '第 ' + ((day - 1) * roundDays + 1) + '–' + (day * roundDays) + ' 天';
   const icon = id => '<span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (icons[id] || icons.prepare) + '</svg></span>';
@@ -142,8 +143,35 @@
     if (!e?.available) return '<p>第 3 回合起才會有爆料資料。</p>';
     return '<section class="event-record"><h3>' + esc(e.title) + '</h3><p>' + esc(e.summary) + '</p><div class="event-evidence"><b>' + esc(e.evidenceText) + '</b><span>已核對 ' + Number(e.investigations || 0) + '／' + Number(e.maxInvestigations || 2) + ' 次</span></div>' + (e.history?.length ? e.history.map(x => eventRecord(x, x.quote ? '你說過' : '第 ' + Number(x.stage || x.evidenceLevel || 0) + ' 次核對')).join('') : '') + eventRecord(e.update, '核對結果') + '<p class="microcopy">核對：到社區工作室「準備政見」選這份資料（每次 ' + num(e.investigationCost) + ' 元，最多 2 次）。爆料：到電視台開記者會。</p></section>';
   }
+  const crisisChoice = c => ({ pay: '花錢公關消毒', apologize: '公開道歉切割', fight: c.won ? '硬槓反控成功' : '硬槓反控炎上' })[c.choice] || '等待處理';
+  const crisisKey = c => 'crisis-' + c.round + '-' + c.kind;
+  // All timeline facts come from engine records; the UI only stores dismissal of the result card.
+  function timelineEntries() {
+    const entries = [];
+    for (const j of state.journal) {
+      for (const [i, e] of (j.planEffects || []).entries()) entries.push({ key: e.kind === 'crisis' ? 'crisis-day-' + j.day : 'plan-' + j.day + '-' + i, day: j.day, title: e.kind === 'crisis' ? crisisChoice(e) : e.title, text: e.text, votes: e.votes, tone: e.votes < 0 ? 'loss' : 'settled' });
+      for (const [i, e] of (j.events || []).entries()) entries.push({ key: 'event-' + j.day + '-' + i, day: j.day, title: e.title, text: e.text, votes: e.effects?.votes, tone: 'settled' });
+    }
+    for (const o of state.offers || []) if (o.respondedDay) entries.push({ key: 'offer-' + o.id + '-' + o.respondedDay, day: o.respondedDay, title: o.status === 'accepted' ? '接受合作' : '婉拒合作', text: G.dealOf(state, o.id)?.org || '合作邀約', votes: o.effect?.votes, tone: 'settled' });
+    for (const c of state.challenges || []) entries.push({ key: c.id, day: c.issuedDay, title: '小馬提出質疑', text: c.quote, tone: c.status === 'open' && !c.mitigatedDay ? 'pending' : 'settled' });
+    const c = state.crisis;
+    if (c && !entries.some(e => e.key === 'crisis-day-' + c.round)) entries.push({ key: 'crisis-day-' + c.round, day: c.round, title: c.status === 'resolved' ? crisisChoice(c) : '突發危機・等待處理', text: c.text, votes: c.effect?.votes, tone: c.status === 'pending' ? 'pending' : c.effect?.votes < 0 ? 'loss' : 'settled' });
+    return entries.sort((a, b) => b.day - a.day);
+  }
+  function renderEvents() {
+    const timeline = $('event-timeline'), card = $('event-feedback'), entries = timelineEntries();
+    timeline.hidden = !state.started;
+    const row = e => '<li data-event-key="' + esc(e.key) + '" data-tone="' + e.tone + '"><span class="event-round">R' + Number(e.day) + '</span><div><strong>' + esc(e.title) + '</strong><p>' + esc(e.text) + '</p></div>' + (Number.isFinite(e.votes) ? '<span class="event-votes">' + signedVotes(e.votes) + ' 票</span>' : '') + '</li>';
+    timeline.innerHTML = '<div class="timeline-heading"><h2>選戰動態</h2><span>' + entries.length + ' 則紀錄</span></div>' + (entries.length ? '<ol>' + entries.slice(0, 3).map(row).join('') + '</ol>' + (entries.length > 3 ? '<details><summary>查看較早 ' + (entries.length - 3) + ' 則</summary><ol>' + entries.slice(3).map(row).join('') + '</ol></details>' : '') : '<p class="timeline-empty">選戰剛開始。危機、合作與質疑會記在這裡。</p>');
+    const c = state.crisis;
+    const show = state.started && c?.status === 'resolved' && c.resolvedDay === state.day && dismissedFeedback !== crisisKey(c);
+    card.hidden = !show;
+    if (!show) { card.innerHTML = ''; return; }
+    const cost = state.ledger.find(l => l.day === c.resolvedDay && l.action === 'crisis')?.cost || 0;
+    card.innerHTML = '<div class="event-card-top"><span>選戰快報 · R' + c.round + '</span><button type="button" data-action="dismiss-event" aria-label="關閉事件結果">×</button></div><h2>' + esc(crisisChoice(c)) + '</h2><p>' + esc(c.text) + '</p><div class="event-impact"><strong>' + signedVotes(c.effect.votes) + '<small>你的票數</small></strong><span>' + signedVotes(c.effect.rival) + '<small>小馬票數</small></span><span>' + money(cost) + '<small>處理支出</small></span></div><div class="event-groups">' + (c.effect.byGroup || []).map((v, i) => '<span>' + esc(groupTitle(i)) + ' <b>' + signedVotes(v) + '</b></span>').join('') + '</div><p class="microcopy">結果已記入選戰動態，可以繼續安排行程。</p>';
+  }
   function save() {
-    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, counting: counting ? { ...counting } : null };
+    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, dismissedFeedback, counting: counting ? { ...counting } : null };
     try { window.localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (_) { saveError = '瀏覽器無法儲存進度；重新整理可能會失去進度。'; }
     showNotice();
@@ -640,7 +668,7 @@
   }
   function render() {
     if (selectedAction === 'prepare' && selectedTopic && !G.availableTopics(state).some(t => t.id === selectedTopic)) selectedTopic = null;
-    dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport();
+    dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport(); renderEvents();
     document.body.dataset.art = Art?.getPack?.() || 'original';
     $('art-switch').textContent = Art?.isToy?.() ? '霧面玩具 ▾' : '原版方塊 ▾';
     $('art-switch').disabled = state.phase === 'travel' || counting?.status === 'inprogress';
@@ -795,7 +823,7 @@
   function restart() {
     counting = null; clearMotion(); closeDialog();
     let newSeed = seed(); if (newSeed === state.seed) newSeed = (newSeed + 1) >>> 0;
-    state = G.initial(newSeed, state.settings);
+    state = G.initial(newSeed, state.settings); dismissedFeedback = '';
     position = { ...anchors.start }; selectedTopic = null; selectedVenue = null; selectedAction = null; resetToggles(); error = ''; saveError = ''; saveNotice = ''; lastFrame = null; teamElapsed = 0; locked = false;
     $('dialog-body').innerHTML = ''; $('world').dataset.action = ''; $('world').classList.remove('motion-paused');
     setPosition(); save(); render(); focusDock(); window.scrollTo?.(0, 0); announce('新的一局：先選身分和政黨。');
@@ -803,6 +831,7 @@
   function focusChoice(selector) { ($('dock').querySelector?.(selector) || $('map-hotspots').querySelector?.(selector) || $('panel').querySelector?.(selector))?.focus({ preventScroll: true }); }
   function dispatch(data) {
     if (data.action === 'art-switch' && !modal && state.phase !== 'travel' && counting?.status !== 'inprogress') { Art?.setPack?.(Art.isToy() ? 'original' : 'matte-toy-v1'); dressed=''; $('venue-scene').dataset.key=''; scene(); render(); return; }
+    if (data.action === 'dismiss-event' && !modal) { dismissedFeedback = state.crisis ? crisisKey(state.crisis) : ''; save(); renderEvents(); focusDock(); return; }
     if (data.action === 'close') { closeDialog(); return; }
     if (data.action === 'restart') { restart(); return; }
     if (data.action === 'dismiss-notice') { saveNotice = ''; showNotice(); return; }
@@ -821,7 +850,7 @@
     if (state.phase !== 'plan' || !state.started) return;
     if (data.action === 'topic' && G.availableTopics(state).some(t => t.id === data.topic)) { selectedTopic = data.topic; error = ''; save(); render(); focusChoice('[data-action="topic"][data-topic="' + selectedTopic + '"]'); return; }
     if (data.action === 'offer') { if (G.respondOffer(state, data.choice)) { save(); render(); announce(data.choice === 'accept' ? '已接受合作，立場已公開。' : '已婉拒合作。'); } return; }
-    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); announce('已處理突發危機。'); } return; }
+    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
     if (data.action === 'clarify') { if (G.clarify(state, data.id)) { save(); render(); announce('已發澄清文宣。'); } return; }
     if (data.action === 'pledge') { if (G.cleanPledge(state)) { save(); render(); announce('已宣示乾淨選戰。'); } return; }
     if (data.action === 'research') { const t = data.topic; if (G.TOPICS[t]) researchPick = researchPick.includes(t) ? researchPick.filter(x => x !== t) : [...researchPick, t].slice(0, helpers()); error = ''; save(); render(); focusChoice('[data-action="research"][data-topic="' + (t || '') + '"]'); return; }
