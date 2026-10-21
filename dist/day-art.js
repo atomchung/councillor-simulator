@@ -599,7 +599,20 @@
   function faceIcon(tone) { return '<svg viewBox="0 0 34 34" aria-hidden="true" focusable="false" class="face-icon">' + face(17, 17, tone, 14) + '</svg>'; }
   function figure(x, feetY, role, scale, pose) { return person(x, feetY, role, scale, pose); }
   const floor = (top, base, line) => { let s = rect(0, top, 1200, 650 - top, base); for (let y = top + 34; y < 650; y += 46) s += path(`M0 ${y}H1200`, line, 1.2, 'opacity=".55"'); for (let x = -40; x < 1240; x += 120) s += path(`M${x} ${top}L${x - 90} 650`, line, 1.1, 'opacity=".4"'); return s; };
+  function studioBackdrop(kind) {
+    const live = kind === 'online';
+    let s = rect(0, 0, 1200, 650, '#e8e6dc') + rect(0, 0, 1200, 368, live ? '#cbd9cf' : '#c7d6dc');
+    s += '<ellipse cx="600" cy="580" rx="510" ry="56" fill="#667f7b" opacity=".13"/>';
+    for (const x of [55, 1100]) s += rect(x, 30, 28, 350, '#a9bfb9', 'rx="14"');
+    s += rect(220, 45, 760, 270, '#345761', 'rx="32"') + rect(236, 61, 728, 238, live ? '#315f56' : '#325b71', 'rx="23"');
+    s += label(600, 147, live ? '小沈的選戰直播' : '中立新聞台', 46, '#fffdf7', 'text-anchor="middle"') + label(600, 212, live ? '網友留言・即時回應' : '議題直擊', 28, '#dce8e2', 'text-anchor="middle"');
+    s += rect(796, 82, 134, 40, '#b6533b', 'rx="20"') + label(863, 109, '● LIVE', 21, '#fffdf7', 'text-anchor="middle"');
+    for (const x of [90, 1080]) s += path('M'+x+' 625V415', '#526c71', 10) + rect(x-38, 365, 76, 72, '#345761', 'rx="16"') + '<circle cx="'+x+'" cy="400" r="22" fill="#dfe7df"/>' + path('M'+x+' 555l-48 70M'+x+' 555l48 70', '#526c71', 8);
+    if (live) s += rect(735, 366, 415, 249, '#fffdf7', 'rx="24"') + label(940, 404, '正在收看', 22, '#345761', 'text-anchor="middle"');
+    return s;
+  }
   function backdrop(kind) {
+    if (isToy() && ['tv','online'].includes(kind)) return studioBackdrop(kind);
     if (isToy() && TOY_VISITS[kind]) return '<image data-art-image="venue" href="'+TOY_ROOT+TOY_VISITS[kind]+'" width="1200" height="650" preserveAspectRatio="xMidYMid slice"/>';
     let s = rect(0, 0, 1200, 650, '#f4eedc');
     if (kind === 'market') {
@@ -650,7 +663,7 @@
   function interior(kind, options = {}) {
     const crowd = Array.isArray(options.crowd) ? options.crowd : [], roleOf = c => GROUP_ROLES[c.group]?.[c.variant ? 1 : 0] || 'resident';
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '">' + backdrop(kind);
-    const slots = kind === 'tv' ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
+    const slots = ['tv','online'].includes(kind) ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
     // Viewers at home: a living-room inset with ten people on two sofas.
     if (kind === 'tv') s += rect(830, 380, 350, 262, '#1d2b28', 'rx="12"') + rect(842, 392, 326, 238, '#f3e6c8', 'rx="8"') + rect(842, 392, 326, 34, '#2f6f86', 'rx="8"') + label(1005, 416, '家裡收看中・10 人', 17, '#fff7dd', 'text-anchor="middle"') + block(860, 520, 290, 20, 8, '#c76f4f', '#e08b68', '#a65a3e') + block(860, 600, 290, 20, 8, '#c76f4f', '#e08b68', '#a65a3e');
     const people = crowd.slice(0, slots.length).map((c, i) => ({ c, x: slots[i][0], y: slots[i][1], k: slots[i][2] }));
@@ -660,7 +673,8 @@
       for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? '小沈' : '小馬', 18, '#5f4630', 'text-anchor="middle"');
     }
     for (const p of [...people].sort((a, b) => a.y - b.y)) s += figure(p.x, p.y, roleOf(p.c), p.k);
-    if (kind === 'tv') { s += figure(600, 560, 'middle', 1.3) + figure(340, 565, 'player', 1.34) + block(200, 512, 520, 56, 12, '#2f6f86', '#4a8ba3', '#24566a') + rect(220, 530, 480, 8, '#f2c14e') + label(460, 560, '中立新聞台', 18, '#fff7dd', 'text-anchor="middle"');
+    if (kind === 'online') { s += figure(350,560,'player',1.7) + figure(600,560,'helper',1.05) + rect(200,528,440,44,'#446f61','rx="20"') + rect(525,420,56,90,'#263c48','rx="12"') + path('M553 510V548','#263c48',7); }
+    else if (kind === 'tv') { s += figure(600, 560, 'middle', 1.3) + figure(340, 565, 'player', 1.34) + block(200, 512, 520, 56, 12, '#2f6f86', '#4a8ba3', '#24566a') + rect(220, 530, 480, 8, '#f2c14e') + label(460, 560, '中立新聞台', 18, '#fff7dd', 'text-anchor="middle"');
       // Lower third: the issue on air.
       s += rect(0, 590, 820, 52, '#e0483a') + rect(0, 590, 150, 52, '#1d2b28') + label(75, 624, '今日議題', 20, '#fff7dd', 'text-anchor="middle"') + label(170, 625, options.topic || '主持人會從三題挑一題', 24, '#ffffff'); }
     else if (options.mode === 'rally') {

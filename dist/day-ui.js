@@ -274,7 +274,7 @@
   }
   // You against 小馬 in each group as a tug of war: the green part is your share of the two of you.
   function tugBars(r, before) {
-    return '<div class="tug" aria-label="三群：你和小馬">' + r.groups.map((g, k) => { const total = Math.max(1, g.you + g.rival), mine = g.you / total * 100, d = before?.groups?.[k] ? g.you - before.groups[k].you : null; return '<div class="tug-row g-' + GROUP_KEYS[k] + '"><span class="tug-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="tug-bar"><i class="tug-you" style="width:' + mine.toFixed(1) + '%"></i><i class="tug-rival" style="width:' + (100 - mine).toFixed(1) + '%"></i></span><span class="tug-num"><b>' + num(g.you) + '</b>' + (d == null ? '' : '<small class="' + (d >= 0 ? 'up' : 'down') + '">' + signedVotes(d) + '</small>') + '<em>' + num(g.rival) + '</em></span></div>'; }).join('') + '</div>';
+    return '<div class="tug-legend"><span>● 你</span><span>● 小馬</span><small>兩人之間的票數比較</small></div><div class="tug" aria-label="三群：你和小馬">' + r.groups.map((g, k) => { const total = Math.max(1, g.you + g.rival), mine = g.you / total * 100, d = before?.groups?.[k] ? g.you - before.groups[k].you : null; return '<div class="tug-row g-' + GROUP_KEYS[k] + '"><span class="tug-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="tug-bar"><i class="tug-you" style="width:' + mine.toFixed(1) + '%"></i><i class="tug-rival" style="width:' + (100 - mine).toFixed(1) + '%"></i></span><span class="tug-num"><b>' + num(g.you) + '</b>' + (d == null ? '' : '<small class="' + (d >= 0 ? 'up' : 'down') + '">' + signedVotes(d) + '</small>') + '<em>' + num(g.rival) + '</em></span><span class="tug-gap">' + (g.you >= g.rival ? '你領先 ' : '你落後 ') + num(Math.abs(g.you-g.rival)) + ' 票</span></div>'; }).join('') + '</div>';
   }
   // Your place against the line, the candidates around it and, from the latest poll, the three groups; the totals live in the header.
   function raceBoard(compact = false, before = null, ladder = false) {
@@ -385,7 +385,7 @@
   }
   // Raising money: a small drive with no strings, or a visit to a broker who pays for a public stance.
   function donorCards() {
-    const list = G.donorView(state), card = (id, on, title, lines, extra, disabled) => '<button class="donor-card' + (on ? ' on' : '') + '" data-action="donor" data-id="' + esc(id) + '" aria-pressed="' + on + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + title + '</b>' + lines.map(l => '<small>' + l + '</small>').join('') + (extra || '') + '</button>';
+    const list = G.donorView(state), card = (id, on, title, lines, extra, disabled) => '<button class="donor-card' + (on ? ' on' : '') + '" data-action="donor" data-id="' + esc(id) + '" aria-pressed="' + on + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + title + '</b>' + lines.map((l, i) => '<small class="donor-' + (i === 0 ? 'condition' : 'benefit') + '">' + l + '</small>').join('') + (extra || '') + '</button>';
     const small = card('', !donor, '小額募款', ['不綁任何立場', '約 8–16 萬']);
     return '<div class="donor-cards" role="group" aria-label="找誰募款"><span class="pick-label">找誰</span>' + small + list.map(d => {
       const known = d.faces.some(f => f !== 'unknown'), taken = d.status !== 'open', gives = [d.money ? '捐款 ' + wan(d.money) : '', d.bloc ? '組織票約 ' + num(d.bloc) : '', d.perk === 'tv' ? '一次免費上節目' : ''].filter(Boolean).join('・');
@@ -412,7 +412,7 @@
   function researchRow() {
     const free = helpers(), picks = researchTopic() || [], ranking = (G.landscapeView(state).ranking || []).map(r => r.topic).filter(t => G.topicsOf(state).includes(t)), list = [...new Set([...ranking, ...G.topicsOf(state)])].filter(t => state.player.insight?.[t]?.level !== 'precise' && t !== selectedTopic);
     const chip = t => '<button class="research-chip ' + (state.player.known.includes(t) ? 'ready' : 'risky') + '" data-action="research" data-topic="' + t + '" aria-pressed="' + picks.includes(t) + '"' + (!free || (!picks.includes(t) && picks.length >= free) ? ' disabled aria-disabled="true"' : '') + '><b>' + esc(short(t)) + '</b><small>' + statusOf(t) + '</small></button>';
-    return '<div class="research-row" role="group" aria-label="助手研究"><span class="pick-label">助手查</span>' + list.map(chip).join('') + '</div><p class="research-note">' + researchNote(picks, free) + '</p>';
+    return '<div class="research-row" role="group" aria-label="助手研究"><span class="pick-label research-heading">助手研究 <b>' + picks.length + '／' + free + ' 人已分配</b></span>' + list.map(chip).join('') + '</div><p class="research-note">' + researchNote(picks, free) + '</p>';
   }
   // Money buys reach and certainty; assistants can run a stall or dig into 小馬's money while you are out.
   function addonButtons(p) {
@@ -477,10 +477,10 @@
       const p = state.pending, q = G.question(state), kind = p.id === 'canvass' ? venueId(p.venue) : p.id;
       return { kind, crowd: crowdOf(q?.crowd, kind), speaker: p.id === 'canvass' ? { group: q?.speakerGroup ?? 0, variant: 1 } : null, bubble: { who: q?.speaker || '', text: q?.text || '', stage: 'question' } };
     }
-    if (state.phase === 'recap' && ['canvass', 'tv', 'debate', 'rally'].includes(state.recap?.player?.action)) {
+    if (state.phase === 'recap' && ['canvass', 'tv', 'online', 'debate', 'rally'].includes(state.recap?.player?.action)) {
       const r = state.recap.player, kind = onSite(r.action) ? venueId(r.venue) : r.action, c = r.conversation;
-      const line = c ? c.reaction.replace(/^[^「]*「/, '').replace(/」$/, '') : r.action === 'debate' ? '小馬：「' + (state.recap.rival.quote || state.recap.rival.result) + '」' : r.action === 'rally' ? '現場 ' + r.effects.contacts + ' 人聽完你的政見。' : '主持人：「謝謝小沈。」';
-      return { kind, mode: r.action === 'rally' ? 'rally' : null, crowd: withReactions(crowdOf(r.crowd, kind), r.effects?.groups), speaker: c ? { group: c.group ?? 0, variant: 1, tone: c.mood } : null, bubble: { who: c ? c.name + '・' + c.groupTitle : r.action === 'debate' ? '小馬・對手' : r.action === 'rally' ? '造勢活動' : '主持人・小安', text: line, stage: 'reaction' } };
+      const line = c ? c.reaction.replace(/^[^「]*「/, '').replace(/」$/, '') : r.action === 'debate' ? '小馬：「' + (state.recap.rival.quote || state.recap.rival.result) + '」' : r.action === 'online' ? '本次觸及 ' + num(r.effects?.contacts) + ' 人。' : r.action === 'rally' ? '現場 ' + r.effects.contacts + ' 人聽完你的政見。' : '主持人：「謝謝小沈。」';
+      return { kind, mode: r.action === 'rally' ? 'rally' : null, crowd: withReactions(crowdOf(r.crowd, kind), r.effects?.groups), speaker: c ? { group: c.group ?? 0, variant: 1, tone: c.mood } : null, bubble: { who: c ? c.name + '・' + c.groupTitle : r.action === 'debate' ? '小馬・對手' : r.action === 'rally' ? '造勢活動' : r.action === 'online' ? '直播結束' : '主持人・小安', text: line, stage: 'reaction' } };
     }
     return null;
   }
