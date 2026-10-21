@@ -6,3 +6,4 @@ node_modules/
 *.local
 *.log
 .worktrees/
+FEEDBACK-ting-*.md
