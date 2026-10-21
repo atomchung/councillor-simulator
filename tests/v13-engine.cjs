@@ -11,7 +11,10 @@ const side=lean=>lean>.5?0:1,planOf=(t,k)=>G.TOPICS[t].plans[k].id;
 const ups=o=>o.faces.reduce((n,f)=>n+(f==='up'?2:f==='slight'?1:f==='down'?-2:0),0),best=q=>q.options.filter(o=>o.unlocked).sort((x,y)=>ups(y)-ups(x))[0].id;
 const settleCrisis=(s,choice='apologize')=>{if(s.crisis?.status==='pending')G.respondCrisis(s,choice);};
 // One full round through the public API; answer may be an option id or a function of the question.
-function round(s,id,config={},answer){settleCrisis(s);const before=copy(s),p=G.preview(s,id,config);ok(p.allowed,p.reason);G.begin(s,id,config);const reload=copy(s);for(const x of[s,reload]){G.arrive(x);if(x.phase==='question'){const q=G.question(x),want=typeof answer==='function'?answer(q,x):answer,o=q.options.find(o=>o.id===want&&o.unlocked)||q.options.find(o=>o.unlocked);ok(G.answer(x,o.id),'answer accepted');}}eq(s,reload,'reload mid-round settles identically');eq(s.budget.spent-before.budget.spent,p.totalCost,'preview cost exact');return s.recap;}
+function round(s,id,config={},answer){settleCrisis(s);const before=copy(s),p=G.preview(s,id,config);ok(p.allowed,p.reason);G.begin(s,id,config);const reload=copy(s);for(const x of[s,reload]){G.arrive(x);if(x.phase==='question'){let q=G.question(x);const want=typeof answer==='function'?answer(q,x):answer;
+  // Tests that name an approach on an unresearched issue mean the researched case; outside the locking checks the issue counts as known.
+  if(typeof want==='string'&&q.options.some(o=>o.id===want&&!o.unlocked)&&G.TOPICS[x.pending.topic]?.plans?.some(p=>p.id===want)){x.player.known.push(x.pending.topic);q=G.question(x);}
+  const o=q.options.find(o=>o.id===want&&o.unlocked)||q.options.find(o=>o.unlocked);ok(G.answer(x,o.id),'answer accepted');}}eq(s,reload,'reload mid-round settles identically');eq(s.budget.spent-before.budget.spent,p.totalCost,'preview cost exact');return s.recap;}
 const skip=s=>{round(s,'fundraise');G.next(s);};
 const finish=s=>{while(s.phase!=='result'){if(s.phase==='recap'){G.next(s);continue;}round(s,'fundraise');}return s.result;};
 const playerVotes=r=>r.attribution.find(a=>a.source==='player').votes;
@@ -52,15 +55,15 @@ for(let seed=1;seed<=10;seed++){const s=fresh(seed);
  const pk=s.landscape.active.at(-1);eq(G.preview(s,'prepare',{topic:pk}).topic,pk,'preparing picks the issue');const off=G.POLICY_TOPICS.find(t=>!s.landscape.active.includes(t));ok(G.preview(s,'prepare',{topic:off}).topic!==off,'an issue out of play cannot be prepared');}
 
 // Research: one assistant on an issue you choose, a second one for depth; concrete answers only on researched issues.
-{const s=fresh(8),v=G.venueView(s)[0],t=v.pool[0],p=G.preview(s,'canvass',{venue:v.id,research:t});eq(p.researchTopics,[t],'one assistant researches the chosen issue');eq(p.teamAssignments.map(m=>m.task),['research','follow'],'the other comes along');eq(p.totalCost,0,'research costs time, not money');
+{const s=fresh(8,{background:'heir'}),v=G.venueView(s)[0],t=v.pool[0],p=G.preview(s,'canvass',{venue:v.id,research:t});eq(p.researchTopics,[t],'one assistant researches the chosen issue');eq(p.teamAssignments.map(m=>m.task),['research','follow'],'the other comes along');eq(p.totalCost,0,'research costs time, not money');
  eq(G.preview(s,'canvass',{venue:v.id,research:t,deep:true}).researchTopics,[t,t],'deeper research takes a second assistant');
  // Helpers' research is ready from the next round: nothing on the day, the result once the round ends.
  const finishDay=x=>{G.arrive(x);if(x.phase==='question')G.answer(x,G.question(x).options.find(o=>o.unlocked).id);return x;};
  const x=copy(s);G.begin(x,'canvass',{venue:v.id,research:t,deep:true});ok(!x.player.insight[t],'research is not ready on the day');finishDay(x);eq(x.player.insight[t].level,'precise','deep research shows the shares after the round');
  const y=copy(s);G.begin(y,'canvass',{venue:v.id,research:t});finishDay(y);eq(y.player.insight[t].level,'direction','light research shows the sides after the round');
  const z=copy(s);round(z,'canvass',{venue:v.id,research:t},best);G.next(z);settleCrisis(z);eq(G.preview(z,'canvass',{venue:v.id,research:t}).researchTopics,[t],'a known issue can be researched again');const zz=copy(z);G.begin(zz,'canvass',{venue:v.id,research:t});eq(zz.player.insight[t].level,'direction','a second look waits for the round to end');finishDay(zz);eq(zz.player.insight[t].level,'precise','researching a known issue again shows the shares');}
-{let street=0,stage=0,n=0;for(let seed=1;seed<=20;seed++){const s=fresh(seed),v=G.venueView(s)[0],a=copy(s);G.begin(a,'canvass',{venue:v.id});G.arrive(a);const q=G.question(a),t=a.pending.topic;
-  {const plans=q.options.filter(o=>G.TOPICS[t].plans.some(p=>p.id===o.id));ok(plans.length===2&&plans.every(o=>o.unlocked&&!o.estimate&&o.faces.every(f=>f==='unknown')),'without research every approach can be said, blind');}ok(q.options.find(o=>o.id==='honest').tags.some(x=>x.kind==='unprepared'),'not answering is tagged');G.answer(a,'honest');street+=a.recap.player.stumble.votes;
+{let street=0,stage=0,n=0;for(let seed=1;seed<=20;seed++){const s=fresh(seed,{background:seed%2?'incumbent':'heir'}),v=G.venueView(s)[0],a=copy(s);G.begin(a,'canvass',{venue:v.id});G.arrive(a);const q=G.question(a),t=a.pending.topic;
+  {const plans=q.options.filter(o=>G.TOPICS[t].plans.some(p=>p.id===o.id));if(!a.player.known.includes(t)){if(s.settings.background==='incumbent')ok(plans.length===2&&plans.every(o=>o.unlocked&&!o.estimate&&o.faces.every(f=>f==='unknown')),'an incumbent can state an unresearched approach, blind');else ok(plans.length===2&&plans.every(o=>!o.unlocked&&o.whyLocked),'others cannot state an unresearched approach');}}ok(q.options.find(o=>o.id==='honest').tags.some(x=>x.kind==='unprepared'),'not answering is tagged');G.answer(a,'honest');street+=a.recap.player.stumble.votes;
   const b=copy(s);G.begin(b,'tv');G.arrive(b);if(!b.player.known.includes(b.pending.topic)){G.answer(b,'honest');stage+=b.recap.player.stumble.votes;n++;}}
  ok(street<0&&n>0&&stage/n<street/20,'caught unprepared costs, more on TV: '+Math.round(street/20)+' / '+Math.round(stage/n));}
 
@@ -85,7 +88,7 @@ for(let seed=1;seed<=20;seed++){
 
 // The crowd decides the better answer: the main group's majority approach beats the other one at its place.
 let crowdWins=0,n=0;
-for(let seed=1;seed<=40;seed++){const base=fresh(seed);for(const v of G.venueView(base)){const t=G.venueTopic(base,v.id),lean=base.landscape.groups[v.main].lean[t];if(Math.abs(lean-.5)<.25)continue;const run=k=>{const s=copy(base);return playerVotes(round(s,'canvass',{venue:v.id,research:t},planOf(t,k)));},want=side(lean);if(run(want)>run(1-want))crowdWins++;n++;break;}}
+for(let seed=1;seed<=40;seed++){const base=fresh(seed);for(const v of G.venueView(base)){const t=G.venueTopic(base,v.id),lean=base.landscape.groups[v.main].lean[t];if(Math.abs(lean-.5)<.25)continue;const run=k=>{const s=copy(base);if(!s.player.known.includes(t))s.player.known.push(t);return playerVotes(round(s,'canvass',{venue:v.id,research:t},planOf(t,k)));},want=side(lean);if(run(want)>run(1-want))crowdWins++;n++;break;}}
 ok(n>=30&&crowdWins>=n*.85,'main crowd majority wins at its place: '+crowdWins+'/'+n);
 
 // Promises depend on the crowd: where bold-promise fans gather a guarantee beats candour; where they hate empty talk it loses.
