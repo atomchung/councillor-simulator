@@ -80,6 +80,7 @@ const VENUES={
  river:{id:'river',title:'道南河濱',affinity:{sanitation:1.6,housing:1.3,traffic:1.1,pets:1.7,hillside:1.6,nightlife:1.4},anchor:{x:551,y:474}},
  temple:{id:'temple',title:'廟前廣場',affinity:{senior:1.5,health:1.4,temple_fest:2.6,hillside:1.1},anchor:{x:158.2,y:285.8}}
 };
+const PLACE_IDS=Object.keys(VENUES).filter(v=>VENUES[v].affinity);
 // Village chiefs: until one has seen you enough, people there hold back; once won over, the chief brings a network and the place stops tiring of you.
 const CHIEFS={market:{name:'市場老里長'},temple:{name:'廟口里長'},plaza:{name:'社區里長'}};
 function chiefNeed(s,venue){const id=s.settings?.background;if(id==='heir')return['market','temple'].includes(venue)?0:2;if(id==='incumbent')return 1;return 2+(rand(s.seed,'chief-need',venue)<.5?1:0);}
@@ -121,9 +122,12 @@ function openChallengeAt(s,venue){return(s.challenges||[]).filter(c=>c.status===
 function responseVenues(s,topic){return Object.keys(VENUES).map(v=>({v,w:(s.landscape.groups[s.landscape.main[v]]?.weights?.[topic]||.2)*(VENUES[v].affinity[topic]||1)})).sort((a,b)=>b.w-a.w||(a.v<b.v?-1:1)).slice(0,2).map(x=>x.v);}
 function urgentTopic(s){const c=(s.challenges||[]).filter(c=>c.status==='open').sort((a,b)=>a.deadline-b.deadline)[0];return c?.topic||null;}
 // The issues people at a place may raise this round: its main crowd's three biggest concerns there, weighted by local relevance and heat.
-function venuePool(s,venue,day=s.day){const open=openChallengeAt(s,venue);if(open)return[{topic:open.topic,odds:1}];const G=s.landscape.groups[s.landscape.main?.[venue]??0],aff=VENUES[venue]?.affinity||{},w=t=>(G.weights[t]||.2)*(aff[t]||1)*(surgeActive(s,t,day)?1.8:1),top=[...topicsOf(s)].sort((a,b)=>w(b)-w(a)||(a<b?-1:1)).slice(0,3),sum=top.reduce((n,t)=>n+w(t),0);return top.map(t=>({topic:t,odds:w(t)/sum}));}
+function venuePool(s,venue,day=s.day){const open=openChallengeAt(s,venue);if(open)return[{topic:open.topic,odds:1}];const G=s.landscape.groups[s.landscape.main?.[venue]??0],aff=VENUES[venue]?.affinity||{},w=t=>Math.sqrt(G.weights[t]||.2)*(aff[t]||1)*(surgeActive(s,t,day)?1.8:1),top=[...topicsOf(s)].sort((a,b)=>w(b)-w(a)||(a<b?-1:1)).slice(0,3),sum=top.reduce((n,t)=>n+w(t),0);return top.map(t=>({topic:t,odds:w(t)/sum}));}
 // The question actually asked at a place is drawn from its pool when you get there.
-function venueTopic(s,venue,day=s.day){const pool=venuePool(s,venue,day);let r=rand(s.seed,'venue-topic',day,venue);for(const x of pool){r-=x.odds;if(r<0)return x.topic;}return pool.at(-1).topic;}
+// Places draw in a fixed order and an issue already asked at one place this round is left to the others, so the map offers different issues.
+function drawTopic(s,venue,day,pool){const sum=pool.reduce((n,x)=>n+x.odds,0);let r=rand(s.seed,'venue-topic',day,venue)*sum;for(const x of pool){r-=x.odds;if(r<0)return x.topic;}return pool.at(-1).topic;}
+function venueTopic(s,venue,day=s.day){if(!PLACE_IDS.includes(venue))return drawTopic(s,venue,day,venuePool(s,venue,day));const taken=new Set();
+ for(const v of PLACE_IDS){const pool=venuePool(s,v,day),fresh=pool.length>1?pool.filter(x=>!taken.has(x.topic)):pool,t=drawTopic(s,v,day,fresh.length?fresh:pool);taken.add(t);if(v===venue)return t;}}
 // The hottest issue in the latest poll, or the open challenge.
 function hotTopicNow(s){const urgent=urgentTopic(s);if(urgent)return urgent;const issues=s.polls?.at(-1)?.issues||s.landscape.weights;return[...topicsOf(s)].sort((a,b)=>(issues[b]||0)-(issues[a]||0))[0];}
 // TV asks one of three issues, drawn on air: the open challenge if there is one, then the hottest issues in the latest poll.

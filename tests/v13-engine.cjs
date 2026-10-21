@@ -321,4 +321,7 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
 // Holding off wears thin: from the third '先不答應' every group likes it less, and the answer says so.
 {const s=fresh(9),t=s.landscape.active[0],first=G.answerFaces(s,t,'honest');for(let k=0;k<5;k++)s.player.actions.push({day:1,action:'canvass',topic:t,answer:'honest'});const later=G.answerFaces(s,t,'honest'),rank={up:3,slight:2,flat:1,down:0};
  ok(later.every((f,g)=>rank[f]<=rank[first[g]])&&later.some((f,g)=>rank[f]<rank[first[g]]),'faces sour after many holds: '+first+' -> '+later);}
+// The five places ask five different issues each round unless 小馬's open challenge pins one, so the map is a choice of issues.
+{let rounds=0,distinct=0;for(let seed=1;seed<=30;seed++){const s=fresh(seed);for(let d=1;d<=5&&s.phase==='plan';d++){settleCrisis(s);if(!(s.challenges||[]).some(c=>c.status==='open')){const asked=G.venueView(s).map(v=>G.venueTopic(s,v.id));rounds++;if(new Set(asked).size===asked.length)distinct++;}G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}}
+ ok(distinct/rounds>.9,'places ask different issues: '+distinct+'/'+rounds);}
 
