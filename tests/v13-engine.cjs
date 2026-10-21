@@ -305,8 +305,17 @@ for(let seed=1;seed<=10;seed++){const n=fresh(seed,{background:'newcomer'}),h=fr
  if(o==='found')ok(s.recap.player.rivalHit<0,'found dirt costs 小馬 votes');if(o==='backfire')ok(s.recap.player.votes<0,'a backfire costs you votes');if(o==='nothing')eq(Math.round(s.recap.player.votes),0,'nothing found moves nothing of yours');}
  ok(seen.found&&seen.nothing&&seen.backfire,'all three outcomes happen');
  const s=fresh(5);while(s.day<2){G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}for(let k=0;k<2;k++){settleCrisis(s);G.begin(s,'dig',{});G.arrive(s);G.next(s);}settleCrisis(s);ok(!G.preview(s,'dig',{}).allowed,'at most twice a game');}
-// Fundraising can fall through, a newcomer more often; walking the neighbourhood makes asking easier.
+// Fundraising can fall through, a newcomer more often; knowing the chiefs makes asking easier.
 {let miss=0,n=0;for(let seed=1;seed<=60;seed++){const s=fresh(seed,{background:'newcomer'});const r=round(s,'fundraise');n++;if(/沒談成/.test(r.player.result||''))miss++;}ok(miss>=8&&miss<=30,'newcomer fundraising falls through '+miss+'/'+n);
- const s=fresh(5,{background:'newcomer'}),before=G.preview(s,'fundraise').expectedIncome.max;s.player.counts.canvass=4;ok(G.preview(s,'fundraise').expectedIncome.max>before,'neighbourhood ties raise fundraising');}
+ const s=fresh(5,{background:'newcomer'}),before=G.preview(s,'fundraise').expectedIncome.max;for(const c of Object.values(s.chiefs))c.visits=2;ok(G.preview(s,'fundraise').expectedIncome.max>before,'visits to chiefs raise fundraising');}
 
 console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetric answer costs, online streams, village chiefs, identity head starts, brokers and deals, scandals from round 5; v13.4: fixed group sides with varying strength, question draws at places and on TV, the research slot and unprepared answers, residents\' demands, faces, crowd-dependent promises, unkept guarantees and walk-backs, challenges raised where people care and clarified for money, switching costs, offers and breaches, party shares, bases, money and lines, the ladder, billboards and their fit, gifts by group, rallies after two stances, the stall, preparing two issues, background checks, the press gamble and the clean pledge, the second-act crisis, the debate edge, the final push, rival targeting, rumours, attacks and rebuttals, calling out the rival, shared swing voters, attribution sums, the fixed seat line, real-scale election, identities, the offer revealing its issue, per-source report rounds with quiet rounds, and answer and offer estimates that read only visible information. Engine only; not browser, fun or play-time validation.'}));
+// Party aid: a second grant in round 5 and mobilisation from round 9, halved after one break of the party line and gone after two; none for an independent.
+{const play=(aff,breakIt)=>{const s=fresh(3,{background:'heir',affiliation:aff});const line=Object.entries(G.PARTY_LINES[aff]||{});let k=0;while(s.day<G.DAYS&&s.phase==='plan'){settleCrisis(s);
+  if(breakIt&&k<breakIt&&line[k]){const [t,plan]=line[k];const other=G.TOPICS[t].plans.find(p=>p.id!==plan).id;s.player.actions.push({day:s.day,action:'canvass',topic:t,answer:other});k++;}
+  G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}return s;};
+ const kept=play('kmt',0),once=play('kmt',1),twice=play('kmt',2),ind=play('independent',0),aid=x=>x.partyAid||[];
+ eq(aid(kept).map(a=>a.kind),['subsidy','mobilize'],'grant in round 5, mobilisation in round 9');eq(aid(kept)[0].money,G.PARTY_AID.subsidy,'full grant while the line holds');eq(aid(kept)[1].votes,G.PARTY_AID.mobilize.kmt,'full mobilisation');
+ eq(aid(once)[0].money,G.PARTY_AID.subsidy/2,'one break halves the grant');eq(aid(twice)[1].votes,0,'two breaks and the party stays home');eq(aid(ind),[],'no party aid for an independent');
+ ok(kept.player.blocs.some(b=>b.party==='kmt'&&b.status==='active'),'mobilised votes count as an organised bloc');}
+
