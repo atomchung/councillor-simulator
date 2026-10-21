@@ -607,7 +607,7 @@ body.v13[data-phase="report"] .game-layout{display:none}
 .v13 .wordmark{white-space:nowrap}
 .v13 .game-layout{grid-template-columns:minmax(0,1.7fr) minmax(320px,1fr)}
 @media (max-width:1023px){.v13 .game-layout{grid-template-columns:1fr}}
-/* v13.2: the opening is a pick screen with portraits, emblems and numbered steps; the side panel shows the match-up with 周沐. */
+/* v13.2: the opening is a pick screen with portraits, emblems and numbered steps; the side panel shows the match-up with 小馬. */
 @media (min-width:1024px) and (min-height:620px){body.v13[data-phase="intro"] .world{display:none}}
 @media (max-width:1023px){body.v13[data-phase="intro"] .dock{order:2}body.v13[data-phase="intro"] .interaction{order:3}}
 .v13 .dock-intro{display:flex;flex-direction:column;align-items:stretch;gap:12px}
@@ -668,7 +668,7 @@ body.v13[data-phase="report"] .game-layout{display:none}
 .v13 .voice{margin:0;font-size:11.5px;line-height:1.45;color:#4a5a50}.v13 .voice b{margin-right:4px;color:var(--g)}
 .v13 .issue-card .voice{margin:0}.v13 .issue-card .voice>b{display:inline;margin:0 4px 0 0;font-size:11.5px;color:var(--g)}
 .v13 .tag.walkback{background:#f8e3dc;color:#9a3f2b}
-/* v13.3: the research row, TV brief cards, the crisis card, plan-phase buttons, tug-of-war bars, party chips, acts, rain and 周沐's spot. */
+/* v13.3: the research row, TV brief cards, the crisis card, plan-phase buttons, tug-of-war bars, party chips, acts, rain and 小馬's spot. */
 .v13 .research-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin-top:8px;flex-basis:100%}
 .v13 .research-chip,.v13 .research-row button[data-action="toggle"]{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:1px;padding:5px 10px;min-height:44px;min-width:0;border:1.5px solid var(--line);border-radius:8px;background:#fffdf7;font-size:13px;line-height:1.2;text-align:left}
 .v13 .research-chip small,.v13 .research-row button[data-action="toggle"] small{font-size:10.5px;font-weight:700;color:var(--muted)}
@@ -706,7 +706,7 @@ body.v13[data-phase="report"] .game-layout{display:none}
 .v13 .party-chips b{padding:1px 7px;border-radius:999px;background:color-mix(in srgb,var(--party) 12%,#fffdf7);color:var(--party);font-weight:700}
 .v13 .act-chip{margin-left:6px;padding:1px 7px;border-radius:999px;background:#e6eede;color:var(--green);font-size:11px;font-style:normal;font-weight:800;vertical-align:3px}
 body.v13[data-act="2"] .act-chip{background:#fff1d6;color:#7a5216}body.v13[data-act="3"] .act-chip{background:#f8e3dc;color:#9a3f2b}
-/* The light changes by act; rain falls on the map; 周沐 stands where the rumour says. */
+/* The light changes by act; rain falls on the map; 小馬 stands where the rumour says. */
 body.v13[data-act="2"] .world .scene{filter:contrast(1.05) saturate(1.06)}
 body.v13[data-act="3"] .world .scene{filter:sepia(.2) saturate(1.1) hue-rotate(-8deg)}
 .v13 .world.is-rainy .scene{filter:saturate(.72) brightness(.94)}

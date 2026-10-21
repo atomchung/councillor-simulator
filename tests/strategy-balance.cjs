@@ -110,7 +110,7 @@ const ADAPTIVE=[
  {kind:'adaptive',name:'空戰：先研究電視題目再上節目',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{fundraises:1,tvSmart:true,booth:true})},
  {kind:'adaptive',name:'地面戰：擴編、看板、小禮物',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{recruits:2,fundraises:0,boards:2,gifts:true,booth:true,online:0})},
  {kind:'adaptive',name:'造勢：表態兩題後存錢辦造勢',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{rallies:3,fundraises:1,rallySmart:true,booth:true,gifts:true})},
- {kind:'adaptive',name:'黑料攻防：查周沐經費再出手',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{investigate:true,fundraises:1})},
+ {kind:'adaptive',name:'黑料攻防：查小馬經費再出手',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{investigate:true,fundraises:1})},
  {kind:'adaptive',name:'新媒體：直播搶青年',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{online:2,fundraises:1})},
  {kind:'adaptive',name:'全面加碼：小禮物、看板、擺攤、合作',offer:s=>{const v=visible(s);return v.offer&&dealValue(v,v.offer)>=-.1?'accept':'decline';},prep:prepRound,decide:s=>situational(s,{fundraises:1,boards:2,gifts:true,booth:true,rallies:2,rallySmart:true})},
 ];

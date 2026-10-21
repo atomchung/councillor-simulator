@@ -93,7 +93,7 @@ ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/
  if(challenged){exposed++;ok(r.unkept.length===1&&r.unkept[0].votes<0,'an exposed, uncorrected guarantee costs votes at the vote');}else eq(r.unkept,[],'a guarantee nobody exposed costs nothing at the vote');eq(finish(plain).unkept,[],'no guarantee, nothing unkept');}
  ok(exposed>=12,'guarantees exposed '+exposed+'/20');}
 
-// 周沐 leaves an unknown newcomer alone: a guarantee far below the line draws no attack.
+// 小馬 leaves an unknown newcomer alone: a guarantee far below the line draws no attack.
 {let quiet=0;for(let seed=1;seed<=20;seed++){const s=fresh(seed,{background:'newcomer'});round(s,'tv',{},'guarantee');if(G.raceView(s).you<G.raceView(s).line*.8&&!s.challenges.length)quiet++;}ok(quiet>=15,'newcomer left alone '+quiet+'/20');}
 {let fixed=0;for(let seed=1;seed<=60&&fixed<4;seed++){const s=fresh(seed,{background:'heir'});round(s,'tv',{},'guarantee');G.next(s);
  for(let guard=0;guard<8&&s.phase==='plan';guard++){settleCrisis(s);const open=G.pendingChallenges(s)[0];if(open){eq(open.venues.length,2,'raised at two places');for(const v of G.venueView(s))eq(v.topic,open.venues.includes(v.id)?open.topic:null,'only the places where people care raise the challenge');eq(G.tvPool(s)[0],open.topic,'TV leads with it');
@@ -131,19 +131,19 @@ ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/
 // Party: district shares independent of age; warmer own-party voters; party money; the line.
 {const count={kmt:0,dpp:0,none:0},byGroup=[0,1,2].map(()=>({kmt:0,n:0}));for(let seed=1;seed<=20;seed++)for(const v of G.initial(seed).voters){count[v.p]++;byGroup[v.g].n++;if(v.p==='kmt')byGroup[v.g].kmt++;}
  const total=count.kmt+count.dpp+count.none;for(const p of ['kmt','dpp','none'])ok(Math.abs(count[p]/total-G.PARTY_SHARES[p])<.02,'party share '+p);for(const g of byGroup)ok(Math.abs(g.kmt/g.n-G.PARTY_SHARES.kmt)<.04,'party independent of age group');}
-{const ind=fresh(31),kmt=fresh(31,{affiliation:'kmt'});eq(kmt.rival.party,'dpp','周沐 runs for the other big party');eq(fresh(31,{affiliation:'dpp'}).rival.party,'kmt','and the other way round');ok(['kmt','dpp'].includes(ind.rival.party),'an independent faces either');
+{const ind=fresh(31),kmt=fresh(31,{affiliation:'kmt'});eq(kmt.rival.party,'dpp','小馬 runs for the other big party');eq(fresh(31,{affiliation:'dpp'}).rival.party,'kmt','and the other way round');ok(['kmt','dpp'].includes(ind.rival.party),'an independent faces either');
  ind.voters.forEach((v,i)=>eq(Math.round(kmt.voters[i].support[0]/v.support[0]*100)/100,v.p==='kmt'?G.TUNING.party.base.same:v.p==='dpp'?G.TUNING.party.base.opposite:1,'party base'));
- eq(kmt.budget.available-ind.budget.available,G.PARTIES.kmt.subsidy,'party subsidy at the start');eq(kmt.rival.budget.donations,G.PARTIES[kmt.rival.party].subsidy,'周沐 gets his party\'s subsidy');
+ eq(kmt.budget.available-ind.budget.available,G.PARTIES.kmt.subsidy,'party subsidy at the start');eq(kmt.rival.budget.donations,G.PARTIES[kmt.rival.party].subsidy,'小馬 gets his party\'s subsidy');
  const a=round(copy(kmt),'fundraise').player.income,b=round(copy(ind),'fundraise').player.income;ok(Math.abs(a/b-G.PARTIES.kmt.fundraise)<.01,'party candidates raise 1.3 times as much');eq(G.PARTY_LINES.kmt.health,'all65','KMT line on health is the universal senior subsidy');
  const view=G.partyView(kmt);eq(view.line.length,3,'three-issue party line');eq(view.rival.line.length,3,'his line shown too');eq(G.partyView(ind).line,[],'an independent has no line to keep');
  ok(Math.abs(Object.values(G.partyVotes(kmt,0)).reduce((a,b)=>a+b,0)-G.expectedVotes(kmt,0))<1e-6,'party votes add up');}
-{let ratio=0,low=0;for(let seed=1;seed<=20;seed++){const h=G.raceView(fresh(seed,{background:'heir',affiliation:'kmt'})),n=G.raceView(fresh(seed));ratio+=h.you/h.rival/20;low+=n.you/n.rival/20;}ok(ratio>.95&&ratio<1.35,'KMT heir starts level with or ahead of 周沐: '+ratio.toFixed(2));ok(low<.6,'a newcomer independent starts far behind: '+low.toFixed(2));}
+{let ratio=0,low=0;for(let seed=1;seed<=20;seed++){const h=G.raceView(fresh(seed,{background:'heir',affiliation:'kmt'})),n=G.raceView(fresh(seed));ratio+=h.you/h.rival/20;low+=n.you/n.rival/20;}ok(ratio>.95&&ratio<1.35,'KMT heir starts level with or ahead of 小馬: '+ratio.toFixed(2));ok(low<.6,'a newcomer independent starts far behind: '+low.toFixed(2));}
 {let kept=0,broke=0;for(let seed=1;seed<=120&&(kept<4||broke<4);seed++){const s=fresh(seed,{affiliation:'kmt'}),v=G.venueView(s).find(v=>G.PARTY_LINES.kmt[G.venueTopic(s,v.id)]);if(!v)continue;const t=G.venueTopic(s,v.id),line=G.PARTY_LINES.kmt[t],other=G.TOPICS[t].plans.find(p=>p.id!==line).id,keep=kept<=broke;
  G.begin(s,'canvass',{venue:v.id,research:t});G.arrive(s);const o=G.question(s).options.find(o=>o.id===(keep?line:other));ok(o.unlocked&&o.tags.some(x=>x.kind===(keep?'party':'breach')),'party line tagged on the answer');G.answer(s,o.id);const pl=s.recap.player.partyLine;eq(pl.kept,keep,'party line recorded');ok(keep?pl.votes>0:pl.votes<0,'keeping wins party voters, breaking loses them');keep?kept++:broke++;}
  ok(kept>=4&&broke>=4,'party line exercised');ok(G.TUNING.party.break>G.TUNING.party.keep,'breaking the line costs more than keeping it gains');}
 
 // The ladder; the billboard estimate and fit.
-{const s=fresh(5),rows=G.ladderView(s);eq(rows.length,27,'27 candidates');eq(rows.filter(r=>r.elected).length,13,'13 seats');ok(rows.some(r=>r.id===0)&&rows.some(r=>r.id===1),'you and 周沐 listed');if(rows.find(r=>r.id===0).rank>13&&rows.find(r=>r.id===1).rank>13)eq(rows[12].votes,G.LINE,'the 13th place is the line');}
+{const s=fresh(5),rows=G.ladderView(s);eq(rows.length,27,'27 candidates');eq(rows.filter(r=>r.elected).length,13,'13 seats');ok(rows.some(r=>r.id===0)&&rows.some(r=>r.id===1),'you and 小馬 listed');if(rows.find(r=>r.id===0).rank>13&&rows.find(r=>r.id===1).rank>13)eq(rows[12].votes,G.LINE,'the 13th place is the line');}
 {const s=fresh(5),e=G.billboardEstimate(s);eq(e.rounds,G.DAYS-1,'billboard works the remaining rounds');ok(e.perRound>=50&&e.perRound<=200,'billboard estimate per round '+e.perRound);
  const v=G.venueView(s)[1].id,g=s.landscape.groups[s.landscape.main[v]],top=Object.entries(g.weights).sort((a,b)=>b[1]-a[1])[0][0];eq(G.boardFit(s,v),1,'no stance, a plain billboard');
  s.player.actions.push({day:0,action:'tv',topic:top,answer:planOf(top,side(g.lean[top])),quote:''});eq(G.boardFit(s,v),G.TUNING.billboardFit.match,'a stance the crowd there agrees with works harder');
@@ -215,7 +215,7 @@ for(let seed=1;seed<=200&&(expired<4||answered<4);seed++){
 }
 ok(hits>=4&&expired>=4&&answered>=4,'attack paths exercised: hits '+hits+', expired '+expired+', answered '+answered);
 
-// Calling out 周沐: offered once he has a public stance on the issue; it costs him among those who agree with you.
+// Calling out 小馬: offered once he has a public stance on the issue; it costs him among those who agree with you.
 {let countered=0;for(let seed=1;seed<=120&&countered<6;seed++){const s=fresh(seed,{background:'heir'});while(s.day<G.DAYS-1&&s.phase==='plan'){settleCrisis(s);const v=G.venueView(s).find(v=>G.counterPlan(s,G.venueTopic(s,v.id)));if(v){const t=G.venueTopic(s,v.id),want=G.counterPlan(s,t).id;G.begin(s,'canvass',{venue:v.id,research:t});G.arrive(s);const o=G.question(s).options.find(o=>o.id==='counter');ok(o&&o.unlocked&&o.tags.some(x=>x.kind==='counter'),'counter offered once he has a public stance');eq(o.faces,G.answerFaces(s,t,want),'counter faces are those of the opposite approach');
   G.answer(s,'counter');const c=s.recap.player.counter;ok(c&&c.rival<0,'calling him out costs him');ok(c.you<=0,'and some listeners think you are picking a fight');eq(s.recap.player.answer,want,'your stance becomes the opposite of his');countered++;break;}skip(s);}}
  ok(countered===6,'counter exercised');}
@@ -293,9 +293,9 @@ for(let seed=1;seed<=10;seed++){const n=fresh(seed,{background:'newcomer'}),h=fr
  ok(visits>=15,'broker visits exercised '+visits);
  const heir=fresh(4,{background:'heir'}),nc=fresh(4,{background:'newcomer'});ok(heir.deals.developer.money>nc.deals.developer.money,'family ties open wallets wider');
  const m=fresh(6);if(m.deals.media){round(m,'fundraise',{donor:'media'});G.next(m);settleCrisis(m);eq(G.preview(m,'tv',{}).totalCost,0,'the producer gives one free appearance');}}
-// Digging for dirt: from round 2, at most twice; found hurts 周沐, backfire hurts you, nothing only costs money.
+// Digging for dirt: from round 2, at most twice; found hurts 小馬, backfire hurts you, nothing only costs money.
 {const seen={found:0,nothing:0,backfire:0};for(let seed=1;seed<=60;seed++){const s=fresh(seed);ok(!G.preview(s,'dig',{}).allowed,'no digging in round 1');while(s.day<2){G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}settleCrisis(s);const p=G.preview(s,'dig',{});ok(p.allowed&&p.totalCost===G.COSTS.dig,'digging costs money');const r0=G.expectedVotes(s,1),y0=G.expectedVotes(s,0);G.begin(s,'dig',{});G.arrive(s);const o=s.player.actions.at(-1).dig;seen[o]++;
- if(o==='found')ok(s.recap.player.rivalHit<0,'found dirt costs 周沐 votes');if(o==='backfire')ok(s.recap.player.votes<0,'a backfire costs you votes');if(o==='nothing')eq(Math.round(s.recap.player.votes),0,'nothing found moves nothing of yours');}
+ if(o==='found')ok(s.recap.player.rivalHit<0,'found dirt costs 小馬 votes');if(o==='backfire')ok(s.recap.player.votes<0,'a backfire costs you votes');if(o==='nothing')eq(Math.round(s.recap.player.votes),0,'nothing found moves nothing of yours');}
  ok(seen.found&&seen.nothing&&seen.backfire,'all three outcomes happen');
  const s=fresh(5);while(s.day<2){G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}for(let k=0;k<2;k++){settleCrisis(s);G.begin(s,'dig',{});G.arrive(s);G.next(s);}settleCrisis(s);ok(!G.preview(s,'dig',{}).allowed,'at most twice a game');}
 // Fundraising can fall through, a newcomer more often; walking the neighbourhood makes asking easier.
