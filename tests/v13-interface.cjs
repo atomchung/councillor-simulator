@@ -104,10 +104,10 @@ p.next();equal(p.state().phase,'plan','next round');check(p.elements['venue-scen
 
 // Offers: announced a round ahead, decided in their round from the side panel, flagged in the dock.
 let offerSeen=false;for(let seed=1;seed<=30&&!offerSeen;seed++){const h=harness({}, {seed});h.click({action:'start'});const o=h.state().offers[0];
- while(h.state().day<o.round){if(h.state().day===o.round-1)check(h.panel().includes('下回合')&&h.panel().includes(text(G.OFFERS[o.id].org)),'offer announced a round ahead');h.run('fundraise');h.next();}h.settle();
+ while(h.state().day<o.round){if(h.state().day===o.round-1)check(h.panel().includes('下回合')&&h.panel().includes(text(G.dealOf(s,o.id).org)),'offer announced a round ahead');h.run('fundraise');h.next();}h.settle();
  check(h.panel().includes('offer-card')&&h.panel().includes('data-choice="accept"')&&h.panel().includes('婉拒'),'offer card in its round');check(['不占回合','綁住什麼','拿到什麼','算改口'].every(t=>h.panel().includes(t)),'the offer spells out it takes no round, what it binds and what it brings');check(h.dock().includes('dock-alerts')&&h.dock().includes('#offer-card'),'dock points to the offer');
  const cash=h.state().budget.available;h.click({action:'offer',choice:'accept'});equal(h.state().offers[0].status,'accepted','offer accepted');equal(h.state().budget.available,cash+o.money,'offer money arrives');check(!h.panel().includes('offer-card'),'decided once');check(h.panel().includes('組織票'),'race shows the members\' votes');
- h.run('fundraise');check(h.panel().includes('接受'+text(G.OFFERS[o.id].org)),'recap names the accepted offer');offerSeen=true;}
+ h.run('fundraise');check(h.panel().includes('接受'+text(G.dealOf(s,o.id).org)),'recap names the accepted offer');offerSeen=true;}
 check(offerSeen,'offer path exercised');
 
 // The second-act crisis: a card in the panel, handled before setting out.
