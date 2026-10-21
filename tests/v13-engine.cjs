@@ -75,10 +75,10 @@ for(let seed=1;seed<=10;seed++){const s=fresh(seed);
 
 // Faces: promises follow the public attitude; approaches are unknown until researched.
 for(let seed=1;seed<=20;seed++){
- const s=fresh(seed),t=s.landscape.active.find(x=>!s.player.known.includes(x)&&!G.CORE_TOPICS.includes(x)),tone={likes:['up','flat'],mixed:['slight','slight'],dislikes:['down','up']};
+ const s=fresh(seed),t=s.landscape.active.find(x=>!s.player.known.includes(x)&&!G.CORE_TOPICS.includes(x)),tone={likes:['up','flat'],mixed:['flat','flat'],dislikes:['down','up']};
  eq(G.answerFaces(s,t,'guarantee'),s.landscape.groups.map(g=>tone[g.promise][0]),'guarantee faces follow attitudes');eq(G.answerFaces(s,t,'honest'),s.landscape.groups.map(g=>tone[g.promise][1]),'honest faces follow attitudes');
  eq(G.answerFaces(s,t,planOf(t,0)),['unknown','unknown','unknown'],'approach faces unknown before research');
- const faces=(x,topic)=>x.landscape.groups.map(g=>{const close=Math.abs(g.lean[topic]-.5)<.2,match=side(g.lean[topic])===0;return close?(match?'slight':'flat'):(match?'up':'down');});
+ const faces=(x,topic)=>x.landscape.groups.map(g=>{const close=Math.abs(g.lean[topic]-.5)<.2,match=side(g.lean[topic])===0;return close?'flat':(match?'up':'down');});
  const h=copy(s),hv=G.venueView(h)[0],topic=G.venueTopic(h,hv.id);G.begin(h,'canvass',{venue:hv.id,research:topic});eq(G.answerFaces(h,topic,planOf(topic,0)),['unknown','unknown','unknown'],'faces stay unknown on the research day');G.arrive(h);if(h.phase==='question')G.answer(h,G.question(h).options.find(o=>o.unlocked).id);eq(G.answerFaces(h,topic,planOf(topic,0)),faces(h,topic),'faces after research');
  const p=copy(s);round(p,'prepare',{topic:t});eq(G.answerFaces(p,t,planOf(t,0)),faces(p,t),'faces after your own reading');eq(p.player.insight[t].level,'precise','your own reading adds the shares');ok(p.player.studied[t],'and makes you more persuasive');
 }
@@ -329,4 +329,9 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
  const kmt=run('kmt'),ind=run('independent');eq((kmt.pollReports||[]).map(p=>p.day),[2,4,6,8],'four polls for a party candidate');eq((ind.pollReports||[]).map(p=>p.day),[3,7],'two for an independent');
  const p=ind.pollReports[0];eq(p.groups.length,3,'three groups');ok(p.groups.every(g=>g.youPct>=0&&g.addPct>=0),'shares and points needed are given');ok(p.need===Math.max(0,Math.round(p.line-p.you)),'the gap matches the poll');
  const v=G.pollView(ind);eq(v.latest.day,7,'the latest poll stays until the next one');eq(v.next,null,'no poll after round 7 for an independent');}
+// Three faces only: like, no feeling, dislike, or unknown before research.
+{const seen=new Set();for(let seed=1;seed<=20;seed++){const s=fresh(seed);for(const t of s.landscape.active)for(const m of['guarantee','honest',G.TOPICS[t].plans[0].id])for(const f of G.answerFaces(s,t,m))seen.add(f);}ok([...seen].every(f=>['up','flat','down','unknown'].includes(f)),'faces: '+[...seen].join(','));}
+// Groups you do not reach cool off: a market visit full of elders leaves the young to cool, the round's recap says so.
+{const s=fresh(5),v=G.venueView(s).find(x=>G.crowdMix(s,x.id)[2]<G.TUNING.cool.touch);round(s,'canvass',{venue:v.id});G.next(s);settleCrisis(s);const before=G.groupVotes(s,0)[2];round(s,'canvass',{venue:v.id});const c=s.recap.events.find(e=>e.cooled);ok(c&&c.effects.byGroup[2]<0&&c.text.includes('青年'),'the young cool off when you skip them');ok(G.groupVotes(s,0)[2]<before,'their support for you falls');
+ const f=fresh(5);round(f,'fundraise');G.next(f);settleCrisis(f);round(f,'fundraise');ok(f.recap.events.find(e=>e.cooled)?.effects.byGroup.every(x=>x<0),'a round off the streets cools every group');}
 
