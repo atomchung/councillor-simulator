@@ -257,7 +257,8 @@
   // The three groups as of the latest poll, the gap turned into points of each group, and where the weakest group gathers.
   function pollBars() {
     const pv = G.pollView(state), p = pv.latest;
-    if (!p) return '<p class="poll-wait">三群各有多少人挺你，要等民調：' + (pv.next ? '第 ' + pv.next + ' 回合有第一份' : '這局沒有民調') + '（' + (state.settings.affiliation === 'independent' ? '無黨籍' : '政黨候選人') + '共 ' + pv.total + ' 份）。</p>';
+    if (!p) { const r = G.raceView(state), need = Math.max(0, Math.round(r.line - r.you)), plan = G.gapPlan(state, need);
+      return (need ? '<p class="poll-plan">還差約 ' + num(need) + ' 票，等於' + plan.map(g => esc(g.title) + '再多 ' + g.addPct + '%').join('，或') + '。</p>' : '') + '<p class="poll-wait">三群各有多少人挺你，要等民調：' + (pv.next ? '第 ' + pv.next + ' 回合有第一份' : '這局沒有民調') + '（' + (state.settings.affiliation === 'independent' ? '無黨籍' : '政黨候選人') + '共 ' + pv.total + ' 份）。</p>'; }
     const k = p.groups.findIndex(g => g.id === p.focus), focus = p.groups[k], places = G.venueView(state).filter(v => v.main === k).map(v => esc(v.title));
     return '<p class="poll-head">三群・第 ' + p.day + ' 回合民調' + (pv.next ? '（下一份第 ' + pv.next + ' 回合）' : '（最後一份）') + '</p>' + tugBars({ groups: p.groups }, null)
       + (p.need ? '<p class="poll-plan">那時還差約 ' + num(p.need) + ' 票，等於' + p.groups.map(g => esc(g.title) + '再多 ' + g.addPct + '%').join('，或') + '。</p>' : '<p class="poll-plan">那時已經過線。</p>')
@@ -320,7 +321,9 @@
   function destinations() {
     const list = [];
     const chiefs = Object.fromEntries((G.chiefView?.(state) || []).map(c => [c.venue, c]));
-    for (const v of G.venueView(state)) list.push({ kind: 'canvass', venue: v.id, title: v.title, sub: v.mainTitle + '多・' + (v.challenged ? '問小馬的批評' : '常問' + short(v.pool[0])), group: v.main, boards: v.billboards, chief: chiefs[v.id] || null });
+    // The map names each place's own issue (its strongest local theme among what it may ask), not the crowd's biggest concern everywhere.
+    const theme = v => { const aff = G.VENUES[v.id]?.affinity || {}; return [...v.pool].sort((a, b) => (aff[b] || 1) - (aff[a] || 1))[0]; };
+    for (const v of G.venueView(state)) list.push({ kind: 'canvass', venue: v.id, title: v.title, sub: v.mainTitle + '多・' + (v.challenged ? '問小馬的批評' : '常問' + short(theme(v))), group: v.main, boards: v.billboards, chief: chiefs[v.id] || null });
     list.push({ kind: 'tv', title: '中立新聞台', sub: '長輩、中年多・三選一' });
     list.push({ kind: 'online', title: '直播間', sub: '青年多・用助手、不花錢' });
     list.push({ kind: 'prepare', title: '社區工作室', sub: '準備政見' });
