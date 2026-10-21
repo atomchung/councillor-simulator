@@ -345,19 +345,9 @@ body[data-phase="intro"] .hud,body[data-phase="intro"] .preparation-strip{displa
 .v13 .hotspot .badge{position:absolute;top:-9px;right:-6px;font-size:9px;font-weight:700;padding:1px 5px;border-radius:6px;color:#fff;white-space:nowrap}
 .v13 .hotspot .badge.warn{background:#c4573e}.v13 .hotspot .badge.rival{background:var(--rival);right:auto;left:-4px}
 .v13 .hotspot .badge.warn+.badge.rival{top:-9px}
-.v13 .dest-chips{display:none}
-.v13 .dest-chips.open{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:8px}
-.v13 .dest-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 9px;min-height:44px;border:1px solid var(--line);border-left:4px solid var(--g,#9db08f);border-radius:8px;background:#fffdf7;font-size:13px;text-align:left;line-height:1.25}
-.v13 .dest-chip small{font-size:11px;color:var(--muted)}.v13 .dest-chip.g-elder small:first-of-type,.v13 .dest-chip.g-middle small:first-of-type,.v13 .dest-chip.g-young small:first-of-type{color:var(--g);font-weight:700}
-.v13 .dest-chip[aria-pressed="true"]{background:var(--green);color:#fffdf2;border-color:var(--green)}.v13 .dest-chip[aria-pressed="true"] small{color:#e8f0e0!important}
-.v13 .dest-chip[disabled]{opacity:.55}
 @media (max-width:700px){
  .v13 .hotspot{padding:2px;border-width:1px}.v13 .hotspot-label{display:none}.v13 .hotspot .pin{width:20px;height:20px}.v13 .hotspot .action-icon,.v13 .hotspot .action-icon svg{width:13px;height:13px}
  .v13 .hotspot .badge{font-size:8px;top:-8px}
- .v13 .dest-chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:6px;margin-bottom:10px}
- .v13 .dest-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 8px;min-height:44px;border:1px solid var(--line);border-left:4px solid var(--g,#9db08f);border-radius:8px;background:#fffdf7;font-size:12px;text-align:left}
- .v13 .dest-chip small{font-size:10px;color:var(--muted)}
- .v13 .dest-chip[aria-pressed="true"]{background:var(--green);color:#fffdf2;border-color:var(--green)}.v13 .dest-chip[aria-pressed="true"] small{color:#e8f0e0}
 }
 /* Venue scene: the map gives way to the place itself, with the crowd and the speaker. */
 .v13 .venue-scene{position:absolute;inset:0;z-index:800;background:#f4eedc;animation:v13-enter .45s ease-out}
@@ -778,5 +768,25 @@ body.v13[data-act="3"] .world .scene{filter:sepia(.2) saturate(1.1) hue-rotate(-
 .v13 .count-art[data-stage="forfeited"] .bulb{opacity:.3;animation:none}
 @keyframes v13-bulb{from{opacity:.6}to{opacity:1}}
 .v13 .count-art.still *{animation:none!important}
-.v13 .report-scene{height:clamp(150px,21vw,250px);margin:0;border-radius:12px;overflow:hidden;background:#22312d}
+.v13 .report-scene{aspect-ratio:1200/650;height:auto;margin:0;border-radius:12px;overflow:hidden;background:#22312d}
 .v13 .report-scene svg{display:block;width:100%;height:100%}
+
+/* v13.5: nothing is cut off. Choices wrap instead of ending in an ellipsis, the report shows the whole count-night picture and
+   every round in full, and on phones the map itself carries each place's name. */
+.v13 .insight-table{table-layout:fixed}
+.v13 .insight-table th{white-space:normal;word-break:break-word;line-height:1.3;vertical-align:bottom;font-weight:700}
+.v13 .insight-table th:first-child,.v13 .insight-table tbody th{width:4.6em}
+.v13 .party-chips b{white-space:normal}
+.v13 .race-rule{margin:0 0 8px;font-size:12px;line-height:1.5;color:var(--ink);background:#f3f0e4;border-radius:8px;padding:6px 8px}
+.v13 .report-rounds li span{overflow:visible;text-overflow:clip;white-space:normal}
+.v13 .report-rounds li small{white-space:normal}
+.v13 .trend-label{paint-order:stroke;stroke:#fffcf4;stroke-width:4px;stroke-linejoin:round;font-weight:700}
+.v13 .report-numbers small{white-space:normal}
+@media (max-width:700px){
+ .v13 .hotspot{padding:1px 6px 1px 1px}
+ .v13 .hotspot-label{display:flex}
+ .v13 .hotspot-label b{font-size:9.5px;line-height:1.1}
+ .v13 .hotspot-label small{display:none}
+ .v13 .hotspot.selected .hotspot-label small{display:block;font-size:9px}
+ .v13 footer p{white-space:normal}
+}

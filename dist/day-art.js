@@ -642,7 +642,7 @@
   function countNight(stage = 'count', options = {}) {
     const still = !!options.still, at = Number(options.elapsed) || 0, party = PARTY_COLORS[candidates.player.party] || '#c9a847', name = options.name || '小沈';
     const won = stage === 'elected', lost = stage === 'forfeited', refunded = stage === 'refunded', done = won || lost || refunded;
-    let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650"' + (still ? ' preserveAspectRatio="xMidYMid slice"' : '') + ' aria-hidden="true" focusable="false" class="count-art' + (still ? ' still' : '') + '" data-stage="' + stage + '">';
+    let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="count-art' + (still ? ' still' : '') + '" data-stage="' + stage + '">';
     s += rect(0, 0, 1200, 650, '#22312d') + rect(0, 0, 1200, 452, '#2c423c') + rect(0, 448, 1200, 8, '#3b5650');
     for (let y = 486; y < 650; y += 38) s += path('M0 ' + y + 'H1200', '#1d2b27', 2, 'opacity=".8"');
     // Strings of warm bulbs either side of the screen.
@@ -662,7 +662,7 @@
       const t = options.tally, top = Math.max(t.you, t.rival, t.line) * 1.12 || 1, w = v => 470 * Math.min(1, v / top), lx = 380 + w(t.line);
       s += label(600, 84, '開票結果', 30, '#e8f1df', 'text-anchor="middle"');
       for (const [y, who, v, c] of [[120, name, t.you, '#7fc98f'], [200, '周沐', t.rival, '#e39a7f']]) s += label(300, y + 38, who, 26, '#e8f1df') + rect(380, y + 12, w(v), 36, c, 'rx="5"') + label(910, y + 40, Math.round(v).toLocaleString('zh-TW'), 26, '#fffaf0', 'text-anchor="end"');
-      s += path('M' + lx.toFixed(1) + ' 118V268', '#fff1b8', 3, 'stroke-dasharray="8 6"') + label(lx, 288, '最後一席 ' + Math.round(t.line).toLocaleString('zh-TW'), 18, '#fff1b8', 'text-anchor="middle"');
+      s += path('M' + lx.toFixed(1) + ' 118V268', '#fff1b8', 3, 'stroke-dasharray="8 6"') + label(lx, 288, '當選線 ' + Math.round(t.line).toLocaleString('zh-TW'), 18, '#fff1b8', 'text-anchor="middle"');
     }
     // The stage, the candidate and two assistants.
     s += block(316, 516, 568, 48, 46, '#8c6a4e', '#a98260', '#6f523c') + rect(316, 558, 568, 8, '#6f523c') + rect(316, 516, 568, 6, party);
