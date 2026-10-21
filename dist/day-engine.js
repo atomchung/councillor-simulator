@@ -447,6 +447,7 @@ function question(s){
  // The two approaches come in an order drawn per game, so no position is the safe answer.
  {const idx=q.options.map((o,i)=>planIndex(topic,o.id)>=0?i:-1).filter(i=>i>=0);if(idx.length===2&&rand(s.seed,'plan-order',topic)<.5){const [a,b]=idx;[q.options[a],q.options[b]]=[q.options[b],q.options[a]];}}
  for(const option of q.options){option.faces=answerFaces(s,topic,option.id);option.tags=answerTags(s,topic,option.id);option.estimate=option.unlocked&&s.player.insight?.[topic]?.level==='precise'?answerEstimate(s,topic,option.id):null;
+  if(option.id==='guarantee'&&guaranteeCount(s.player)>=GUARANTEE_FATIGUE.free)option.tags.push({kind:'fatigue',text:`你已經打包票 ${guaranteeCount(s.player)} 次：再說一次，信的人更少`});
   if(option.id==='honest'&&honestCount(s.player)>=HONEST_FATIGUE.free)option.tags.push({kind:'fatigue',text:`你已經 ${honestCount(s.player)} 次先不答應：再說一次，三群都會覺得你沒政見`});
   if(option.id==='honest'&&!known&&!owed)option.tags.push({kind:'unprepared',text:q.stage?'沒準備就上台：效果打折，還會扣分':'沒研究過，只能先不答應：小扣分'});
   if(option.id==='guarantee'&&!known&&q.stage&&!topicPromise(s.player,topic))option.tags.push({kind:'unprepared',text:'沒準備就開支票：主持人會追問細節，效果打折、還會扣分'});}
@@ -460,9 +461,10 @@ function lift(s,a,v){const party=partyOf(s,a.index),R=TUNING.party.receptive,p=!
 // A rally restates your whole platform: each listener weighs your public stances on the issues they care about.
 function rallyEffect(s,a,v,i){let d=0,heard=0;for(const t of topicsOf(s)){if(!caresAbout(s,v,i,t))continue;const st=lastPlan(a,t);if(st){d+=prefers(v,t)===planIndex(t,st.answer)?TUNING.rally.match:TUNING.rally.miss;heard++;continue;}const promise=topicPromise(a,t);if(promise){d+=TUNING.promise[s.landscape.groups[v.g].promise].guarantee*.6;heard++;}else d+=TUNING.rally.open;}return heard?d:d+TUNING.rally.goodwill;}
 // Holding off ("先不答應") wears thin: the first two are free, then each further one lands worse with every group.
-const HONEST_FATIGUE={free:2,step:.01};
-const honestCount=a=>(a?.actions||[]).filter(x=>x.answer==='honest').length;
-function promiseValue(s,a,att,mode){const x=TUNING.promise[att][mode==='guarantee'?'guarantee':'honest'];return mode==='guarantee'?x:x-Math.max(0,honestCount(a)-HONEST_FATIGUE.free+1)*HONEST_FATIGUE.step;}
+// Making the same kind of answer again and again wears thin: the first two guarantees are believed, then each further one less.
+const HONEST_FATIGUE={free:2,step:.01},GUARANTEE_FATIGUE={free:2,step:.012};
+const honestCount=a=>(a?.actions||[]).filter(x=>x.answer==='honest').length,guaranteeCount=a=>(a?.actions||[]).filter(x=>x.answer==='guarantee').length;
+function promiseValue(s,a,att,mode){const x=TUNING.promise[att][mode==='guarantee'?'guarantee':'honest'];return mode==='guarantee'?x-Math.max(0,guaranteeCount(a)-GUARANTEE_FATIGUE.free+1)*GUARANTEE_FATIGUE.step:x-Math.max(0,honestCount(a)-HONEST_FATIGUE.free+1)*HONEST_FATIGUE.step;}
 function effectOf(s,a,v,i,topic,mode,plan,care){
  if(mode==='rally')return rallyEffect(s,a,v,i);
  if(mode==='billboard')return TUNING.billboard;

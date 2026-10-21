@@ -334,4 +334,7 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
 // Groups you do not reach cool off: a market visit full of elders leaves the young to cool, the round's recap says so.
 {const s=fresh(5),v=G.venueView(s).find(x=>G.crowdMix(s,x.id)[2]<G.TUNING.cool.touch);round(s,'canvass',{venue:v.id});G.next(s);settleCrisis(s);const before=G.groupVotes(s,0)[2];round(s,'canvass',{venue:v.id});const c=s.recap.events.find(e=>e.cooled);ok(c&&c.effects.byGroup[2]<0&&c.text.includes('青年'),'the young cool off when you skip them');ok(G.groupVotes(s,0)[2]<before,'their support for you falls');
  const f=fresh(5);round(f,'fundraise');G.next(f);settleCrisis(f);round(f,'fundraise');ok(f.recap.events.find(e=>e.cooled)?.effects.byGroup.every(x=>x<0),'a round off the streets cools every group');}
+// Guarantees wear thin too: from the third one, every group believes it less.
+{const s=fresh(9),t=s.landscape.active[0],rank={up:2,flat:1,down:0},first=G.answerFaces(s,t,'guarantee');for(let k=0;k<6;k++)s.player.actions.push({day:1,action:'canvass',topic:t,answer:'guarantee'});const later=G.answerFaces(s,t,'guarantee');
+ ok(later.every((f,g)=>rank[f]<=rank[first[g]])&&later.some((f,g)=>rank[f]<rank[first[g]]),'guarantees sour after many: '+first+' -> '+later);}
 
