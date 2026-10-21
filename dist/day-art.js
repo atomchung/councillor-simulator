@@ -2,6 +2,62 @@
 (function () {
   'use strict';
 
+
+  // All matte assets, crops and map positions live here; canonical game coordinates stay unchanged.
+  const TOY_ROOT = 'assets/matte-toy-v1/';
+  const TOY_FRAMES = [
+    [{x:223,y:22,w:199,h:356,sole:354},{x:247,y:382,w:173,h:321,sole:319},{x:250,y:708,w:154,h:298,sole:286}],
+    [{x:676,y:24,w:213,h:349,sole:349},{x:691,y:384,w:170,h:319,sole:317},{x:703,y:708,w:148,h:300,sole:282}],
+    [{x:1076,y:35,w:254,h:341,sole:340},{x:1146,y:391,w:174,h:310,sole:310},{x:1152,y:711,w:215,h:298,sole:279}]
+  ];
+  const SUPPORT_FRAMES = [[{"x": 162, "y": 13, "w": 280, "h": 351, "sole": 351}, {"x": 656, "y": 18, "w": 209, "h": 346, "sole": 346}, {"x": 1088, "y": 16, "w": 285, "h": 347, "sole": 347}], [{"x": 164, "y": 370, "w": 249, "h": 334, "sole": 334}, {"x": 641, "y": 373, "w": 239, "h": 332, "sole": 332}, {"x": 1080, "y": 370, "w": 294, "h": 337, "sole": 337}], [{"x": 116, "y": 704, "w": 382, "h": 316, "sole": 316}, {"x": 639, "y": 710, "w": 236, "h": 311, "sole": 311}, {"x": 1130, "y": 711, "w": 224, "h": 311, "sole": 311}]];
+  const WALK_FRAMES = [[{"x": 141, "y": 17, "w": 159, "h": 264, "sole": 264}, {"x": 434, "y": 18, "w": 165, "h": 263, "sole": 263}, {"x": 710, "y": 25, "w": 190, "h": 256, "sole": 256}], [{"x": 143, "y": 287, "w": 161, "h": 264, "sole": 264}, {"x": 442, "y": 289, "w": 152, "h": 262, "sole": 262}, {"x": 702, "y": 293, "w": 204, "h": 258, "sole": 258}], [{"x": 147, "y": 556, "w": 156, "h": 257, "sole": 257}, {"x": 446, "y": 556, "w": 153, "h": 257, "sole": 257}, {"x": 727, "y": 560, "w": 170, "h": 253, "sole": 253}], [{"x": 140, "y": 816, "w": 148, "h": 254, "sole": 254}, {"x": 438, "y": 816, "w": 150, "h": 255, "sole": 255}, {"x": 731, "y": 817, "w": 201, "h": 254, "sole": 254}], [{"x": 145, "y": 1071, "w": 140, "h": 236, "sole": 236}, {"x": 441, "y": 1071, "w": 140, "h": 235, "sole": 235}, {"x": 736, "y": 1072, "w": 185, "h": 234, "sole": 234}], [{"x": 149, "y": 1307, "w": 134, "h": 221, "sole": 221}, {"x": 438, "y": 1307, "w": 144, "h": 222, "sole": 222}, {"x": 738, "y": 1308, "w": 185, "h": 221, "sole": 221}]];
+  const TOY_SPOTS = {start:[600,345],market:[370,348],temple:[157,285],street:[552,424],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]};
+  // Waypoints follow the paved streets of district.png, so walkers never cross roofs, stalls or gardens.
+  const TOY_PATHS = {market:[[520,328],[440,330]],temple:[[520,328],[440,330],[320,336],[240,332]],street:[[680,345],[700,410],[705,482],[600,484],[575,452]],plaza:[[650,316]],river:[[680,345],[700,410],[705,482]],prepare:[[570,295]],recruit:[[570,295]],tv:[[680,345],[700,410],[800,445],[880,488],[985,468],[995,432]],online:[[680,345],[700,410],[800,445],[880,488],[985,468],[1030,455]],fundraise:[[680,345],[700,410],[705,482]],debate:[[650,316]]};
+  const TOY_VISITS = {market:'market-square.png',street:'street.png',river:'river.png'};
+  let artPack = 'matte-toy-v1', toyFacing = {row:0,mirror:false};
+  // Browser preferences are separate from election saves. Missing storage is harmless.
+  try { if (window.location) { const q = new URLSearchParams(window.location.search).get('art'); const v = q || window.localStorage?.getItem('wenshan-ui-art-pack-v1'); if(v) artPack = v === 'matte-toy-v1' ? v : 'original'; } } catch (_) {}
+  const isToy = () => artPack === 'matte-toy-v1';
+  function setPack(id) { artPack = id === 'matte-toy-v1' ? id : 'original'; try { window.localStorage?.setItem('wenshan-ui-art-pack-v1',artPack); } catch (_) {} return artPack; }
+  function spot(id) { const p = TOY_SPOTS[id] || TOY_SPOTS.start; return {x:p[0],y:p[1]}; }
+  function toyKey(id, venue) { return ['canvass','rally'].includes(id) ? (TOY_SPOTS[venue] ? venue : 'market') : id === 'press' ? 'tv' : id === 'dig' ? 'prepare' : id; }
+  function visualRoute(id, venue, from) { const key=toyKey(id,venue); return [from || spot('start'),...(TOY_PATHS[key] || []).map(p=>({x:p[0],y:p[1]})),spot(key)]; }
+  function mapPoint(p) {
+    if(!isToy()) return {...p};
+    const pairs = Object.entries(anchors).map(([key,a])=>({key:key==='canvass'?'market':key,a}));
+    pairs.push({key:'street',a:{x:609,y:384}},{key:'river',a:{x:551,y:474}},{key:'plaza',a:{x:713,y:243}},{key:'temple',a:{x:158.2,y:285.8}},{key:'debate',a:{x:935,y:175}});
+    const n=pairs.filter(v=>TOY_SPOTS[v.key]).sort((a,b)=>Math.hypot(a.a.x-p.x,a.a.y-p.y)-Math.hypot(b.a.x-p.x,b.a.y-p.y))[0];
+    const v=spot(n.key); return {x:v.x+(p.x-n.a.x)*.4,y:v.y+(p.y-n.a.y)*.4};
+  }
+  function alongVisual(points, t) { const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)); let d=lengths.reduce((a,b)=>a+b,0)*Math.max(0,Math.min(1,t)); for(let i=0;i<lengths.length;i++){if(d<=lengths[i]&&lengths[i])return {x:points[i].x+(points[i+1].x-points[i].x)*d/lengths[i],y:points[i].y+(points[i+1].y-points[i].y)*d/lengths[i]};d-=lengths[i];} return points.at(-1); }
+  function travelPoint(route,index,p,id,venue) { if(!isToy())return p; const lengths=route.slice(1).map((a,i)=>Math.hypot(a.x-route[i].x,a.y-route[i].y)); const total=lengths.reduce((a,b)=>a+b,0); const prev=route[Math.min(index-1,route.length-1)]; const done=lengths.slice(0,index-1).reduce((a,b)=>a+b,0)+Math.hypot(p.x-prev.x,p.y-prev.y); return alongVisual(visualRoute(id,venue,mapPoint(route[0])),total?done/total:1); }
+  function facing(dx,dy) { const next=Math.abs(dy)>Math.abs(dx)*1.15?{row:dy<0?2:0,mirror:false}:{row:1,mirror:dx<0}; const changed=next.row!==toyFacing.row||next.mirror!==toyFacing.mirror; toyFacing=next; return changed; }
+  function toySprite(column=0,row=0,mirror=false) {
+    const f=TOY_FRAMES[column][row], k=124/f.sole, w=f.w*k, h=f.h*k;
+    // Nested SVG clips each sprite without global clip IDs; every sole is exactly y=130.
+    return '<g class="toy-figure" data-column="'+column+'"><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/>'+ (mirror?'<g transform="translate(100,0) scale(-1,1)">':'<g>')+'<svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="candidate" href="'+TOY_ROOT+'candidates.png" width="1536" height="1024"/></svg></g></g>';
+  }
+  let toyWalk = { active: false, time: 0, frame: 0 };
+  function walkStep(dt, active) { const old = toyWalk.frame, was = toyWalk.active; toyWalk.active = active; toyWalk.time = active ? toyWalk.time + dt : 0; toyWalk.frame = Math.floor(toyWalk.time / .19) % 2; return old !== toyWalk.frame || was !== active; }
+  function atlasFigure(file, f, width, height, attrs = '') {
+    const k = 124/f.sole, w=f.w*k, h=f.h*k;
+    return '<g class="toy-figure" '+attrs+'><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/><svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="'+file+'" href="'+TOY_ROOT+file+'" width="'+width+'" height="'+height+'"/></svg></g>';
+  }
+  function toyWalker() {
+    const row=toyFacing.row*2+toyWalk.frame, column=toyColumn(), content=atlasFigure('walk.png',WALK_FRAMES[row][column],1024,1536,'data-walk-frame="'+row+'"');
+    return toyFacing.mirror ? '<g transform="translate(100,0) scale(-1,1)">'+content+'</g>' : content;
+  }
+  const SUPPORT_ROLES = {elder:0,elder2:1,middle:3,middle2:2,young:4,young2:5,resident:2,shop:2,shop2:3,rival:6,helper:7,host:8};
+  function supportFigure(role) { const n=SUPPORT_ROLES[role]??7;return atlasFigure('support.png',SUPPORT_FRAMES[Math.floor(n/3)][n%3],1536,1024,'data-support-role="'+role+'"'); }
+  function sceneAtlas(kind) { const cell={tv:[0,0],online:[768,0],fundraise:[0,512],count:[768,512]}[kind]; if(!cell)return '';return '<svg width="1200" height="650" viewBox="'+cell[0]+' '+cell[1]+' 768 512" preserveAspectRatio="none" overflow="hidden"><image data-art-image="scene" href="'+TOY_ROOT+'scenes.png" width="1536" height="1024"/></svg>'; }
+  function toyTeam(assignments,elapsed,id,venue,reduced) {
+    return assignments.filter(a=>a.task!=='release').slice(0,6).map((a,i)=>{const dest=a.task==='research'?'prepare':a.task==='stream'?'online':a.task==='booth'?'fundraise':a.task==='idle'?'recruit':id;const target=toyKey(dest,venue);const p=alongVisual([spot('recruit'),spot('start'),...visualRoute(target).slice(1)],reduced?1:Math.min(1,elapsed/2.5));p.x+=(-28+i*14);p.y+=18+i%2*10;return '<span class="toy-helper" data-helper-id="'+String(a.id??i).replace(/[^a-zA-Z0-9_-]/g,'')+'" style="left:'+p.x/12+'%;top:'+p.y/6.5+'%;z-index:'+Math.round(p.y)+'">'+avatar('helper')+'</span>';}).join('');
+  }
+  function toyResidents() { return [[330,336,'elder'],[262,332,'middle2'],[760,298,'young'],[656,501,'elder2'],[915,500,'young2'],[540,261,'middle']].map(([x,y,role])=>'<span class="toy-resident" style="left:'+x/12+'%;top:'+y/6.5+'%">'+avatar(role)+'</span>').join(''); }
+  function toyColumn(look=candidates.player) {return look.identity==='heir'||look.outfit==='suit'?1:look.identity==='incumbent'||look.outfit==='vest'?2:0;}
+
   const C = {
     ink: '#394d47', sky: '#f5f0dc', paving: '#e7dfc7', pavingSide: '#cdbf9e',
     wall: '#ede1c3', wallSide: '#cfbea0', teal: '#658d7d', tealDark: '#466c60',
@@ -56,6 +112,7 @@
   };
   const turn = t => t ? ' transform="' + t + '"' : '';
   function humanMarkup(role = 'player', color, pose = null) {
+    if (isToy()) { if (['player','protagonist','candidate'].includes(role)) return toyWalk.active && !pose ? toyWalker() : toySprite(toyColumn(), pose ? 0 : toyFacing.row, pose ? false : toyFacing.mirror); return supportFigure(role); }
     const P = POSES[pose] || {};
     role = roleAliases[role] || role;
     if (!Object.prototype.hasOwnProperty.call(looks, role)) role = 'player';
@@ -130,6 +187,7 @@
 
   // A candidate in a given outfit and party, without changing the current game's look (opening cards, match-up).
   function portrait(look = {}, role = 'player') {
+    if (isToy() && role === 'player') return '<svg class="day-avatar-svg" viewBox="0 0 100 140">'+toySprite(toyColumn(look))+'</svg>';
     const saved = candidates;
     candidates = role === 'rival' ? { ...saved, rival: { party: look.party || null } } : { ...saved, player: { outfit: look.outfit || 'casual', party: look.party || null } };
     try { return avatar(role); } finally { candidates = saved; }
@@ -503,6 +561,7 @@
   function route(id) { return (paths[id] || [anchors.start]).map(p=>({x:p.x,y:p.y})); }
 
   function scene() {
+    if (isToy()) return '<img data-art-image="world" class="toy-world" src="'+TOY_ROOT+'district.png" alt="文山木柵意象街區：市場、社區、茶山、纜車及河岸；非實際道路地圖">'+toyResidents();
     let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-label="木柵意象縮景：木柵市場上方的圖書館、文山行政中心與公車站、YouBike、景美溪道南河濱、貓空茶山與原創廟前廣場。行動場地以步道相連，居民皆為原創方塊人。非實際地圖。" class="day-art-svg">';
     s+='<title>木柵意象縮景｜非實際地圖</title><desc>原創 2.5D 木柵街區，以可辨識的地景元素組成非實際比例的意象縮景。左方木柵市場上層為木柵圖書館，遠方有文山行政中心、公車站與 YouBike；景美溪彎過道南河濱綠色自行車道，後方為層層貓空茶山。社區工作室、市場、訪談小棚、座談廣場等行動目的地均由步道相連；新增廟前廣場是虛構的公共空間與無障礙動線交流場地，不指涉特定廟宇，也不代表宗教群體的政治立場，所有角色皆為人類。地標只是場景背景，不代表任何機關支持或背書。</desc>';
     s+=rect(0,0,1200,650,'#f5f0df');
@@ -560,7 +619,21 @@
   function faceIcon(tone) { return '<svg viewBox="0 0 34 34" aria-hidden="true" focusable="false" class="face-icon">' + face(17, 17, tone, 14) + '</svg>'; }
   function figure(x, feetY, role, scale, pose) { return person(x, feetY, role, scale, pose); }
   const floor = (top, base, line) => { let s = rect(0, top, 1200, 650 - top, base); for (let y = top + 34; y < 650; y += 46) s += path(`M0 ${y}H1200`, line, 1.2, 'opacity=".55"'); for (let x = -40; x < 1240; x += 120) s += path(`M${x} ${top}L${x - 90} 650`, line, 1.1, 'opacity=".4"'); return s; };
+  function studioBackdrop(kind) {
+    const live = kind === 'online';
+    let s = rect(0, 0, 1200, 650, '#e8e6dc') + rect(0, 0, 1200, 368, live ? '#cbd9cf' : '#c7d6dc');
+    s += '<ellipse cx="600" cy="580" rx="510" ry="56" fill="#667f7b" opacity=".13"/>';
+    for (const x of [55, 1100]) s += rect(x, 30, 28, 350, '#a9bfb9', 'rx="14"');
+    s += rect(220, 45, 760, 270, '#345761', 'rx="32"') + rect(236, 61, 728, 238, live ? '#315f56' : '#325b71', 'rx="23"');
+    s += label(600, 147, live ? '小沈的選戰直播' : '中立新聞台', 46, '#fffdf7', 'text-anchor="middle"') + label(600, 212, live ? '網友留言・即時回應' : '議題直擊', 28, '#dce8e2', 'text-anchor="middle"');
+    s += rect(796, 82, 134, 40, '#b6533b', 'rx="20"') + label(863, 109, '● LIVE', 21, '#fffdf7', 'text-anchor="middle"');
+    for (const x of [90, 1080]) s += path('M'+x+' 625V415', '#526c71', 10) + rect(x-38, 365, 76, 72, '#345761', 'rx="16"') + '<circle cx="'+x+'" cy="400" r="22" fill="#dfe7df"/>' + path('M'+x+' 555l-48 70M'+x+' 555l48 70', '#526c71', 8);
+    if (live) s += rect(735, 366, 415, 249, '#fffdf7', 'rx="24"') + label(940, 404, '正在收看', 22, '#345761', 'text-anchor="middle"');
+    return s;
+  }
   function backdrop(kind) {
+    if (isToy() && ['tv','online','fundraise'].includes(kind)) return sceneAtlas(kind);
+    if (isToy() && TOY_VISITS[kind]) return '<image data-art-image="venue" href="'+TOY_ROOT+TOY_VISITS[kind]+'" width="1200" height="650" preserveAspectRatio="xMidYMid slice"/>';
     let s = rect(0, 0, 1200, 650, '#f4eedc');
     if (kind === 'market') {
       s += rect(0, 36, 1200, 320, '#e2cfb0') + rect(0, 36, 1200, 18, '#c9b490') + rect(452, 54, 296, 56, '#9e7354') + label(600, 96, '木柵市場', 36, '#fff3cf', 'text-anchor="middle"');
@@ -607,10 +680,20 @@
   const TV_SLOTS = [[884, 532, .4], [944, 532, .4], [1004, 532, .4], [1064, 532, .4], [1124, 532, .4], [884, 612, .4], [944, 612, .4], [1004, 612, .4], [1064, 612, .4], [1124, 612, .4]];
   const DEBATE_SLOTS = [[70, 700, .8], [188, 704, .8], [306, 700, .8], [424, 704, .8], [542, 700, .8], [660, 704, .8], [778, 700, .8], [896, 704, .8], [1014, 700, .8], [1132, 704, .8]];
   // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, variant, tone} or null.
+  function toyInterior(kind, options) {
+    let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" class="venue-art" data-kind="'+kind+'">'+sceneAtlas(kind);
+    if(kind!=='fundraise')s+=label(600,175,kind==='tv'?'中立新聞台':'小沈的選戰直播',42,'#fffdf7','text-anchor="middle"')+label(600,225,options.topic||'選區議題・即時回應',24,'#e8f0df','text-anchor="middle"');
+    s+=figure(330,570,'player',1.8,'speak')+figure(600,570,kind==='tv'?'host':'helper',1.55);
+    const crowd=(options.crowd||[]).slice(0,10);
+    if(crowd.length){s+=rect(800,355,380,280,'#fffdf7','rx="20"')+label(990,390,kind==='tv'?'觀眾反應':'網友反應',20,'#345761','text-anchor="middle"');for(let i=0;i<crowd.length;i++){const c=crowd[i],x=840+(i%5)*72,y=490+Math.floor(i/5)*120;s+=figure(x,y,GROUP_ROLES[c.group]?.[c.variant?1:0]||'young',.56);if(c.tone)s+=face(x,y-89,c.tone,13);}}
+    if(kind==='fundraise')s+=label(600,100,'街坊募款',35,'#345761','text-anchor="middle"');
+    return s+'</svg>';
+  }
   function interior(kind, options = {}) {
+    if(isToy() && ['tv','online','fundraise'].includes(kind))return toyInterior(kind,options);
     const crowd = Array.isArray(options.crowd) ? options.crowd : [], roleOf = c => GROUP_ROLES[c.group]?.[c.variant ? 1 : 0] || 'resident';
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '">' + backdrop(kind);
-    const slots = kind === 'tv' ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
+    const slots = ['tv','online'].includes(kind) ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
     // Viewers at home: a living-room inset with ten people on two sofas.
     if (kind === 'tv') s += rect(830, 380, 350, 262, '#1d2b28', 'rx="12"') + rect(842, 392, 326, 238, '#f3e6c8', 'rx="8"') + rect(842, 392, 326, 34, '#2f6f86', 'rx="8"') + label(1005, 416, '家裡收看中・10 人', 17, '#fff7dd', 'text-anchor="middle"') + block(860, 520, 290, 20, 8, '#c76f4f', '#e08b68', '#a65a3e') + block(860, 600, 290, 20, 8, '#c76f4f', '#e08b68', '#a65a3e');
     const people = crowd.slice(0, slots.length).map((c, i) => ({ c, x: slots[i][0], y: slots[i][1], k: slots[i][2] }));
@@ -620,7 +703,8 @@
       for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? '小沈' : '小馬', 18, '#5f4630', 'text-anchor="middle"');
     }
     for (const p of [...people].sort((a, b) => a.y - b.y)) s += figure(p.x, p.y, roleOf(p.c), p.k);
-    if (kind === 'tv') { s += figure(600, 560, 'middle', 1.3) + figure(340, 565, 'player', 1.34) + block(200, 512, 520, 56, 12, '#2f6f86', '#4a8ba3', '#24566a') + rect(220, 530, 480, 8, '#f2c14e') + label(460, 560, '中立新聞台', 18, '#fff7dd', 'text-anchor="middle"');
+    if (kind === 'online') { s += figure(350,560,'player',1.7) + figure(600,560,'helper',1.05) + rect(200,528,440,44,'#446f61','rx="20"') + rect(525,420,56,90,'#263c48','rx="12"') + path('M553 510V548','#263c48',7); }
+    else if (kind === 'tv') { s += figure(600, 560, 'middle', 1.3) + figure(340, 565, 'player', 1.34) + block(200, 512, 520, 56, 12, '#2f6f86', '#4a8ba3', '#24566a') + rect(220, 530, 480, 8, '#f2c14e') + label(460, 560, '中立新聞台', 18, '#fff7dd', 'text-anchor="middle"');
       // Lower third: the issue on air.
       s += rect(0, 590, 820, 52, '#e0483a') + rect(0, 590, 150, 52, '#1d2b28') + label(75, 624, '今日議題', 20, '#fff7dd', 'text-anchor="middle"') + label(170, 625, options.topic || '主持人會從三題挑一題', 24, '#ffffff'); }
     else if (options.mode === 'rally') {
@@ -656,6 +740,7 @@
       s += path('M' + x0 + ' ' + y0 + 'Q' + cx + ' ' + cy + ' ' + x1 + ' ' + y1, '#55665c', 2);
       for (let i = 0; i <= 6; i++) { const t = i / 6, x = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * x1, y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y1; s += '<circle class="bulb" cx="' + x.toFixed(1) + '" cy="' + (y + 7).toFixed(1) + '" r="7" fill="' + ['#ffd27a', '#ff9f68', '#fff1b8'][i % 3] + '"/>'; }
     }
+    if(isToy())s+=sceneAtlas('count');
     // Two hanging banners in the party colour.
     for (const [x, words] of [[58, name + '競選總部'], [1068, won ? '凍蒜' : '感謝支持']]) {
       s += rect(x, 138, 74, 292, '#fffaf0', 'rx="4"') + rect(x, 138, 74, 22, party, 'rx="4"') + rect(x, 410, 74, 20, party);
@@ -673,7 +758,8 @@
     // The stage, the candidate and two assistants.
     s += block(316, 516, 568, 48, 46, '#8c6a4e', '#a98260', '#6f523c') + rect(316, 558, 568, 8, '#6f523c') + rect(316, 516, 568, 6, party);
     const crew = won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null;
-    if (refunded) s += rect(431, 418, 5, 78, '#6d6a5c') + rect(380, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(434, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
+    // The placard stands left of the helpers so neither art pack hides its text.
+    if (refunded) s += rect(301, 418, 5, 78, '#6d6a5c') + rect(250, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(304, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
     s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
     // Supporters on the floor; each bobs on its own beat once the result is in.
     NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null) + '</g>'; });
@@ -691,5 +777,5 @@
     return s + '</svg>';
   }
 
-  window.DayArt = Object.freeze({scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
+  window.DayArt = Object.freeze({getPack:()=>artPack,setPack,walkStep,toyTeam,supportFrames:SUPPORT_FRAMES,walkFrames:WALK_FRAMES,isToy,spot,visualRoute,mapPoint,travelPoint,facing,assetFrames:TOY_FRAMES,scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
 })();

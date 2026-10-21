@@ -1,0 +1,36 @@
+{
+  "generator": "built-in image_gen",
+  "scope": "Original visual assets; generated district is a fictional compression, not a geographic map.",
+  "district": {
+    "file": "district.png",
+    "prompt": "Use case: stylized-concept. Create a NEW wider and richer playable 2.5D Wenshan/Muzha Taiwan district map using the reference only for matte toy material, camera angle, and clean cute style. Landscape 1536x1024. Orthographic elevated front view, complete continuous ground plane filling most frame, not 5 houses around an empty plaza. About 12 buildings across connected neighborhood blocks, generous cream paths, soft low saturation buildings, clean molded toy finish, no photographic detail. Exact framing: rear 20% rolling Maokong tea hills with striped tea terraces, a small authentic-looking Taiwan temple complex inspired by Zhinan Temple on rear hill, a few small colorful gondola cabins along a cable across rear hills. Left middle (x15%,y42%) a LOCAL neighborhood temple and courtyard, distinct from distant hill temple. Market awnings and produce at (x27%,y50%). Community office/library center-back (x45%,y33%). Community square and civic hall at x62%,y37%. A small blue TV broadcast studio at (x78%,y52%), modest tea house at upper right. Compact Taiwanese 3-storey shop houses with awnings and roof water tanks as perimeter infill. Quiet campaign office near center, fundraising parasol stall (x48%,y68%). Lower-right a visible river and cycling path, broad bridge access around (x48%,y77%). Keep central cross-roads broadly walkable at x50%,y55%; do not place buildings there. All structures planted on ONE flat, continuous region, gentle hill rise only in back. More land and more interconnected streets than reference. At least 45% ground accessible open paths and courtyards, no maze. No characters, no text, no labels, no signage lettering, no UI, no frames, no watermark. Full map visible with minimal outer margins. Preserve calm clean palette but legible roof colors. This is a fictional geographical compression, not accurate street cartography.",
+    "references": [
+      "https://travel.taipei/zh-tw/media/audio-guide/details/502",
+      "https://travel.taipei/zh-tw/attraction/details/422"
+    ]
+  },
+  "reused": [
+    "candidates.png",
+    "market-square.png",
+    "street.png",
+    "river.png"
+  ],
+  "coverage": "Candidate three-direction stills and three visit backgrounds. Supporting cast, action poses and media/night scenes pending.",
+  "added_assets": {
+    "support": {
+      "generator": "OpenAI built-in imagegen",
+      "prompt": "support.prompt.txt",
+      "transparent": true
+    },
+    "walk": {
+      "generator": "OpenAI built-in imagegen",
+      "prompt": "walk.prompt.txt",
+      "transparent": true
+    },
+    "scenes": {
+      "generator": "OpenAI built-in imagegen",
+      "prompt": "scenes.prompt.txt",
+      "transparent": false
+    }
+  }
+}

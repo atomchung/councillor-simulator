@@ -71,6 +71,7 @@
       if (raw) saveNotice = '遊戲改版了，舊進度不能沿用，已開新局。';
     }
   } catch (_) { state = G.initial(seed()); saveError = '目前無法讀取本機存檔。'; }
+  let dismissedFeedback = typeof state._ui?.dismissedFeedback === 'string' ? state._ui.dismissedFeedback : '';
   const roundDays = G.ROUND_DAYS || 3;
   const period = day => '第 ' + ((day - 1) * roundDays + 1) + '–' + (day * roundDays) + ' 天';
   const icon = id => '<span class="action-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + (icons[id] || icons.prepare) + '</svg></span>';
@@ -142,8 +143,35 @@
     if (!e?.available) return '<p>第 3 回合起才會有爆料資料。</p>';
     return '<section class="event-record"><h3>' + esc(e.title) + '</h3><p>' + esc(e.summary) + '</p><div class="event-evidence"><b>' + esc(e.evidenceText) + '</b><span>已核對 ' + Number(e.investigations || 0) + '／' + Number(e.maxInvestigations || 2) + ' 次</span></div>' + (e.history?.length ? e.history.map(x => eventRecord(x, x.quote ? '你說過' : '第 ' + Number(x.stage || x.evidenceLevel || 0) + ' 次核對')).join('') : '') + eventRecord(e.update, '核對結果') + '<p class="microcopy">核對：到社區工作室「準備政見」選這份資料（每次 ' + num(e.investigationCost) + ' 元，最多 2 次）。爆料：到電視台開記者會。</p></section>';
   }
+  const crisisChoice = c => ({ pay: '花錢公關消毒', apologize: '公開道歉切割', fight: c.won ? '硬槓反控成功' : '硬槓反控炎上' })[c.choice] || '等待處理';
+  const crisisKey = c => 'crisis-' + c.round + '-' + c.kind;
+  // All timeline facts come from engine records; the UI only stores dismissal of the result card.
+  function timelineEntries() {
+    const entries = [];
+    for (const j of state.journal) {
+      for (const [i, e] of (j.planEffects || []).entries()) entries.push({ key: e.kind === 'crisis' ? 'crisis-day-' + j.day : 'plan-' + j.day + '-' + i, day: j.day, title: e.kind === 'crisis' ? crisisChoice(e) : e.title, text: e.text, votes: e.votes, tone: e.votes < 0 ? 'loss' : 'settled' });
+      for (const [i, e] of (j.events || []).entries()) entries.push({ key: 'event-' + j.day + '-' + i, day: j.day, title: e.title, text: e.text, votes: e.effects?.votes, tone: 'settled' });
+    }
+    for (const o of state.offers || []) if (o.respondedDay) entries.push({ key: 'offer-' + o.id + '-' + o.respondedDay, day: o.respondedDay, title: o.status === 'breached' ? '合作破局' : o.effect ? '接受合作' : '婉拒合作', text: G.dealOf(state, o.id)?.org || '合作邀約', votes: o.effect?.votes, tone: 'settled' });
+    for (const c of state.challenges || []) entries.push({ key: c.id, day: c.issuedDay, title: '小馬提出質疑', text: c.quote, tone: c.status === 'open' && !c.mitigatedDay ? 'pending' : 'settled' });
+    const c = state.crisis;
+    if (c && !entries.some(e => e.key === 'crisis-day-' + c.round)) entries.push({ key: 'crisis-day-' + c.round, day: c.round, title: c.status === 'resolved' ? crisisChoice(c) : '突發危機・等待處理', text: c.text, votes: c.effect?.votes, tone: c.status === 'pending' ? 'pending' : c.effect?.votes < 0 ? 'loss' : 'settled' });
+    return entries.sort((a, b) => b.day - a.day);
+  }
+  function renderEvents() {
+    const timeline = $('event-timeline'), card = $('event-feedback'), entries = timelineEntries();
+    timeline.hidden = !state.started;
+    const row = e => '<li data-event-key="' + esc(e.key) + '" data-tone="' + e.tone + '"><span class="event-round">R' + Number(e.day) + '</span><div><strong>' + esc(e.title) + '</strong><p>' + esc(e.text) + '</p></div>' + (Number.isFinite(e.votes) ? '<span class="event-votes">' + signedVotes(e.votes) + ' 票</span>' : '') + '</li>';
+    timeline.innerHTML = '<div class="timeline-heading"><h2>選戰動態</h2><span>' + entries.length + ' 則紀錄</span></div>' + (entries.length ? '<ol>' + entries.slice(0, 3).map(row).join('') + '</ol>' + (entries.length > 3 ? '<details><summary>查看較早 ' + (entries.length - 3) + ' 則</summary><ol>' + entries.slice(3).map(row).join('') + '</ol></details>' : '') : '<p class="timeline-empty">選戰剛開始。危機、合作與質疑會記在這裡。</p>');
+    const c = state.crisis;
+    const show = state.started && c?.status === 'resolved' && c.resolvedDay === state.day && dismissedFeedback !== crisisKey(c);
+    card.hidden = !show;
+    if (!show) { card.innerHTML = ''; return; }
+    const cost = state.ledger.find(l => l.day === c.resolvedDay && l.action === 'crisis')?.cost || 0;
+    card.innerHTML = '<div class="event-card-top"><span>選戰快報 · R' + c.round + '</span><button type="button" data-action="dismiss-event" aria-label="關閉事件結果">×</button></div><h2>' + esc(crisisChoice(c)) + '</h2><p>' + esc(c.text) + '</p><div class="event-impact"><strong>' + signedVotes(c.effect.votes) + '<small>你的票數</small></strong><span>' + signedVotes(c.effect.rival) + '<small>小馬票數</small></span><span>' + money(cost) + '<small>處理支出</small></span></div><div class="event-groups">' + (c.effect.byGroup || []).map((v, i) => '<span>' + esc(groupTitle(i)) + ' <b>' + signedVotes(v) + '</b></span>').join('') + '</div><p class="microcopy">結果已記入選戰動態，可以繼續安排行程。</p>';
+  }
   function save() {
-    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, counting: counting ? { ...counting } : null };
+    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, dismissedFeedback, counting: counting ? { ...counting } : null };
     try { window.localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (_) { saveError = '瀏覽器無法儲存進度；重新整理可能會失去進度。'; }
     showNotice();
@@ -157,13 +185,13 @@
   function announce(text) { $('announcer').textContent = text; }
   function focusDock() { $('dock').focus({ preventScroll: true }); }
   function revealDock() { if (window.innerWidth < 1024) $('dock').scrollIntoView?.({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'nearest' }); }
-  function actorPosition(el, p) { el.style.left = p.x / 12 + '%'; el.style.top = p.y / 6.5 + '%'; el.style.zIndex = String(Math.round(p.y)); }
-  function setPosition() { actorPosition($('player'), position); }
+  function actorPosition(el, p, visual = false) { if (!visual && Art?.mapPoint) p = Art.mapPoint(p); el.style.left = p.x / 12 + '%'; el.style.top = p.y / 6.5 + '%'; el.style.zIndex = String(Math.round(p.y)); }
+  function setPosition() { const p = motion && Art?.travelPoint ? Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue) : Art?.isToy?.() && state.pending && state.phase !== 'plan' ? Art.visualRoute(state.pending.id,state.pending.venue).at(-1) : Art?.mapPoint ? Art.mapPoint(position) : position; actorPosition($('player'), p, true); }
   // Both candidates dress for their identity and party; redraw only when that changes.
   function dress() {
     const key = state.settings.background + ':' + state.settings.affiliation + ':' + state.rival.party;
     if (key === dressed) return; dressed = key;
-    Art?.setCandidates?.({ player: { outfit: G.BACKGROUNDS[state.settings.background]?.outfit || 'casual', party: state.settings.affiliation === 'independent' ? null : state.settings.affiliation }, rival: { party: state.rival.party } });
+    Art?.setCandidates?.({ player: { identity:state.settings.background, outfit: G.BACKGROUNDS[state.settings.background]?.outfit || 'casual', party: state.settings.affiliation === 'independent' ? null : state.settings.affiliation }, rival: { party: state.rival.party } });
     $('player').innerHTML = Art ? Art.avatar('player') + '<span class="actor-name">小沈・你</span>' : '<span class="actor-name">小沈・你</span>';
     $('rival').innerHTML = Art ? Art.avatar('rival') + '<span class="actor-name">小馬</span>' : '';
   }
@@ -205,7 +233,7 @@
   const pickMark = on => '<span class="pick-mark" aria-hidden="true">' + (on ? '✓' : '') + '</span>';
   function identityCards() {
     const value = state.settings?.background;
-    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + Object.values(G.BACKGROUNDS).map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good">' + b.strengths.map(x => '＋ ' + esc(x)).join('<br>') + '</span><span class="identity-bad">' + b.weaknesses.map(x => '－ ' + esc(x)).join('<br>') + '</span></button>').join('') + '</div></fieldset>';
+    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + Object.values(G.BACKGROUNDS).map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ identity:b.id, outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good">' + b.strengths.map(x => '＋ ' + esc(x)).join('<br>') + '</span><span class="identity-bad">' + b.weaknesses.map(x => '－ ' + esc(x)).join('<br>') + '</span></button>').join('') + '</div></fieldset>';
   }
   function partyFacts(p) {
     if (p.id === 'independent') return ['沒有黨部補助', '沒有黨的立場要顧', '沒有政黨傾向的選民好感 ×' + G.TUNING.party.receptive.swing];
@@ -246,7 +274,7 @@
   }
   // You against 小馬 in each group as a tug of war: the green part is your share of the two of you.
   function tugBars(r, before) {
-    return '<div class="tug" aria-label="三群：你和小馬">' + r.groups.map((g, k) => { const total = Math.max(1, g.you + g.rival), mine = g.you / total * 100, d = before?.groups?.[k] ? g.you - before.groups[k].you : null; return '<div class="tug-row g-' + GROUP_KEYS[k] + '"><span class="tug-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="tug-bar"><i class="tug-you" style="width:' + mine.toFixed(1) + '%"></i><i class="tug-rival" style="width:' + (100 - mine).toFixed(1) + '%"></i></span><span class="tug-num"><b>' + num(g.you) + '</b>' + (d == null ? '' : '<small class="' + (d >= 0 ? 'up' : 'down') + '">' + signedVotes(d) + '</small>') + '<em>' + num(g.rival) + '</em></span></div>'; }).join('') + '</div>';
+    return '<div class="tug-legend"><span>● 你</span><span>● 小馬</span><small>兩人之間的票數比較</small></div><div class="tug" aria-label="三群：你和小馬">' + r.groups.map((g, k) => { const total = Math.max(1, g.you + g.rival), mine = g.you / total * 100, d = before?.groups?.[k] ? g.you - before.groups[k].you : null; return '<div class="tug-row g-' + GROUP_KEYS[k] + '"><span class="tug-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="tug-bar"><i class="tug-you" style="width:' + mine.toFixed(1) + '%"></i><i class="tug-rival" style="width:' + (100 - mine).toFixed(1) + '%"></i></span><span class="tug-num"><b>' + num(g.you) + '</b>' + (d == null ? '' : '<small class="' + (d >= 0 ? 'up' : 'down') + '">' + signedVotes(d) + '</small>') + '<em>' + num(g.rival) + '</em></span><span class="tug-gap">' + (g.you >= g.rival ? '你領先 ' : '你落後 ') + num(Math.abs(g.you-g.rival)) + ' 票</span></div>'; }).join('') + '</div>';
   }
   // Your place against the line, the candidates around it and, from the latest poll, the three groups; the totals live in the header.
   function raceBoard(compact = false, before = null, ladder = false) {
@@ -339,7 +367,7 @@
     if (!state.started || state.phase !== 'plan') return '';
     const rumor = G.rumorView(state), due = G.pendingChallenges(state), rumorSpot = rumor ? (rumor.action === 'canvass' ? rumor.venue : rumor.action === 'tv' ? 'tv' : rumor.action === 'debate' ? 'debate' : null) : null;
     return destinations().map(d => {
-      const key = d.venue || d.kind, p = HOTSPOTS[key] || anchors.start, selected = isSelected(d), canAnswer = d.kind === 'tv' ? due.length > 0 : d.kind === 'canvass' && due.some(c => c.venues.includes(d.venue));
+      const key = d.venue || d.kind, p = Art?.isToy?.() ? Art.spot(key) : HOTSPOTS[key] || anchors.start, selected = isSelected(d), canAnswer = d.kind === 'tv' ? due.length > 0 : d.kind === 'canvass' && due.some(c => c.venues.includes(d.venue));
       return '<button class="hotspot' + (d.kind === 'canvass' ? ' venue g-' + GROUP_KEYS[d.group] : ' building') + (selected ? ' selected' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="select-action" data-kind="' + d.kind + '"' + (d.venue ? ' data-venue="' + d.venue + '"' : '') + ' aria-pressed="' + selected + '"' + (d.disabled ? ' disabled aria-disabled="true"' : '') + ' aria-label="' + esc(d.title + '：' + d.sub) + '"><span class="pin">' + icon(d.kind) + '</span><span class="hotspot-label"><b>' + esc(d.title) + '</b><small>' + esc(d.sub) + '</small></span>' + (canAnswer ? '<span class="badge warn">回應</span>' : '') + (rumorSpot === key ? '<span class="badge rival">小馬?</span>' : '') + (d.boards ? '<span class="badge board">看板 ' + d.boards + '</span>' : '') + (d.chief ? '<span class="badge chief' + (d.chief.broken ? ' won' : '') + '" title="' + esc(d.chief.name + (d.chief.broken ? '挺你' : '：去了 ' + d.chief.visits + '／' + d.chief.need + ' 次')) + '">' + (d.chief.broken ? '里長挺你' : '里長 ' + d.chief.visits + '/' + d.chief.need) + '</span>' : '') + '</button>';
     }).join('');
   }
@@ -357,7 +385,7 @@
   }
   // Raising money: a small drive with no strings, or a visit to a broker who pays for a public stance.
   function donorCards() {
-    const list = G.donorView(state), card = (id, on, title, lines, extra, disabled) => '<button class="donor-card' + (on ? ' on' : '') + '" data-action="donor" data-id="' + esc(id) + '" aria-pressed="' + on + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + title + '</b>' + lines.map(l => '<small>' + l + '</small>').join('') + (extra || '') + '</button>';
+    const list = G.donorView(state), card = (id, on, title, lines, extra, disabled) => '<button class="donor-card' + (on ? ' on' : '') + '" data-action="donor" data-id="' + esc(id) + '" aria-pressed="' + on + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + title + '</b>' + lines.map((l, i) => '<small class="donor-' + (i === 0 ? 'condition' : 'benefit') + '">' + l + '</small>').join('') + (extra || '') + '</button>';
     const small = card('', !donor, '小額募款', ['不綁任何立場', '約 8–16 萬']);
     return '<div class="donor-cards" role="group" aria-label="找誰募款"><span class="pick-label">找誰</span>' + small + list.map(d => {
       const known = d.faces.some(f => f !== 'unknown'), taken = d.status !== 'open', gives = [d.money ? '捐款 ' + wan(d.money) : '', d.bloc ? '組織票約 ' + num(d.bloc) : '', d.perk === 'tv' ? '一次免費上節目' : ''].filter(Boolean).join('・');
@@ -384,7 +412,7 @@
   function researchRow() {
     const free = helpers(), picks = researchTopic() || [], ranking = (G.landscapeView(state).ranking || []).map(r => r.topic).filter(t => G.topicsOf(state).includes(t)), list = [...new Set([...ranking, ...G.topicsOf(state)])].filter(t => state.player.insight?.[t]?.level !== 'precise' && t !== selectedTopic);
     const chip = t => '<button class="research-chip ' + (state.player.known.includes(t) ? 'ready' : 'risky') + '" data-action="research" data-topic="' + t + '" aria-pressed="' + picks.includes(t) + '"' + (!free || (!picks.includes(t) && picks.length >= free) ? ' disabled aria-disabled="true"' : '') + '><b>' + esc(short(t)) + '</b><small>' + statusOf(t) + '</small></button>';
-    return '<div class="research-row" role="group" aria-label="助手研究"><span class="pick-label">助手查</span>' + list.map(chip).join('') + '</div><p class="research-note">' + researchNote(picks, free) + '</p>';
+    return '<div class="research-row" role="group" aria-label="助手研究"><span class="pick-label research-heading">助手研究 <b>' + picks.length + '／' + free + ' 人已分配</b></span>' + list.map(chip).join('') + '</div><p class="research-note">' + researchNote(picks, free) + '</p>';
   }
   // Money buys reach and certainty; assistants can run a stall or dig into 小馬's money while you are out.
   function addonButtons(p) {
@@ -409,7 +437,7 @@
   }
   function dockPlan() {
     const p = selectedAction ? G.preview(state, selectedAction, planConfig()) : null;
-    if (!p) return dockAlerts() + '<p class="dock-hint"><b>點地圖上的地點出發。</b>每個地點的主要人潮不同，會從他們在意的三題挑一題問你。</p>';
+    if (!p) return dockAlerts() + '<p class="dock-hint"><b><span class="hint-map">點地圖上的地點出發。</span><span class="hint-list">點地圖下方的地點出發。</span></b>每個地點的主要人潮不同，會從他們在意的三題挑一題問你。</p>';
     const id = selectedAction, venue = onSite(id) ? G.venueView(state).find(v => v.id === p.venue) : null, place = placeName(id, p.venue);
     let body = '';
     if (onSite(id)) {
@@ -445,14 +473,15 @@
     });
   }
   function sceneView() {
+    if(Art?.isToy?.() && state.phase === 'recap' && state.recap?.player?.action === 'fundraise') return {kind:'fundraise',crowd:[],speaker:null,bubble:{who:'街坊募款',text:state.recap.player.result || '這次募款已記入競選預算。',stage:'reaction'}};
     if (state.phase === 'question' && isPublic(state.pending?.id)) {
       const p = state.pending, q = G.question(state), kind = p.id === 'canvass' ? venueId(p.venue) : p.id;
       return { kind, crowd: crowdOf(q?.crowd, kind), speaker: p.id === 'canvass' ? { group: q?.speakerGroup ?? 0, variant: 1 } : null, bubble: { who: q?.speaker || '', text: q?.text || '', stage: 'question' } };
     }
-    if (state.phase === 'recap' && ['canvass', 'tv', 'debate', 'rally'].includes(state.recap?.player?.action)) {
+    if (state.phase === 'recap' && ['canvass', 'tv', 'online', 'debate', 'rally'].includes(state.recap?.player?.action)) {
       const r = state.recap.player, kind = onSite(r.action) ? venueId(r.venue) : r.action, c = r.conversation;
-      const line = c ? c.reaction.replace(/^[^「]*「/, '').replace(/」$/, '') : r.action === 'debate' ? '小馬：「' + (state.recap.rival.quote || state.recap.rival.result) + '」' : r.action === 'rally' ? '現場 ' + r.effects.contacts + ' 人聽完你的政見。' : '主持人：「謝謝小沈。」';
-      return { kind, mode: r.action === 'rally' ? 'rally' : null, crowd: withReactions(crowdOf(r.crowd, kind), r.effects?.groups), speaker: c ? { group: c.group ?? 0, variant: 1, tone: c.mood } : null, bubble: { who: c ? c.name + '・' + c.groupTitle : r.action === 'debate' ? '小馬・對手' : r.action === 'rally' ? '造勢活動' : '主持人・小安', text: line, stage: 'reaction' } };
+      const line = c ? c.reaction.replace(/^[^「]*「/, '').replace(/」$/, '') : r.action === 'debate' ? '小馬：「' + (state.recap.rival.quote || state.recap.rival.result) + '」' : r.action === 'online' ? '本次觸及 ' + num(r.effects?.contacts) + ' 人。' : r.action === 'rally' ? '現場 ' + r.effects.contacts + ' 人聽完你的政見。' : '主持人：「謝謝小沈。」';
+      return { kind, mode: r.action === 'rally' ? 'rally' : null, crowd: withReactions(crowdOf(r.crowd, kind), r.effects?.groups), speaker: c ? { group: c.group ?? 0, variant: 1, tone: c.mood } : null, bubble: { who: c ? c.name + '・' + c.groupTitle : r.action === 'debate' ? '小馬・對手' : r.action === 'rally' ? '造勢活動' : r.action === 'online' ? '直播結束' : '主持人・小安', text: line, stage: 'reaction' } };
     }
     return null;
   }
@@ -465,7 +494,9 @@
       bubble.hidden = false; bubble.dataset.stage = view.bubble.stage; bubble.dataset.kind = view.kind;
       bubble.innerHTML = '<span class="bubble-speaker">' + esc(view.bubble.who) + '</span><p>' + esc(view.bubble.text) + '</p>';
     } else { bubble.hidden = true; venue.innerHTML = ''; venue.dataset.key = ''; }
-    $('map-hotspots').innerHTML = view ? '' : hotspots();
+    const destinations = view ? '' : hotspots();
+    $('map-hotspots').innerHTML = destinations;
+    $('mobile-destinations').innerHTML = destinations;
     $('map-boards').innerHTML = view || !state.started ? '' : boardsOnMap();
     $('world').classList.toggle('is-rainy', state.started && !view && G.forecast(state).now?.id === 'rain');
     document.body.dataset.act = state.started ? String(G.actOf(state.day).id) : '';
@@ -629,6 +660,7 @@
     for (const m of current) if (!assignments.some(a => a.id === m.id)) assignments.push({ ...m, task: 'idle' });
     const routeVenue = state.pending?.venue || state.recap?.player?.venue || 'market';
     const teamArt = Art ? { ...Art, anchors: { ...Art.anchors, canvass: destinationFor('canvass', routeVenue) }, route: id => routeFor(id, routeVenue) } : Art;
+    if(Art?.isToy?.()){ $('team-actors').innerHTML = !state.started || ['question','recap','result'].includes(state.phase) ? '' : Art.toyTeam(assignments,state.phase==='plan'?3:teamElapsed,state.pending?.id||'recruit',routeVenue,reduced.matches); return; }
     $('team-actors').innerHTML = state.phase === 'plan' || !state.started ? '' : Team.render(assignments, state.phase === 'travel' ? teamElapsed : Team.duration, teamArt, { reducedMotion: reduced.matches });
   }
   // The one restart control moves rather than being duplicated: into an open dialog, onto the report, or back to the header.
@@ -640,7 +672,10 @@
   }
   function render() {
     if (selectedAction === 'prepare' && selectedTopic && !G.availableTopics(state).some(t => t.id === selectedTopic)) selectedTopic = null;
-    dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport();
+    dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport(); renderEvents();
+    document.body.dataset.art = Art?.getPack?.() || 'original';
+    $('art-switch').textContent = Art?.isToy?.() ? '霧面玩具 ▾' : '原版方塊 ▾';
+    $('art-switch').disabled = state.phase === 'travel' || counting?.status === 'inprogress';
     $('dock-body').innerHTML = !state.started ? dockIntro() : state.phase === 'plan' ? dockPlan() : state.phase === 'travel' ? dockTravel() : state.phase === 'question' ? dockQuestion() : state.phase === 'recap' ? dockRecap() : dockResult();
     $('dock').dataset.phase = state.started ? state.phase : 'intro';
     $('panel').innerHTML = !state.started ? intro() : state.phase === 'plan' ? planPanel() : state.phase === 'travel' ? travelPanel() : state.phase === 'question' ? questionPanel() : state.phase === 'recap' ? recapPanel() : resultPanel();
@@ -666,24 +701,24 @@
     motion = { id, venue: state.pending.venue || 'market', destination: { ...destination }, stage: 'walk', route, index: 1, elapsed: 0 }; teamElapsed = 0;
     $('world').dataset.action = id;
     $('destination-marker').hidden = false; actorPosition($('destination-marker'), destination);
-    $('route-line').innerHTML = '<svg viewBox="0 0 1200 650"><polyline points="' + route.map(p => p.x + ',' + p.y).join(' ') + '"/></svg>';
-    $('player').classList.add('walking');
+    $('route-line').innerHTML = '<svg viewBox="0 0 1200 650"><polyline points="' + (Art?.isToy?.() ? Art.visualRoute(id,state.pending.venue,Art.mapPoint(route[0])) : route).map(p => p.x + ',' + p.y).join(' ') + '"/></svg>';
+    Art?.walkStep?.(0,true); $('player').classList.add('walking');
     render();
     if (reduced.matches) finishTravel();
   }
   function perform() {
     if (!motion) return;
     position = { ...motion.destination }; setPosition();
-    motion.stage = 'perform'; motion.elapsed = 0;
+    motion.stage = 'perform'; motion.elapsed = 0; Art?.walkStep?.(0,false); $('player').innerHTML = Art ? Art.avatar('player') : '';
     $('player').classList.remove('walking'); $('world').classList.add('performing');
     $('route-line').innerHTML = ''; $('destination-marker').hidden = true;
     $('action-effect').innerHTML = effect(motion.id);
-    $('action-effect').style.left = position.x / 12 + '%'; $('action-effect').style.top = position.y / 6.5 + '%';
+    actorPosition($('action-effect'),Art?.isToy?.()?Art.visualRoute(motion.id,motion.venue).at(-1):position,true);
     if (motion.id === 'recruit') { $('new-teammate').hidden = false; actorPosition($('new-teammate'), { x: position.x + 72, y: position.y + 11 }); }
     render();
   }
   function clearMotion() {
-    motion = null; $('player').classList.remove('walking'); $('world').classList.remove('performing');
+    motion = null; Art?.walkStep?.(0,false); $('player').innerHTML = Art ? Art.avatar('player') : ''; $('player').classList.remove('walking'); $('world').classList.remove('performing');
     $('destination-marker').hidden = true; $('route-line').innerHTML = ''; $('action-effect').innerHTML = ''; $('new-teammate').hidden = true;
   }
   function finishTravel() {
@@ -709,9 +744,11 @@
     while (distance > 0 && motion && motion.stage === 'walk') {
       const next = motion.route[motion.index];
       if (!next) { perform(); break; }
+      const oldVisual = Art?.isToy?.() ? Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue) : position;
       const dx = next.x - position.x, dy = next.y - position.y, len = Math.hypot(dx, dy);
       if (len <= distance) { position = { ...next }; motion.index++; distance -= len; }
       else { position.x += dx / len * distance; position.y += dy / len * distance; distance = 0; }
+      if(Art?.isToy?.()){const v=Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue), turned=Art.facing(v.x-oldVisual.x,v.y-oldVisual.y), stepped=Art.walkStep(dt,true);if(turned||stepped)$('player').innerHTML=Art.avatar('player');}
       setPosition();
     }
   }
@@ -791,13 +828,15 @@
   function restart() {
     counting = null; clearMotion(); closeDialog();
     let newSeed = seed(); if (newSeed === state.seed) newSeed = (newSeed + 1) >>> 0;
-    state = G.initial(newSeed, state.settings);
+    state = G.initial(newSeed, state.settings); dismissedFeedback = '';
     position = { ...anchors.start }; selectedTopic = null; selectedVenue = null; selectedAction = null; resetToggles(); error = ''; saveError = ''; saveNotice = ''; lastFrame = null; teamElapsed = 0; locked = false;
     $('dialog-body').innerHTML = ''; $('world').dataset.action = ''; $('world').classList.remove('motion-paused');
     setPosition(); save(); render(); focusDock(); window.scrollTo?.(0, 0); announce('新的一局：先選身分和政黨。');
   }
   function focusChoice(selector) { ($('dock').querySelector?.(selector) || $('map-hotspots').querySelector?.(selector) || $('panel').querySelector?.(selector))?.focus({ preventScroll: true }); }
   function dispatch(data) {
+    if (data.action === 'art-switch' && !modal && state.phase !== 'travel' && counting?.status !== 'inprogress') { Art?.setPack?.(Art.isToy() ? 'original' : 'matte-toy-v1'); dressed=''; $('venue-scene').dataset.key=''; scene(); render(); return; }
+    if (data.action === 'dismiss-event' && !modal) { dismissedFeedback = state.crisis ? crisisKey(state.crisis) : ''; save(); renderEvents(); focusDock(); return; }
     if (data.action === 'close') { closeDialog(); return; }
     if (data.action === 'restart') { restart(); return; }
     if (data.action === 'dismiss-notice') { saveNotice = ''; showNotice(); return; }
@@ -816,7 +855,7 @@
     if (state.phase !== 'plan' || !state.started) return;
     if (data.action === 'topic' && G.availableTopics(state).some(t => t.id === data.topic)) { selectedTopic = data.topic; error = ''; save(); render(); focusChoice('[data-action="topic"][data-topic="' + selectedTopic + '"]'); return; }
     if (data.action === 'offer') { if (G.respondOffer(state, data.choice)) { save(); render(); announce(data.choice === 'accept' ? '已接受合作，立場已公開。' : '已婉拒合作。'); } return; }
-    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); announce('已處理突發危機。'); } return; }
+    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); $('event-feedback').querySelector?.('button')?.focus({preventScroll:true}); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
     if (data.action === 'clarify') { if (G.clarify(state, data.id)) { save(); render(); announce('已發澄清文宣。'); } return; }
     if (data.action === 'pledge') { if (G.cleanPledge(state)) { save(); render(); announce('已宣示乾淨選戰。'); } return; }
     if (data.action === 'research') { const t = data.topic; if (G.TOPICS[t]) researchPick = researchPick.includes(t) ? researchPick.filter(x => x !== t) : [...researchPick, t].slice(0, helpers()); error = ''; save(); render(); focusChoice('[data-action="research"][data-topic="' + (t || '') + '"]'); return; }
@@ -855,6 +894,11 @@
   document.addEventListener('visibilitychange', () => { lastFrame = null; $('world').classList.toggle('motion-paused', document.hidden || !!modal); if (document.hidden) save(); else if (motion && reduced.matches && !modal) finishTravel(); });
   window.addEventListener('pagehide', save);
   reduced.addEventListener?.('change', () => { if (reduced.matches && !modal) { if (motion) finishTravel(); if (counting?.status === 'inprogress') finishCounting(); } });
+  document.addEventListener('error', event => {
+    if (!event.target?.getAttribute?.('data-art-image') || !Art?.isToy?.()) return;
+    Art.setPack('original'); dressed=''; $('venue-scene').dataset.key=''; scene(); render();
+    announce('部分美術素材無法載入，已切回原版外觀，遊戲進度保留。');
+  }, true);
   scene();
   if (state.phase === 'result' && reduced.matches && counting?.status === 'inprogress') { counting = { status: 'seen', elapsed: COUNT.end }; save(); }
   render();
