@@ -238,7 +238,7 @@
     const rows = G.ladderView(state).filter(r => (r.rank >= 11 && r.rank <= 14) || r.id <= 1);
     let html = '', last = 0;
     for (const r of rows) { if (last && r.rank > last + 1) html += '<li class="lad-gap" aria-hidden="true">⋯</li>'; html += '<li class="' + [r.id === 0 ? 'lad-me' : r.id === 1 ? 'lad-rival' : '', r.elected ? 'lad-in' : '', r.rank === G.ELECTION.seats ? 'lad-last' : ''].filter(Boolean).join(' ') + '"><span>' + r.rank + '</span><b>' + esc(r.id === 0 ? '你' : r.name) + (r.id === 1 ? partyDot(state.rival.party) : '') + '</b><strong>' + num(r.votes) + '</strong></li>'; last = r.rank; }
-    return '<ol class="ladder" aria-label="當選線附近的排名">' + html + '</ol><p class="ladder-note">虛線以上的 13 人現在會當選。你和小馬都可能落選；他跟你搶同一批游離選民，還會攻擊你。</p>';
+    return '<ol class="ladder" aria-label="當選線附近的排名">' + html + '</ol><p class="ladder-note">虛線以上的 13 人現在會當選。小馬是領先者，你要搶的是虛線附近那幾席；他跟你搶同一批游離選民，你威脅到他時他會攻擊你。</p>';
   }
   // You against 小馬 in each group as a tug of war: the green part is your share of the two of you.
   function tugBars(r, before) {
