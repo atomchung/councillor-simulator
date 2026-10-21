@@ -56,9 +56,9 @@ for(let seed=1;seed<=10;seed++){const s=fresh(seed);
  eq(G.preview(s,'canvass',{venue:v.id,research:t,deep:true}).researchTopics,[t,t],'deeper research takes a second assistant');
  const x=copy(s);G.begin(x,'canvass',{venue:v.id,research:t,deep:true});eq(x.player.insight[t].level,'precise','deep research shows the shares');
  const y=copy(s);G.begin(y,'canvass',{venue:v.id,research:t});eq(y.player.insight[t].level,'direction','light research shows the sides');
- const z=copy(s);round(z,'canvass',{venue:v.id,research:t},best);G.next(z);settleCrisis(z);eq(G.preview(z,'canvass',{venue:v.id,research:t}).researchTopics,[],'a known issue is not researched again lightly');}
+ const z=copy(s);round(z,'canvass',{venue:v.id,research:t},best);G.next(z);settleCrisis(z);eq(G.preview(z,'canvass',{venue:v.id,research:t}).researchTopics,[t],'a known issue can be researched again');const zz=copy(z);G.begin(zz,'canvass',{venue:v.id,research:t});eq(zz.player.insight[t].level,'precise','researching a known issue again shows the shares');}
 {let street=0,stage=0,n=0;for(let seed=1;seed<=20;seed++){const s=fresh(seed),v=G.venueView(s)[0],a=copy(s);G.begin(a,'canvass',{venue:v.id});G.arrive(a);const q=G.question(a),t=a.pending.topic;
-  ok(q.options.filter(o=>G.TOPICS[t].plans.some(p=>p.id===o.id)).every(o=>!o.unlocked),'no concrete answer without research');ok(q.options.find(o=>o.id==='honest').tags.some(x=>x.kind==='unprepared'),'not answering is tagged');G.answer(a,'honest');street+=a.recap.player.stumble.votes;
+  {const plans=q.options.filter(o=>G.TOPICS[t].plans.some(p=>p.id===o.id));ok(plans.length===2&&plans.every(o=>o.unlocked&&!o.estimate&&o.faces.every(f=>f==='unknown')),'without research every approach can be said, blind');}ok(q.options.find(o=>o.id==='honest').tags.some(x=>x.kind==='unprepared'),'not answering is tagged');G.answer(a,'honest');street+=a.recap.player.stumble.votes;
   const b=copy(s);G.begin(b,'tv');G.arrive(b);if(!b.player.known.includes(b.pending.topic)){G.answer(b,'honest');stage+=b.recap.player.stumble.votes;n++;}}
  ok(street<0&&n>0&&stage/n<street/20,'caught unprepared costs, more on TV: '+Math.round(street/20)+' / '+Math.round(stage/n));}
 
@@ -89,10 +89,13 @@ for(let seed=1;seed<=60;seed++){const base=fresh(seed);for(const [att,count] of 
 ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/${fans}, hurts with haters ${haterWins}/${haters}`);
 
 // Unkept guarantees cost votes at the vote only when exposed and uncorrected; taking one back lets its believers down.
-{let exposed=0;for(let seed=1;seed<=20;seed++){const base=fresh(seed),loud=copy(base),plain=copy(base);round(loud,'tv',{},'guarantee');round(plain,'tv',{},'honest');const r=finish(loud),challenged=loud.challenges.some(c=>c.kind==='guarantee');
+{let exposed=0;for(let seed=1;seed<=20;seed++){const base=fresh(seed,{background:'heir'}),loud=copy(base),plain=copy(base);round(loud,'tv',{},'guarantee');round(plain,'tv',{},'honest');const r=finish(loud),challenged=loud.challenges.some(c=>c.kind==='guarantee');
  if(challenged){exposed++;ok(r.unkept.length===1&&r.unkept[0].votes<0,'an exposed, uncorrected guarantee costs votes at the vote');}else eq(r.unkept,[],'a guarantee nobody exposed costs nothing at the vote');eq(finish(plain).unkept,[],'no guarantee, nothing unkept');}
  ok(exposed>=12,'guarantees exposed '+exposed+'/20');}
-{let fixed=0;for(let seed=1;seed<=60&&fixed<4;seed++){const s=fresh(seed);round(s,'tv',{},'guarantee');G.next(s);
+
+// 周沐 leaves an unknown newcomer alone: a guarantee far below the line draws no attack.
+{let quiet=0;for(let seed=1;seed<=20;seed++){const s=fresh(seed,{background:'newcomer'});round(s,'tv',{},'guarantee');if(G.raceView(s).you<G.raceView(s).line*.8&&!s.challenges.length)quiet++;}ok(quiet>=15,'newcomer left alone '+quiet+'/20');}
+{let fixed=0;for(let seed=1;seed<=60&&fixed<4;seed++){const s=fresh(seed,{background:'heir'});round(s,'tv',{},'guarantee');G.next(s);
  for(let guard=0;guard<8&&s.phase==='plan';guard++){settleCrisis(s);const open=G.pendingChallenges(s)[0];if(open){eq(open.venues.length,2,'raised at two places');for(const v of G.venueView(s))eq(v.topic,open.venues.includes(v.id)?open.topic:null,'only the places where people care raise the challenge');eq(G.tvPool(s)[0],open.topic,'TV leads with it');
   G.begin(s,'canvass',{venue:open.venues[0]});G.arrive(s);ok(G.question(s).options.find(o=>o.id==='honest').tags.some(t=>t.kind==='walkback'),'taking back a guarantee is tagged');G.answer(s,'honest');const r=s.recap;ok(r.events.some(e=>e.rebuttal&&e.challengeId===open.id),'answering at one of those places counts');ok(r.player.walkBack&&r.player.walkBack.votes<0,'taking back a guarantee lets its believers down');ok(sums(r),'attribution adds up with a correction');eq(finish(s).unkept,[],'a corrected guarantee is not charged at the vote');fixed++;break;}skip(s);}}
  ok(fixed>=4,'corrections exercised '+fixed);}
@@ -203,7 +206,7 @@ ok(Math.abs(accurate/rumours-.8)<.05,'rumours about eighty percent accurate: '+(
 // Attacks cost you at once; answering in time at one of the places where it is raised wins some back; ignoring it expires once.
 let hits=0,expired=0,answered=0;
 for(let seed=1;seed<=200&&(expired<4||answered<4);seed++){
- const s=fresh(seed);round(s,'tv',{},'guarantee');G.next(s);
+ const s=fresh(seed,{background:'heir'});round(s,'tv',{},'guarantee');G.next(s);
  for(let guard=0;guard<6&&s.phase!=='result';guard++){if(s.phase==='recap'){G.next(s);continue;}settleCrisis(s);const open=G.pendingChallenges(s)[0];
   if(open&&answered<=expired){const r=round(s,'canvass',{venue:open.venues[0]},'honest'),reb=r.events.find(e=>e.rebuttal&&e.challengeId===open.id);eq(s.challenges.find(c=>c.id===open.id).status,'answered','answering in time settles it');ok(reb,'rebuttal reported');ok(!r.events.some(e=>e.challengeId===open.id&&!e.rebuttal),'no expiry once answered');answered++;break;}
   const r=round(s,'fundraise');if(r.rival.challenge){hits++;ok(r.rival.attack.votes<0,'attack costs you at once');ok(r.attribution.find(a=>a.source==='rival').effectOnYou<0,'attack shows in his effect on you');}
@@ -232,7 +235,7 @@ for(let seed=1;seed<=30;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){s
  const base=id=>G.expectedVotes(made[id]);const B=G.BACKGROUNDS;ok(Math.abs(base('heir')/base('newcomer')-B.heir.supportBoost/B.newcomer.supportBoost)<.01&&Math.abs(base('incumbent')/base('newcomer')-B.incumbent.supportBoost/B.newcomer.supportBoost)<.01,'starting bases follow each identity');ok(base('heir')>base('incumbent')&&base('incumbent')>base('newcomer'),'the heir starts highest, the newcomer lowest');eq(new Set(Object.values(G.BACKGROUNDS).map(b=>b.outfit)).size,3,'each identity dresses differently');
  const record=made.incumbent.player.actions.filter(a=>a.record);eq(record.length,1,'incumbent carries one stance');ok(made.incumbent.player.known.includes(record[0].topic),'record topic researched');eq(made.newcomer.player.actions.length,0,'newcomer has no record');
  for(const [old,now] of Object.entries(G.LEGACY_BACKGROUNDS))eq(G.initial(3,{background:old}).settings.background,now,'old background id maps to '+now);
- const hi=round(copy(made.heir),'fundraise').player.income,lo=round(copy(made.newcomer),'fundraise').player.income;ok(Math.abs(hi/lo-1.5)<.01,'heir raises 1.5 times as much');
+ const hi=G.preview(copy(made.heir),'fundraise').expectedIncome.max,lo=G.preview(copy(made.newcomer),'fundraise').expectedIncome.max;ok(Math.abs(hi/lo-2)<.01,'heir raises twice what a newcomer can');
  for(const id of ['newcomer','heir']){const v=G.groupView(made[id]),k=made[id].landscape.identityGroup;eq(v.map(x=>x.lift),[0,1,2].map(g=>g===k?G.TUNING.lift[G.BACKGROUNDS[id].rule]:1),id+' rule touches one group');}
  eq(G.groupView(made.incumbent).map(x=>x.lift),[1,1,1],'incumbent has no group rule');
  const locked=made.heir;eq(G.configure(locked,{background:'newcomer'}),false,'identity is fixed once the campaign starts');eq(locked.settings.background,'heir','settings unchanged');}
@@ -251,7 +254,7 @@ for(let seed=1;seed<=20;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){s
 {const pairs=[],groups=[];for(let seed=1;seed<=80;seed++){const s=fresh(seed,{background:['newcomer','heir','incumbent'][seed%3],affiliation:['independent','kmt','dpp'][seed%3]});for(let d=1;d<=G.DAYS&&s.phase!=='result';d++){settleCrisis(s);const vs=G.venueView(s),v=vs[d%vs.length],id=d===G.DEBATE_ROUND?'debate':d%3?'canvass':'tv',cfg=id==='canvass'?{venue:v.id,research:v.pool[d%3]}:id==='tv'?{research:G.tvPool(s)[0]}:{research:s.debate.topic};
   if(!G.preview(s,id,cfg).allowed){round(s,'fundraise');G.next(s);continue;}G.begin(s,id,cfg);G.arrive(s);const q=G.question(s),topic=s.pending.topic;
   if(d===2){const blind=copy(s);for(const x of blind.voters){x.pref=x.pref.split('').reverse().join('');x.cares=['sanitation'];x.rec=[.4,.4];x.accuracy=.5;x.p='none';}for(const o of q.options.filter(o=>o.unlocked))eq(G.answerEstimate(blind,topic,o.id),o.estimate,'estimate ignores hidden voter state '+seed+' '+o.id);}
-  for(const o of q.options){if(!o.unlocked)eq(o.estimate,null,'no estimate for a locked answer');else if(G.TOPICS[topic].plans.some(p=>p.id===o.id))ok(o.estimate?.groups?.length===3,'a researched approach gets an estimate');}
+  for(const o of q.options){if(!o.unlocked)eq(o.estimate,null,'no estimate for a locked answer');else if(G.TOPICS[topic].plans.some(p=>p.id===o.id))ok(s.player.insight?.[topic]?.level==='precise'?o.estimate?.groups?.length===3:o.estimate===null,'only deep research gives an approach an estimate');}
   const open=q.options.filter(o=>o.unlocked),pick=open[(seed+d)%open.length];G.answer(s,pick.id);const r=s.recap,reb=r.events.filter(e=>e.rebuttal);
   if(pick.estimate){pairs.push([pick.estimate.total,r.player.votes+reb.reduce((n,e)=>n+e.effects.votes,0)]);pick.estimate.groups.forEach((x,g)=>groups.push([x,r.player.byGroup[g]+reb.reduce((n,e)=>n+(e.effects.byGroup?.[g]||0),0)]));}
   G.next(s);}}
@@ -290,4 +293,13 @@ for(let seed=1;seed<=10;seed++){const n=fresh(seed,{background:'newcomer'}),h=fr
  ok(visits>=15,'broker visits exercised '+visits);
  const heir=fresh(4,{background:'heir'}),nc=fresh(4,{background:'newcomer'});ok(heir.deals.developer.money>nc.deals.developer.money,'family ties open wallets wider');
  const m=fresh(6);if(m.deals.media){round(m,'fundraise',{donor:'media'});G.next(m);settleCrisis(m);eq(G.preview(m,'tv',{}).totalCost,0,'the producer gives one free appearance');}}
+// Digging for dirt: from round 2, at most twice; found hurts 周沐, backfire hurts you, nothing only costs money.
+{const seen={found:0,nothing:0,backfire:0};for(let seed=1;seed<=60;seed++){const s=fresh(seed);ok(!G.preview(s,'dig',{}).allowed,'no digging in round 1');while(s.day<2){G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}settleCrisis(s);const p=G.preview(s,'dig',{});ok(p.allowed&&p.totalCost===G.COSTS.dig,'digging costs money');const r0=G.expectedVotes(s,1),y0=G.expectedVotes(s,0);G.begin(s,'dig',{});G.arrive(s);const o=s.player.actions.at(-1).dig;seen[o]++;
+ if(o==='found')ok(s.recap.player.rivalHit<0,'found dirt costs 周沐 votes');if(o==='backfire')ok(s.recap.player.votes<0,'a backfire costs you votes');if(o==='nothing')eq(Math.round(s.recap.player.votes),0,'nothing found moves nothing of yours');}
+ ok(seen.found&&seen.nothing&&seen.backfire,'all three outcomes happen');
+ const s=fresh(5);while(s.day<2){G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}for(let k=0;k<2;k++){settleCrisis(s);G.begin(s,'dig',{});G.arrive(s);G.next(s);}settleCrisis(s);ok(!G.preview(s,'dig',{}).allowed,'at most twice a game');}
+// Fundraising can fall through, a newcomer more often; walking the neighbourhood makes asking easier.
+{let miss=0,n=0;for(let seed=1;seed<=60;seed++){const s=fresh(seed,{background:'newcomer'});const r=round(s,'fundraise');n++;if(/沒談成/.test(r.player.result||''))miss++;}ok(miss>=8&&miss<=30,'newcomer fundraising falls through '+miss+'/'+n);
+ const s=fresh(5,{background:'newcomer'}),before=G.preview(s,'fundraise').expectedIncome.max;s.player.counts.canvass=4;ok(G.preview(s,'fundraise').expectedIncome.max>before,'neighbourhood ties raise fundraising');}
+
 console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetric answer costs, online streams, village chiefs, identity head starts, brokers and deals, scandals from round 5; v13.4: fixed group sides with varying strength, question draws at places and on TV, the research slot and unprepared answers, residents\' demands, faces, crowd-dependent promises, unkept guarantees and walk-backs, challenges raised where people care and clarified for money, switching costs, offers and breaches, party shares, bases, money and lines, the ladder, billboards and their fit, gifts by group, rallies after two stances, the stall, preparing two issues, background checks, the press gamble and the clean pledge, the second-act crisis, the debate edge, the final push, rival targeting, rumours, attacks and rebuttals, calling out the rival, shared swing voters, attribution sums, the fixed seat line, real-scale election, identities, the offer revealing its issue, per-source report rounds with quiet rounds, and answer and offer estimates that read only visible information. Engine only; not browser, fun or play-time validation.'}));
