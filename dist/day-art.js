@@ -452,7 +452,7 @@
     // The tiny aerial and TV plaque make the third building legible.
     s+=isoLine(P(u+118,v+31,h+7),P(u+118,v+31,h+44),'#6c887c',3);
     s+=isoLine(P(u+105,v+26,h+35),P(u+131,v+36,h+35),'#6c887c',2.5);
-    s+=front(u+21,v+d+1,92,60,19,'#5f8071')+frontLabel(u+28,v+d+1.3,65,'街坊訪談',13,'#fff0cd');
+    s+=front(u+21,v+d+1,92,60,19,'#5f8071')+frontLabel(u+28,v+d+1.3,65,'中立新聞台',12,'#fff0cd');
     s+=front(u+120,v+d+1,24,31,19,'#55796c');
     s+=front(u+124,v+d+1.3,16,35,11,'#d4e1c9');
     s+=isoLine(P(u+126,v+d+1.5,48),P(u+130,v+d+1.5,44),'#55796c',1.5);
@@ -591,7 +591,10 @@
       s += floor(362, '#e9e1ca', '#cbbf9f');
     } else if (kind === 'tv') {
       s += rect(0, 0, 1200, 650, '#38554e') + rect(0, 0, 1200, 380, '#466c60');
-      s += rect(330, 54, 540, 250, '#2a3f3a') + rect(346, 70, 508, 218, '#7fa79a') + label(600, 160, '街坊訪談', 46, '#fff4d2', 'text-anchor="middle"') + label(600, 210, 'LIVE・地方節目', 20, '#e8f1df', 'text-anchor="middle" letter-spacing="3"');
+      // The studio wall: the fictional 中立新聞台 logo, the programme title and a LIVE tag.
+      s += rect(300, 40, 600, 270, '#1d2b28', 'rx="8"') + rect(316, 56, 568, 238, '#2f6f86', 'rx="4"') + rect(316, 56, 568, 64, '#24566a');
+      s += rect(336, 70, 40, 40, '#f2c14e', 'rx="20"') + rect(346, 80, 20, 20, '#2f6f86', 'rx="10"') + label(390, 101, '中立新聞台', 28, '#fff7dd') + rect(790, 74, 76, 32, '#e0483a', 'rx="4"') + label(828, 97, 'LIVE', 20, '#ffffff', 'text-anchor="middle" letter-spacing="2"');
+      s += label(600, 190, '議題直擊', 52, '#fff4d2', 'text-anchor="middle"') + label(600, 240, '選區候選人上節目', 20, '#d8ecf2', 'text-anchor="middle" letter-spacing="3"');
       for (const x of [70, 1130]) s += path(`M${x} 650L${x} 470`, '#25332f', 5) + rect(x - 34, 420, 68, 50, '#25332f') + rect(x + (x < 600 ? 30 : -48), 434, 18, 22, '#1d2926') + `<circle cx="${x}" cy="445" r="9" fill="#ef835b"/>`;
       s += poly([[0, 380], [1200, 380], [1200, 650], [0, 650]], '#3f5f57') + path('M0 380H1200', '#5f8578', 3);
     } else if (kind === 'debate') {
@@ -601,14 +604,15 @@
     return s;
   }
   const STREET_SLOTS = [[600, 470, .86], [697, 466, .86], [794, 471, .86], [891, 466, .86], [988, 470, .86], [1085, 466, .86], [652, 560, 1], [772, 564, 1], [892, 560, 1], [1012, 564, 1]];
-  const TV_SLOTS = [[858, 556, .44], [920, 556, .44], [982, 556, .44], [1044, 556, .44], [1106, 556, .44], [858, 626, .44], [920, 626, .44], [982, 626, .44], [1044, 626, .44], [1106, 626, .44]];
+  const TV_SLOTS = [[884, 532, .4], [944, 532, .4], [1004, 532, .4], [1064, 532, .4], [1124, 532, .4], [884, 612, .4], [944, 612, .4], [1004, 612, .4], [1064, 612, .4], [1124, 612, .4]];
   const DEBATE_SLOTS = [[70, 700, .8], [188, 704, .8], [306, 700, .8], [424, 704, .8], [542, 700, .8], [660, 704, .8], [778, 700, .8], [896, 704, .8], [1014, 700, .8], [1132, 704, .8]];
   // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, variant, tone} or null.
   function interior(kind, options = {}) {
     const crowd = Array.isArray(options.crowd) ? options.crowd : [], roleOf = c => GROUP_ROLES[c.group]?.[c.variant ? 1 : 0] || 'resident';
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '">' + backdrop(kind);
     const slots = kind === 'tv' ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
-    if (kind === 'tv') s += rect(800, 396, 380, 248, '#22322e', 'rx="10"') + rect(812, 408, 356, 224, '#cfd9c6', 'rx="6"') + label(990, 438, '電視機前的觀眾', 17, '#3d574f', 'text-anchor="middle"');
+    // Viewers at home: a living-room inset with ten people on two sofas.
+    if (kind === 'tv') s += rect(830, 380, 350, 262, '#1d2b28', 'rx="12"') + rect(842, 392, 326, 238, '#f3e6c8', 'rx="8"') + rect(842, 392, 326, 34, '#2f6f86', 'rx="8"') + label(1005, 416, '家裡收看中・10 人', 17, '#fff7dd', 'text-anchor="middle"') + block(860, 520, 290, 20, 8, '#c76f4f', '#e08b68', '#a65a3e') + block(860, 600, 290, 20, 8, '#c76f4f', '#e08b68', '#a65a3e');
     const people = crowd.slice(0, slots.length).map((c, i) => ({ c, x: slots[i][0], y: slots[i][1], k: slots[i][2] }));
     if (options.board && !['tv', 'debate'].includes(kind)) s += boardMarkup(110, 420, 1.35, options.board.party);
     if (kind === 'debate') {
@@ -616,7 +620,9 @@
       for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? '小沈' : '周沐', 18, '#5f4630', 'text-anchor="middle"');
     }
     for (const p of [...people].sort((a, b) => a.y - b.y)) s += figure(p.x, p.y, roleOf(p.c), p.k);
-    if (kind === 'tv') { s += figure(640, 585, 'middle', 1.3) + figure(380, 590, 'player', 1.34) + block(220, 478, 580, 92, 12, '#c9b48a', '#e0cca3', '#a8936c') + rect(240, 498, 540, 10, '#b19c73'); }
+    if (kind === 'tv') { s += figure(600, 560, 'middle', 1.3) + figure(340, 565, 'player', 1.34) + block(200, 512, 520, 56, 12, '#2f6f86', '#4a8ba3', '#24566a') + rect(220, 530, 480, 8, '#f2c14e') + label(460, 560, '中立新聞台', 18, '#fff7dd', 'text-anchor="middle"');
+      // Lower third: the issue on air.
+      s += rect(0, 590, 820, 52, '#e0483a') + rect(0, 590, 150, 52, '#1d2b28') + label(75, 624, '今日議題', 20, '#fff7dd', 'text-anchor="middle"') + label(170, 625, options.topic || '主持人會從三題挑一題', 24, '#ffffff'); }
     else if (options.mode === 'rally') {
       // A rally: a wooden stage with flags in the party colour, the candidate speaking from it.
       const flag = PARTY_COLORS[candidates.player.party] || '#c9a847';
