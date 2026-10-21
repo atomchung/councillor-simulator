@@ -186,7 +186,7 @@
   function focusDock() { $('dock').focus({ preventScroll: true }); }
   function revealDock() { if (window.innerWidth < 1024) $('dock').scrollIntoView?.({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'nearest' }); }
   function actorPosition(el, p, visual = false) { if (!visual && Art?.mapPoint) p = Art.mapPoint(p); el.style.left = p.x / 12 + '%'; el.style.top = p.y / 6.5 + '%'; el.style.zIndex = String(Math.round(p.y)); }
-  function setPosition() { const p = motion && Art?.travelPoint ? Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue) : Art?.mapPoint ? Art.mapPoint(position) : position; actorPosition($('player'), p, true); }
+  function setPosition() { const p = motion && Art?.travelPoint ? Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue) : Art?.isToy?.() && state.pending && state.phase !== 'plan' ? Art.visualRoute(state.pending.id,state.pending.venue).at(-1) : Art?.mapPoint ? Art.mapPoint(position) : position; actorPosition($('player'), p, true); }
   // Both candidates dress for their identity and party; redraw only when that changes.
   function dress() {
     const key = state.settings.background + ':' + state.settings.affiliation + ':' + state.rival.party;
@@ -473,6 +473,7 @@
     });
   }
   function sceneView() {
+    if(Art?.isToy?.() && state.phase === 'recap' && state.recap?.player?.action === 'fundraise') return {kind:'fundraise',crowd:[],speaker:null,bubble:{who:'街坊募款',text:state.recap.player.result || '這次募款已記入競選預算。',stage:'reaction'}};
     if (state.phase === 'question' && isPublic(state.pending?.id)) {
       const p = state.pending, q = G.question(state), kind = p.id === 'canvass' ? venueId(p.venue) : p.id;
       return { kind, crowd: crowdOf(q?.crowd, kind), speaker: p.id === 'canvass' ? { group: q?.speakerGroup ?? 0, variant: 1 } : null, bubble: { who: q?.speaker || '', text: q?.text || '', stage: 'question' } };
@@ -657,6 +658,7 @@
     for (const m of current) if (!assignments.some(a => a.id === m.id)) assignments.push({ ...m, task: 'idle' });
     const routeVenue = state.pending?.venue || state.recap?.player?.venue || 'market';
     const teamArt = Art ? { ...Art, anchors: { ...Art.anchors, canvass: destinationFor('canvass', routeVenue) }, route: id => routeFor(id, routeVenue) } : Art;
+    if(Art?.isToy?.()){ $('team-actors').innerHTML = !state.started || ['question','recap','result'].includes(state.phase) ? '' : Art.toyTeam(assignments,state.phase==='plan'?3:teamElapsed,state.pending?.id||'recruit',routeVenue,reduced.matches); return; }
     $('team-actors').innerHTML = state.phase === 'plan' || !state.started ? '' : Team.render(assignments, state.phase === 'travel' ? teamElapsed : Team.duration, teamArt, { reducedMotion: reduced.matches });
   }
   // The one restart control moves rather than being duplicated: into an open dialog, onto the report, or back to the header.
@@ -698,23 +700,23 @@
     $('world').dataset.action = id;
     $('destination-marker').hidden = false; actorPosition($('destination-marker'), destination);
     $('route-line').innerHTML = '<svg viewBox="0 0 1200 650"><polyline points="' + (Art?.isToy?.() ? Art.visualRoute(id,state.pending.venue,Art.mapPoint(route[0])) : route).map(p => p.x + ',' + p.y).join(' ') + '"/></svg>';
-    $('player').classList.add('walking');
+    Art?.walkStep?.(0,true); $('player').classList.add('walking');
     render();
     if (reduced.matches) finishTravel();
   }
   function perform() {
     if (!motion) return;
     position = { ...motion.destination }; setPosition();
-    motion.stage = 'perform'; motion.elapsed = 0;
+    motion.stage = 'perform'; motion.elapsed = 0; Art?.walkStep?.(0,false); $('player').innerHTML = Art ? Art.avatar('player') : '';
     $('player').classList.remove('walking'); $('world').classList.add('performing');
     $('route-line').innerHTML = ''; $('destination-marker').hidden = true;
     $('action-effect').innerHTML = effect(motion.id);
-    $('action-effect').style.left = position.x / 12 + '%'; $('action-effect').style.top = position.y / 6.5 + '%';
+    actorPosition($('action-effect'),Art?.isToy?.()?Art.visualRoute(motion.id,motion.venue).at(-1):position,true);
     if (motion.id === 'recruit') { $('new-teammate').hidden = false; actorPosition($('new-teammate'), { x: position.x + 72, y: position.y + 11 }); }
     render();
   }
   function clearMotion() {
-    motion = null; $('player').classList.remove('walking'); $('world').classList.remove('performing');
+    motion = null; Art?.walkStep?.(0,false); $('player').innerHTML = Art ? Art.avatar('player') : ''; $('player').classList.remove('walking'); $('world').classList.remove('performing');
     $('destination-marker').hidden = true; $('route-line').innerHTML = ''; $('action-effect').innerHTML = ''; $('new-teammate').hidden = true;
   }
   function finishTravel() {
@@ -740,10 +742,11 @@
     while (distance > 0 && motion && motion.stage === 'walk') {
       const next = motion.route[motion.index];
       if (!next) { perform(); break; }
+      const oldVisual = Art?.isToy?.() ? Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue) : position;
       const dx = next.x - position.x, dy = next.y - position.y, len = Math.hypot(dx, dy);
       if (len <= distance) { position = { ...next }; motion.index++; distance -= len; }
       else { position.x += dx / len * distance; position.y += dy / len * distance; distance = 0; }
-      if (Art?.isToy?.() && Art.facing(dx,dy)) $('player').innerHTML = Art.avatar('player');
+      if(Art?.isToy?.()){const v=Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue), turned=Art.facing(v.x-oldVisual.x,v.y-oldVisual.y), stepped=Art.walkStep(dt,true);if(turned||stepped)$('player').innerHTML=Art.avatar('player');}
       setPosition();
     }
   }

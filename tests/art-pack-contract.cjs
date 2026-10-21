@@ -7,6 +7,10 @@ for(const id of ['market','street','temple','plaza','river','prepare','tv','onli
 for(const [identity,column]of [['newcomer',0],['heir',1],['incumbent',2]]){const p=art.portrait({identity});assert.ok(p.includes('data-column="'+column+'"'));assert.ok(p.includes('cy="130"'));checks++;}
 const scene=art.scene();assert.ok(scene.includes('district.png'));art.setPack('unknown');assert.equal(art.getPack(),'original');assert.ok(art.scene().includes('<svg'));art.setPack('matte-toy-v1');assert.equal(art.scene(),scene);checks+=4;
 for(const name of ['district','candidates','market-square','street','river']){const b=fs.readFileSync(root+'/assets/matte-toy-v1/'+name+'.png');assert.equal(b.toString('hex',0,8),'89504e470d0a1a0a');if(name==='candidates')assert.equal(b[25],6);checks++;}
+for(const [frames,w,h]of [[art.supportFrames,1536,1024],[art.walkFrames,1024,1536]])for(const row of frames)for(const f of row){assert.ok(f.x>=0&&f.y>=0&&f.x+f.w<=w&&f.y+f.h<=h&&f.sole>0&&f.sole<=f.h);checks++;}
+for(const role of ['elder','elder2','middle','middle2','young','young2','rival','helper','host']){assert.ok(art.avatar(role).includes('data-support-role="'+role+'"'));checks++;}
+art.walkStep(.01,true);const frameA=art.avatar('player');art.walkStep(.2,true);assert.notEqual(art.avatar('player'),frameA);art.walkStep(0,false);assert.ok(!art.avatar('player').includes('walk.png'));checks+=2;
+for(const kind of ['tv','online','fundraise']){assert.ok(art.interior(kind).includes('scenes.png'));checks++;}for(const stage of ['count','elected','refunded','forfeited']){assert.ok(art.countNight(stage).includes('scenes.png'));checks++;}
 // Exercise real controller switching through the established DOM harness, preserving the whole game state.
 const testSource=fs.readFileSync(__dirname+'/v13-interface.cjs','utf8');const prefix=testSource.slice(0,testSource.indexOf('\nconst ui=fs.readFileSync'));
 const scope={require,__dirname,console,module:{exports:{}}};vm.runInNewContext(prefix+'\nmodule.exports={harness,G};',scope);const {harness,G}=scope.module.exports;

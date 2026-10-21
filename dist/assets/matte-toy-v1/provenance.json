@@ -15,5 +15,22 @@
     "street.png",
     "river.png"
   ],
-  "coverage": "Candidate three-direction stills and three visit backgrounds. Supporting cast, action poses and media/night scenes pending."
+  "coverage": "Candidate three-direction stills and three visit backgrounds. Supporting cast, action poses and media/night scenes pending.",
+  "added_assets": {
+    "support": {
+      "generator": "OpenAI built-in imagegen",
+      "prompt": "support.prompt.txt",
+      "transparent": true
+    },
+    "walk": {
+      "generator": "OpenAI built-in imagegen",
+      "prompt": "walk.prompt.txt",
+      "transparent": true
+    },
+    "scenes": {
+      "generator": "OpenAI built-in imagegen",
+      "prompt": "scenes.prompt.txt",
+      "transparent": false
+    }
+  }
 }
