@@ -790,3 +790,16 @@ body.v13[data-act="3"] .world .scene{filter:sepia(.2) saturate(1.1) hue-rotate(-
  .v13 .hotspot.selected .hotspot-label small{display:block;font-size:9px}
  .v13 footer p{white-space:normal}
 }
+
+/* v13.5: difficulty on identity cards, chief progress on the map, and choosing whom to ask for money. */
+.v13 .difficulty{display:inline-block;margin-left:4px;padding:1px 6px;border-radius:6px;font-size:11px;font-weight:700;vertical-align:middle;color:#fff}
+.v13 .difficulty.d-heir{background:#4f8a5b}.v13 .difficulty.d-incumbent{background:#c9a847}.v13 .difficulty.d-newcomer{background:#b0563d}
+.v13 .hotspot .badge.chief{top:auto;bottom:-9px;right:-6px;background:#8a7a5a}.v13 .hotspot .badge.chief.won{background:#2f7a4a}
+.v13 .chief-line{border-left:3px solid #8a7a5a;padding-left:8px}.v13 .chief-line.won{border-color:#2f7a4a}
+.v13 .donor-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:6px;margin:6px 0 8px;align-items:stretch}
+.v13 .donor-cards .pick-label{grid-column:1/-1}
+.v13 .donor-card{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:7px 9px;text-align:left;line-height:1.35;font-size:13px;background:#fffdf7}
+.v13 .donor-card small{font-size:11.5px;color:var(--muted);white-space:normal}
+.v13 .donor-card[aria-pressed="true"]{border-color:var(--green);box-shadow:inset 0 0 0 2px var(--green)}
+.v13 .donor-card[disabled]{opacity:.5}
+.v13 .offer-card h3 small{font-size:12px;font-weight:400;color:var(--muted)}

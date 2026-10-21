@@ -3,14 +3,14 @@
     "dist/campaign-engine.js": "003b098d8424a6043e01e3b058f24b83504fcf67e05bba45e5d3a0291b3d10b9",
     "dist/campaign-ui.js": "dea5cafe880c524d49f18f97eefc184c4a5985425a0088687d8d1cc5b7f13d7f",
     "dist/campaign.css": "192192709b6a21b349c99a7167ccc5c6513bc81142480a265266899bef3b85e0",
-    "dist/day-art.js": "0dbb9d832ae32462f075351d9735fd97805d186131c19566c1d8a4a95e9fecb7",
-    "dist/day-engine.js": "755995b87221c8bf75ca84eee2b69bf09859f7dd789034034d37e31f46bbee7b",
+    "dist/day-art.js": "8a6f0f0110f3f013189056997831b42e37bccece2c1403fe4f22fac2d87afceb",
+    "dist/day-engine.js": "ff86a02de0e8cf00dfd5b12b6dc04ae707fa7355b81b13e89fba707df9cdb594",
     "dist/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
-    "dist/day-ui.js": "74ae9cc18da9bdb2ca099aae878b821b8c417c9db6f21cc6689d054f22f0c538",
-    "dist/day.css": "f238946b78b0046ee902b630388fd2c8f6ecbcf3457ccc222b93a16445df9928",
+    "dist/day-ui.js": "240ff0483f7de429aeb7ba1dab5760da75f3b7b973d35c6c6067951f246004e9",
+    "dist/day.css": "e22217c65a0c2313b53734e002573bc6335f526794f93ccb5ab6741259e27414",
     "dist/engine.js": "a36e44f51e476fcd2452b638fd7aaccbd503f0c471d050d5bb9832ec7c78af31",
     "dist/game.js": "ab2b8f918704348fcc5b172753c6d59a18148296b8feeba4eedd8191c157ce37",
-    "dist/index.html": "08cadda371fe143ddda2254f13c361ab039c582af0e46e194ee1b2f0ee2d75b5",
+    "dist/index.html": "47849136f3fbcf8912cd1573f87ddf4ae242300012cfb18b4a74bf7e09ea8f59",
     "dist/legacy-v10/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/legacy-v10/day-engine.js": "6001069f1544b04d873d10f4acce57bfef46994d45c36b283bbe6ad6ba41cde5",
     "dist/legacy-v10/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
@@ -176,6 +176,19 @@
     {
       "version": "13.4.0",
       "base_runtime_source": "this repository, v12.1.0",
+      "updated_runtime_source": "this repository",
+      "modified_runtime_files": [
+        "dist/day-art.js",
+        "dist/day-engine.js",
+        "dist/day-ui.js",
+        "dist/day.css",
+        "dist/index.html"
+      ],
+      "other_runtime_files": "Legacy runtimes and day-team-art remain unchanged."
+    },
+    {
+      "version": "13.5.0",
+      "base_runtime_source": "this repository, v13.4.0",
       "updated_runtime_source": "this repository",
       "modified_runtime_files": [
         "dist/day-art.js",

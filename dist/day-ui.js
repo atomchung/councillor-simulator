@@ -21,9 +21,9 @@
   const reduced = window.matchMedia ? window.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
   const fallback = { start: { x: 586, y: 331 }, prepare: { x: 534, y: 234 }, canvass: { x: 309, y: 355 }, tv: { x: 783, y: 374 }, fundraise: { x: 553, y: 432 }, recruit: { x: 713, y: 243 } };
   const anchors = Art?.anchors || fallback;
-  const places = { prepare: '社區工作室', tv: '地方電視台', press: '記者會', fundraise: '募款小廣場', recruit: '夥伴工作室', debate: '文山行政中心禮堂' };
+  const places = { prepare: '社區工作室', tv: '地方電視台', press: '記者會', fundraise: '募款小廣場', recruit: '夥伴工作室', debate: '文山行政中心禮堂', online: '直播間' };
   // Where each destination's button sits on the 1200 × 650 map.
-  const HOTSPOTS = { market: { x: 300, y: 402 }, temple: { x: 140, y: 322 }, street: { x: 668, y: 432 }, plaza: { x: 812, y: 268 }, river: { x: 400, y: 560 }, tv: { x: 900, y: 352 }, prepare: { x: 470, y: 182 }, fundraise: { x: 640, y: 512 }, recruit: { x: 700, y: 160 }, debate: { x: 935, y: 150 } };
+  const HOTSPOTS = { market: { x: 300, y: 402 }, temple: { x: 140, y: 322 }, street: { x: 668, y: 432 }, plaza: { x: 812, y: 268 }, river: { x: 400, y: 560 }, tv: { x: 900, y: 352 }, prepare: { x: 470, y: 182 }, fundraise: { x: 640, y: 512 }, recruit: { x: 700, y: 160 }, debate: { x: 935, y: 150 }, online: { x: 1080, y: 470 } };
   const icons = {
     prepare: '<path d="M4 4h6l2 2 2-2h6v15h-6l-2 2-2-2H4zM12 6v15M6 8h3M15 8h3M6 11h3M15 11h3"/>',
     canvass: '<path d="M3 7h18l-2-4H5zM4 7v13h16V7M8 20v-7h8v7M3 8c0 3 4 3 4 0 0 3 5 3 5 0 0 3 5 3 5 0 0 3 4 3 4 0"/>',
@@ -32,13 +32,15 @@
     press: '<path d="M4 6h12v13H4zM16 9h4v10h-4M7 9h6M7 12h6M7 15h4"/>',
     fundraise: '<path d="M4 10h16v11H4zM3 10l4-5h10l4 5M9 14h6M12 3v5"/>',
     recruit: '<circle cx="9" cy="7" r="3"/><path d="M3 21v-5c0-5 12-5 12 0v5M18 7v8M14 11h8"/>',
-    debate: '<path d="M4 20h16M6 20V11h4v9M14 20V11h4v9M3 8l9-5 9 5z"/>'
+    debate: '<path d="M4 20h16M6 20V11h4v9M14 20V11h4v9M3 8l9-5 9 5z"/>',
+    online: '<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M10 9l5 3-5 3zM11 18h2"/>'
   };
   let state, selectedTopic = null, selectedVenue = null, selectedAction = null, gifts = false, billboard = false, modal = null, lastFocus = null;
   // Per-round choices in the dock: the issue to research (null = the suggestion, '' = none), deeper research, the stall, the background
   // check, the final push, the TV brief and a public reply to 周沐 on TV.
-  let researchPick = null, deepOn = false, booth = false, investigateOn = false, gotvOn = false, brief = null, respondOn = false;
-  function resetToggles() { gifts = false; billboard = false; researchPick = null; deepOn = false; booth = false; investigateOn = false; gotvOn = false; brief = null; respondOn = false; }
+  // donor: null is a small public drive, otherwise the broker visited for money.
+  let researchPick = null, deepOn = false, booth = false, investigateOn = false, gotvOn = false, brief = null, respondOn = false, donor = null;
+  function resetToggles() { gifts = false; billboard = false; researchPick = null; deepOn = false; booth = false; investigateOn = false; gotvOn = false; brief = null; respondOn = false; donor = null; }
   let teamElapsed = 0, counting = null, dressed = '';
   // The count night runs on the round clock: a short wait, the count, then the result on stage; skipping only jumps to the end.
   const COUNT = { wait: .4, reveal: 3, end: 5 }, VERDICT = { elected: '凍蒜！當選', refunded: '落選・退保證金', forfeited: '落選' };
@@ -60,7 +62,7 @@
       state = G.upgrade(parsed); selectedTopic = G.TOPICS[parsed._ui?.topic] ? parsed._ui.topic : null;
       selectedVenue = G.VENUES?.[parsed._ui?.venue] ? parsed._ui.venue : null;
       selectedAction = G.ACTIONS.some(a => a.id === parsed._ui?.action) ? parsed._ui.action : null;
-      gifts = !!parsed._ui?.gifts; billboard = !!parsed._ui?.billboard; researchPick = typeof parsed._ui?.research === 'string' ? parsed._ui.research : null; deepOn = !!parsed._ui?.deep; booth = !!parsed._ui?.booth; investigateOn = !!parsed._ui?.investigate; gotvOn = !!parsed._ui?.gotv; brief = G.TOPICS[parsed._ui?.brief] ? parsed._ui.brief : null; respondOn = !!parsed._ui?.respond;
+      gifts = !!parsed._ui?.gifts; billboard = !!parsed._ui?.billboard; researchPick = typeof parsed._ui?.research === 'string' ? parsed._ui.research : null; deepOn = !!parsed._ui?.deep; booth = !!parsed._ui?.booth; investigateOn = !!parsed._ui?.investigate; gotvOn = !!parsed._ui?.gotv; brief = G.TOPICS[parsed._ui?.brief] ? parsed._ui.brief : null; respondOn = !!parsed._ui?.respond; donor = G.BROKERS?.[parsed._ui?.donor] ? parsed._ui.donor : null;
       if (Number.isFinite(parsed._ui?.x) && Number.isFinite(parsed._ui?.y)) position = { x: Math.max(0, Math.min(1200, parsed._ui.x)), y: Math.max(0, Math.min(650, parsed._ui.y)) };
       recoveredTravel = state.phase === 'travel';
       if (state.phase === 'result') counting = parsed._ui?.counting?.status === 'inprogress' ? { status: 'inprogress', elapsed: Math.max(0, Math.min(COUNT.end, Number(parsed._ui.counting.elapsed) || 0)) } : { status: 'seen', elapsed: COUNT.end };
@@ -77,15 +79,16 @@
   const venueId = value => venues[value] ? value : 'market';
   const plannedVenue = () => venueId(selectedVenue || G.suggestVenue(state));
   const onSite = id => ['canvass', 'rally'].includes(id);
-  const destinationFor = (id, venue) => onSite(id) ? venues[venueId(venue)].anchor : id === 'debate' ? { x: 935, y: 175 } : id === 'press' ? (anchors.tv || anchors.start) : (anchors[id] || anchors.start);
+  const destinationFor = (id, venue) => onSite(id) ? venues[venueId(venue)].anchor : id === 'debate' ? { x: 935, y: 175 } : id === 'press' ? (anchors.tv || anchors.start) : id === 'online' ? (anchors.prepare || anchors.start) : (anchors[id] || anchors.start);
   const placeName = (id, venue) => onSite(id) ? venues[venueId(venue)].title : (places[id] || '競選辦公室');
-  const isPublic = id => ['canvass', 'tv', 'debate'].includes(id);
-  const asking = id => ['canvass', 'tv', 'debate', 'press'].includes(id);
+  const isPublic = id => ['canvass', 'tv', 'debate', 'online'].includes(id);
+  const asking = id => ['canvass', 'tv', 'debate', 'press', 'online'].includes(id);
   // Reuse the miniature's existing pedestrian junctions, with only the final branch varying.
   function routeFor(id, venue) {
     const destination = destinationFor(id, venue), routes = Art?.route;
     if (id === 'debate') { const route = routes ? Art.route('recruit') : [{ ...anchors.start }]; return [...route.slice(0, -1), { ...destination }]; }
     if (id === 'press') return routes ? Art.route('tv') : [{ ...anchors.start }, { ...destination }];
+    if (id === 'online') return routes ? Art.route('prepare') : [{ ...anchors.start }, { ...destination }];
     if (!onSite(id)) return routes ? Art.route(id) : [{ ...anchors.start }, { ...destination }];
     const branch = ({ market: 'canvass', street: 'tv', plaza: 'recruit', river: 'fundraise', temple: 'temple' })[venueId(venue)] || 'canvass';
     const route = routes ? Art.route(branch) : [{ ...anchors.start }];
@@ -123,7 +126,7 @@
     return '<section class="event-record"><h3>' + esc(e.title) + '</h3><p>' + esc(e.summary) + '</p><div class="event-evidence"><b>' + esc(e.evidenceText) + '</b><span>已核對 ' + Number(e.investigations || 0) + '／' + Number(e.maxInvestigations || 2) + ' 次</span></div>' + (e.history?.length ? e.history.map(x => eventRecord(x, x.quote ? '你說過' : '第 ' + Number(x.stage || x.evidenceLevel || 0) + ' 次核對')).join('') : '') + eventRecord(e.update, '核對結果') + '<p class="microcopy">核對：到社區工作室「準備政見」選這份資料（每次 ' + num(e.investigationCost) + ' 元，最多 2 次）。爆料：到電視台開記者會。</p></section>';
   }
   function save() {
-    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, counting: counting ? { ...counting } : null };
+    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, counting: counting ? { ...counting } : null };
     try { window.localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (_) { saveError = '瀏覽器無法儲存進度；重新整理可能會失去進度。'; }
     showNotice();
@@ -185,7 +188,7 @@
   const pickMark = on => '<span class="pick-mark" aria-hidden="true">' + (on ? '✓' : '') + '</span>';
   function identityCards() {
     const value = state.settings?.background;
-    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + Object.values(G.BACKGROUNDS).map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + '</b><span class="identity-good">' + b.strengths.map(x => '＋ ' + esc(x)).join('<br>') + '</span><span class="identity-bad">' + b.weaknesses.map(x => '－ ' + esc(x)).join('<br>') + '</span></button>').join('') + '</div></fieldset>';
+    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + Object.values(G.BACKGROUNDS).map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good">' + b.strengths.map(x => '＋ ' + esc(x)).join('<br>') + '</span><span class="identity-bad">' + b.weaknesses.map(x => '－ ' + esc(x)).join('<br>') + '</span></button>').join('') + '</div></fieldset>';
   }
   function partyFacts(p) {
     if (p.id === 'independent') return ['沒有黨部補助', '沒有黨的立場要顧', '沒有政黨傾向的選民好感 ×' + G.TUNING.party.receptive.swing];
@@ -210,12 +213,12 @@
   /* ---------- planning ---------- */
   const helpers = () => (state.player.team?.members || []).filter(m => m.hiredDay < state.day).length;
   // The issues this destination may ask about: a place's pool, TV's three, the debate's announced question.
-  function askPool() { if (onSite(selectedAction)) return selectedAction === 'rally' ? [] : (G.venueView(state).find(v => v.id === plannedVenue())?.pool || []); if (selectedAction === 'tv') return G.tvPool(state); if (selectedAction === 'debate') return state.debate ? [state.debate.topic] : []; return []; }
+  function askPool() { if (selectedAction === 'online') return G.onlinePool(state); if (onSite(selectedAction)) return selectedAction === 'rally' ? [] : (G.venueView(state).find(v => v.id === plannedVenue())?.pool || []); if (selectedAction === 'tv') return G.tvPool(state); if (selectedAction === 'debate') return state.debate ? [state.debate.topic] : []; return []; }
   // By default an assistant researches the likeliest issue you have not looked into; you can pick another one or none.
   // The issues the research row offers: the ones that may come up here first, then the hottest others, four in all.
-  function researchChoices() { const pool = askPool(); return { pool, others: (G.landscapeView(state).ranking || []).map(r => r.topic).filter(t => G.POLICY_TOPICS.includes(t) && !pool.includes(t)).slice(0, Math.max(0, 4 - pool.length)) }; }
-  function researchTopic() { if (researchPick === '') return null; if (researchPick && G.TOPICS[researchPick]) return researchPick; if (!helpers()) return null; if (selectedAction === 'debate' && state.debate && state.player.insight?.[state.debate.topic]?.level !== 'precise') return state.debate.topic; const { pool, others } = researchChoices(); return [...pool, ...others].find(t => G.POLICY_TOPICS.includes(t) && !state.player.known.includes(t)) || null; }
-  const planConfig = () => ({ venue: plannedVenue(), ...(selectedAction === 'prepare' && selectedTopic ? { topic: selectedTopic } : {}), gifts: gifts && onSite(selectedAction), billboard: billboard && onSite(selectedAction), research: researchTopic(), deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief: selectedAction === 'tv' ? brief : null, respond: selectedAction === 'tv' && respondOn });
+  function researchChoices() { const pool = askPool(); return { pool, others: (G.landscapeView(state).ranking || []).map(r => r.topic).filter(t => G.topicsOf(state).includes(t) && !pool.includes(t)).slice(0, Math.max(0, 4 - pool.length)) }; }
+  function researchTopic() { if (researchPick === '') return null; if (researchPick && G.TOPICS[researchPick]) return researchPick; if (!helpers()) return null; if (selectedAction === 'debate' && state.debate && state.player.insight?.[state.debate.topic]?.level !== 'precise') return state.debate.topic; const { pool, others } = researchChoices(); return [...pool, ...others].find(t => G.topicsOf(state).includes(t) && !state.player.known.includes(t)) || null; }
+  const planConfig = () => ({ donor: selectedAction === 'fundraise' ? donor : null, venue: plannedVenue(), ...(selectedAction === 'prepare' && selectedTopic ? { topic: selectedTopic } : {}), gifts: gifts && onSite(selectedAction), billboard: billboard && onSite(selectedAction), research: researchTopic(), deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief: selectedAction === 'tv' ? brief : null, respond: selectedAction === 'tv' && respondOn });
   // The candidates around the last seat: the 25 others at last election's totals, you and 周沐 at today's estimates.
   function ladderMarkup() {
     const rows = G.ladderView(state).filter(r => (r.rank >= 11 && r.rank <= 14) || r.id <= 1);
@@ -248,7 +251,7 @@
   function offerCard(o) {
     const line = o.partyLine ? '<p class="tag ' + (o.partyLine.keeps ? 'party' : 'breach') + '">' + (o.partyLine.keeps ? '符合' : '違反') + esc(G.PARTIES[state.settings.affiliation].title) + '的立場</p>' : '';
     const known = o.faces.some(f => f !== 'unknown'), reaction = known ? '<span class="offer-faces">公開後聽到的人：' + estimateRow(o.faces, o.estimate) + '</span>' : '<span class="offer-faces">還沒研究「' + esc(short(o.topic)) + '」，不知道三群怎麼看；接受後會知道。</span>';
-    return '<article class="offer-card" id="offer-card"><div class="card-head"><b>合作邀約</b><span>只在這回合決定</span></div><h3>' + esc(o.org) + '</h3><p class="offer-ask">' + esc(o.pitch) + '</p><dl class="offer-deal"><div><dt>不占回合</dt><dd>在這裡接受或婉拒，這回合照樣出發。</dd></div><div><dt>綁住什麼</dt><dd>接受就是現在公開支持「' + esc(o.planText) + '」。之後改說另一個做法，組織票會撤走，也算改口。</dd></div><div><dt>拿到什麼</dt><dd>組織票約 ' + num(o.bloc) + ' 票、捐款 ' + wan(o.money) + '。' + reaction + '</dd></div></dl>' + line + (o.flip ? '<p class="tag flip">你說過「' + esc(o.flip) + '」，接受等於改口。</p>' : '') + '<p class="microcopy">婉拒的話，周沐可能接下。</p><div class="offer-actions"><button data-action="offer" data-choice="accept">接受</button><button data-action="offer" data-choice="decline">婉拒</button></div></article>';
+    return '<article class="offer-card" id="offer-card"><div class="card-head"><b>合作邀約</b><span>只在這回合決定</span></div><h3>' + esc(o.name || o.org) + ' <small>' + esc(o.org) + '</small></h3><p class="offer-ask">' + esc(o.pitch) + '</p><dl class="offer-deal"><div><dt>不占回合</dt><dd>在這裡接受或婉拒，這回合照樣出發。</dd></div><div><dt>綁住什麼</dt><dd>接受就是現在公開支持「' + esc(o.planText) + '」。之後改說另一個做法，組織票會撤走，也算改口。</dd></div><div><dt>拿到什麼</dt><dd>' + esc([o.bloc ? '組織票約 ' + num(o.bloc) + ' 票' : '', o.money ? '捐款 ' + wan(o.money) : '', o.perk === 'tv' ? '一次免費上節目' : ''].filter(Boolean).join('、')) + '。' + reaction + '</dd></div></dl>' + line + (o.flip ? '<p class="tag flip">你說過「' + esc(o.flip) + '」，接受等於改口。</p>' : '') + '<p class="microcopy">婉拒的話，周沐可能接下。</p><div class="offer-actions"><button data-action="offer" data-choice="accept">接受</button><button data-action="offer" data-choice="decline">婉拒</button></div></article>';
   }
   // Everything here is visible information the player can act on this round; nothing reads hidden voter state.
   function crisisCard(c) {
@@ -258,7 +261,7 @@
   // Everything here is visible information the player can act on this round; nothing reads hidden voter state.
   function situationMarkup() {
     const f = G.forecast(state), lv = G.landscapeView(state), rumor = G.rumorView(state), due = G.pendingChallenges(state), rows = [], soon = G.upcomingOffer(state), tip = G.eventView(state).tip, act = G.actOf(state.day);
-    if (act.from === state.day) rows.push(['新階段', act.title + '：' + ['', '摸清三群、找第一桶金。', '議題升溫、黑料攻防，第 5–6 回合還有合作邀約。', '第 8 回合政見會，第 9–10 回合可以選前催票。'][act.id], '']);
+    if (act.from === state.day) rows.push(['新階段', act.title + '：' + ['', '摸清三群、找第一桶金。', '議題升溫；第 5 回合起可能爆出黑料，第 5–6 回合還有頭人來談。', '第 8 回合政見會，第 9–10 回合可以選前催票。'][act.id], '']);
     // Crisis handling, clarifying leaflets and the clean pledge take effect at once, so their result shows before setting out.
     const crisis = state.crisis?.resolvedDay === state.day ? state.crisis : null;
     if (crisis?.effect) rows.push(['危機', ({ pay: '花錢公關消毒', apologize: '公開道歉切割', fight: crisis.won ? '硬槓反控成功' : '硬槓反控炎上' })[crisis.choice] + ' → 你 ' + signedVotes(crisis.effect.votes) + ' 票' + (Math.abs(crisis.effect.rival || 0) >= 1 ? '；周沐 ' + signedVotes(crisis.effect.rival) + ' 票' : ''), crisis.effect.votes < 0 ? 'warn' : '']);
@@ -288,8 +291,10 @@
   // Destinations as buttons on the map, and as a list under it.
   function destinations() {
     const list = [];
-    for (const v of G.venueView(state)) list.push({ kind: 'canvass', venue: v.id, title: v.title, sub: v.mainTitle + '多・' + (v.challenged ? '問周沐的批評' : '常問' + short(v.pool[0])), group: v.main, boards: v.billboards });
-    list.push({ kind: 'tv', title: '電視台', sub: '三群都看・三選一' });
+    const chiefs = Object.fromEntries((G.chiefView?.(state) || []).map(c => [c.venue, c]));
+    for (const v of G.venueView(state)) list.push({ kind: 'canvass', venue: v.id, title: v.title, sub: v.mainTitle + '多・' + (v.challenged ? '問周沐的批評' : '常問' + short(v.pool[0])), group: v.main, boards: v.billboards, chief: chiefs[v.id] || null });
+    list.push({ kind: 'tv', title: '電視台', sub: '長輩、中年多・三選一' });
+    list.push({ kind: 'online', title: '直播間', sub: '青年多・用助手、不花錢' });
     list.push({ kind: 'prepare', title: '社區工作室', sub: '準備政見' });
     list.push({ kind: 'fundraise', title: '募款', sub: '補競選款' });
     list.push({ kind: 'recruit', title: '招募', sub: '多一位助手' });
@@ -302,7 +307,7 @@
     const rumor = G.rumorView(state), due = G.pendingChallenges(state), rumorSpot = rumor ? (rumor.action === 'canvass' ? rumor.venue : rumor.action === 'tv' ? 'tv' : rumor.action === 'debate' ? 'debate' : null) : null;
     return destinations().map(d => {
       const key = d.venue || d.kind, p = HOTSPOTS[key] || anchors.start, selected = isSelected(d), canAnswer = d.kind === 'tv' ? due.length > 0 : d.kind === 'canvass' && due.some(c => c.venues.includes(d.venue));
-      return '<button class="hotspot' + (d.kind === 'canvass' ? ' venue g-' + GROUP_KEYS[d.group] : ' building') + (selected ? ' selected' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="select-action" data-kind="' + d.kind + '"' + (d.venue ? ' data-venue="' + d.venue + '"' : '') + ' aria-pressed="' + selected + '"' + (d.disabled ? ' disabled aria-disabled="true"' : '') + ' aria-label="' + esc(d.title + '：' + d.sub) + '"><span class="pin">' + icon(d.kind) + '</span><span class="hotspot-label"><b>' + esc(d.title) + '</b><small>' + esc(d.sub) + '</small></span>' + (canAnswer ? '<span class="badge warn">回應</span>' : '') + (rumorSpot === key ? '<span class="badge rival">周沐?</span>' : '') + (d.boards ? '<span class="badge board">看板 ' + d.boards + '</span>' : '') + '</button>';
+      return '<button class="hotspot' + (d.kind === 'canvass' ? ' venue g-' + GROUP_KEYS[d.group] : ' building') + (selected ? ' selected' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="select-action" data-kind="' + d.kind + '"' + (d.venue ? ' data-venue="' + d.venue + '"' : '') + ' aria-pressed="' + selected + '"' + (d.disabled ? ' disabled aria-disabled="true"' : '') + ' aria-label="' + esc(d.title + '：' + d.sub) + '"><span class="pin">' + icon(d.kind) + '</span><span class="hotspot-label"><b>' + esc(d.title) + '</b><small>' + esc(d.sub) + '</small></span>' + (canAnswer ? '<span class="badge warn">回應</span>' : '') + (rumorSpot === key ? '<span class="badge rival">周沐?</span>' : '') + (d.boards ? '<span class="badge board">看板 ' + d.boards + '</span>' : '') + (d.chief ? '<span class="badge chief' + (d.chief.broken ? ' won' : '') + '" title="' + esc(d.chief.name + (d.chief.broken ? '挺你' : '：去了 ' + d.chief.visits + '／' + d.chief.need + ' 次')) + '">' + (d.chief.broken ? '里長挺你' : '里長 ' + d.chief.visits + '/' + d.chief.need) + '</span>' : '') + '</button>';
     }).join('');
   }
   function dockAlerts() {
@@ -311,6 +316,20 @@
     if (offer) items.push('<a href="#offer-card">' + esc(offer.org) + '來談合作，這回合要決定 →</a>');
     for (const c of due) items.push('<span>周沐' + (c.kind === 'guarantee' ? '說你的保證做不到' : '批評你') + '：去' + esc(c.venues.map(v => venues[v]?.title).join('、')) + '或上電視回應，或發澄清文宣</span>');
     return items.length ? '<p class="dock-alerts">' + items.join('') + '</p>' : '';
+  }
+  // Where a chief holds the place: still a stranger, about to come round, or already on your side.
+  function chiefLine(c) {
+    if (!c) return '';
+    return '<p class="dock-info chief-line' + (c.broken ? ' won' : '') + '">' + (c.broken ? esc(c.name) + '挺你：這裡的人比較願意聽，也不會因為你常來而膩。' : c.breaks ? '這次去，' + esc(c.name) + '就會點頭幫你，帶來約 ' + num(G.TUNING.chief.bloc) + ' 票組織票。' : esc(c.name) + '還不熟你（去過 ' + c.visits + '／' + c.need + ' 次）：這裡的人先保留，效果打折。') + '</p>';
+  }
+  // Raising money: a small drive with no strings, or a visit to a broker who pays for a public stance.
+  function donorCards() {
+    const list = G.donorView(state), card = (id, on, title, lines, extra, disabled) => '<button class="donor-card' + (on ? ' on' : '') + '" data-action="donor" data-id="' + esc(id) + '" aria-pressed="' + on + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + title + '</b>' + lines.map(l => '<small>' + l + '</small>').join('') + (extra || '') + '</button>';
+    const small = card('', !donor, '小額募款', ['不綁任何立場', '約 8–16 萬']);
+    return '<div class="donor-cards" role="group" aria-label="找誰募款"><span class="pick-label">找誰</span>' + small + list.map(d => {
+      const known = d.faces.some(f => f !== 'unknown'), taken = d.status !== 'open', gives = [d.money ? '捐款 ' + wan(d.money) : '', d.bloc ? '組織票約 ' + num(d.bloc) : '', d.perk === 'tv' ? '一次免費上節目' : ''].filter(Boolean).join('・');
+      return card(d.id, donor === d.id, esc(d.name), ['要你公開支持「' + esc(d.planText) + '」', esc(gives)].concat(taken ? [d.status === 'his' ? '已被周沐拉走' : '已經談過'] : []), (known ? estimateRow(d.faces, d.estimate) : '<small class="tag">還沒研究「' + esc(short(d.topic)) + '」，不知道三群怎麼看</small>') + (d.flip ? '<small class="tag flip">你說過「' + esc(d.flip) + '」，答應等於改口</small>' : '') + (d.partyLine ? '<small class="tag ' + (d.partyLine.keeps ? 'party' : 'breach') + '">' + (d.partyLine.keeps ? '符合' : '違反') + '黨的立場</small>' : ''), taken);
+    }).join('') + '</div>';
   }
   function modeButtons(options) { return '<div class="mode-picks" role="group" aria-label="怎麼做">' + options.map(([id, label, note, disabled]) => '<button data-action="mode" data-kind="' + id + '" aria-pressed="' + (selectedAction === id) + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + esc(label) + '</b><small>' + esc(note) + '</small></button>').join('') + '</div>'; }
   function toggle(name, on, label, note, disabled) { return '<button data-action="toggle" data-name="' + name + '" aria-pressed="' + !!on + '"' + (disabled ? ' disabled aria-disabled="true"' : '') + '><b>' + esc(label) + '</b><small>' + esc(note) + '</small></button>'; }
@@ -355,13 +374,14 @@
     const id = selectedAction, venue = onSite(id) ? G.venueView(state).find(v => v.id === p.venue) : null, place = placeName(id, p.venue);
     let body = '';
     if (onSite(id)) {
-      const stances = G.POLICY_TOPICS.filter(t => stanceOf(t)).length;
-      body = modeButtons([['canvass', '街頭拜訪', '免費・回答一題'], ['rally', '辦造勢活動', wan(G.COSTS.rally) + (stances < 2 ? '・先表態 2 題才能辦' : '・講你全部的立場'), stances < 2]]) + crowdLine(p.crowd) + '<p class="dock-info">' + (id === 'canvass' ? (venue.challenged ? '這裡的人都在問周沐對你的批評。' : esc(venue.mainTitle) + '多，會從下面三題挑一題問你。') : '你公開過 ' + stances + ' 個立場；合這裡人群的加分，不合的扣分。') + '</p>' + addonButtons(p);
+      const stances = G.topicsOf(state).filter(t => stanceOf(t)).length;
+      body = modeButtons([['canvass', '街頭拜訪', '免費・回答一題'], ['rally', '辦造勢活動', wan(G.COSTS.rally) + (stances < 2 ? '・先表態 2 題才能辦' : '・講你全部的立場'), stances < 2]]) + crowdLine(p.crowd) + '<p class="dock-info">' + (id === 'canvass' ? (venue.challenged ? '這裡的人都在問周沐對你的批評。' : esc(venue.mainTitle) + '多，會從下面三題挑一題問你。') : '你公開過 ' + stances + ' 個立場；合這裡人群的加分，不合的扣分。') + '</p>' + chiefLine(p.chief) + addonButtons(p);
     } else if (['tv', 'press'].includes(id)) {
       const tip = G.eventView(state).tip, tipReady = tip?.available;
-      body = modeButtons([['tv', '上節目', wan(G.COSTS.tv) + '・三群都看'], ['press', '開記者會爆料', tipReady ? '免費・公開周沐經費資料' : '第 3 回合起', !tipReady]]) + (id === 'tv' ? crowdLine(p.crowd, '電視觀眾 10 人') + '<p class="dock-info">' + (p.respond ? '你主動回應周沐，節目談「' + esc(G.TOPICS[p.topic].title) + '」。' : p.brief ? '你買了專訪時段，節目談「' + esc(G.TOPICS[p.brief].title) + '」，開錄前先打聽好。' : '主持人從下面三題抽一題；抽到沒研究的題會卡詞。') + '</p>' + addonButtons(p) + tvCards(p) : '<p class="dock-info">手上的資料：' + esc(tip.evidenceText) + ' 還沒查證就指控，可能當場被記者識破。</p>');
+      body = modeButtons([['tv', '上節目', (state.player.tvCredit ? '免費（老K 的節目）' : wan(G.COSTS.tv)) + '・長輩、中年多'], ['press', '開記者會爆料', tipReady ? '免費・公開周沐經費資料' : '第 3 回合起', !tipReady]]) + (id === 'tv' ? crowdLine(p.crowd, '電視觀眾 10 人') + '<p class="dock-info">' + (p.respond ? '你主動回應周沐，節目談「' + esc(G.TOPICS[p.topic].title) + '」。' : p.brief ? '你買了專訪時段，節目談「' + esc(G.TOPICS[p.brief].title) + '」，開錄前先打聽好。' : '主持人從下面三題抽一題；抽到沒研究的題會卡詞。') + '</p>' + addonButtons(p) + tvCards(p) : '<p class="dock-info">手上的資料：' + esc(tip.evidenceText) + ' 還沒查證就指控，可能當場被記者識破。</p>');
     } else if (id === 'prepare') body = topicPicks(p.topic) + '<p class="dock-info">親自查清楚「' + esc(G.TOPICS[p.topic]?.title || '') + '」：看到三群的比例，之後談這題說服力更強；也順便看清另一個熱門議題。</p><p class="dock-info quiet-note">這回合你不拉票，周沐照樣拉票；助手各自去拉票。</p>' + addonButtons(p);
-    else if (id === 'fundraise') body = '<p class="dock-info">預計募得 ' + wan(p.expectedIncome.min) + '–' + wan(p.expectedIncome.max) + '。</p><p class="dock-info quiet-note">募款不影響票數，但這回合你不拉票，周沐照樣拉票。</p>' + addonButtons(p);
+    else if (id === 'fundraise') body = donorCards() + '<p class="dock-info">預計募得 ' + wan(p.expectedIncome.min) + '–' + wan(p.expectedIncome.max) + '。</p><p class="dock-info quiet-note">' + (p.deal ? '拜訪頭人：他的組織票和你公開的立場會影響票數；這回合你不拉票，周沐照樣拉票。' : '小額募款不影響票數，但這回合你不拉票，周沐照樣拉票。') + '</p>' + addonButtons(p);
+    else if (id === 'online') body = crowdLine(p.crowd, '網友 10 人') + '<p class="dock-info">' + num(p.teamAssignments.filter(m => m.task === 'stream').length) + ' 位助手開直播。網友會從青年最在意的三題挑一題留言問你；觸及約 ' + num(p.expectedReach.min) + '–' + num(p.expectedReach.max) + ' 人，可能爆紅，也可能沒人看。</p>' + addonButtons(p);
     else if (id === 'recruit') body = '<p class="dock-info">' + esc(p.title) + '，預付 ' + wan(p.baseCost) + '。新助手下回合起跟你拉票。</p><p class="dock-info quiet-note">招募不影響票數，但這回合你不拉票，周沐照樣拉票。</p>' + addonButtons(p);
     else if (id === 'debate') body = crowdLine(p.crowd, '台下觀眾 10 人') + '<p class="dock-info">題目「' + esc(G.TOPICS[p.topic].title) + '」，周沐也上台。' + (state.player.insight?.[p.topic]?.level === 'precise' ? '你深入查過，台上能壓制他。' : '深入查過這題的話，台上能額外壓制他。') + '</p>' + addonButtons(p);
     return dockAlerts() + '<div class="dock-plan"><div class="dock-title">' + icon(id) + '<h2>' + esc(place) + '<small>' + esc(action(id).title) + '・' + (p.totalCost ? wan(p.totalCost) : '免費') + '</small></h2><button class="primary-button" data-action="confirm-action"' + (!p.allowed ? ' disabled aria-disabled="true"' : '') + '>出發 →</button></div>' + body + (!p.allowed ? '<p class="commit-reason blocked" role="status">' + esc(p.reason) + '</p>' : '') + '</div>';
@@ -446,14 +466,17 @@
   // One line per cause: what you did, who reacted, and the estimated votes; then the rival, offers and events.
   function causeLines(r) {
     const p = r.player, rv = r.rival, att = Object.fromEntries((r.attribution || []).map(a => [a.source, a])), rows = [];
-    const where = p.action === 'tv' ? '上節目' : p.action === 'debate' ? '在政見發表會' : p.action === 'press' ? '開記者會' : '在' + p.venueTitle;
+    const where = p.action === 'tv' ? '上節目' : p.action === 'online' ? '開直播' : p.action === 'debate' ? '在政見發表會' : p.action === 'press' ? '開記者會' : '在' + p.venueTitle;
     for (const e of r.planEffects || []) rows.push([e.kind === 'clarify' ? '澄清' : e.kind === 'crisis' ? '危機' : '宣示', (e.kind === 'crisis' ? ({ pay: '花錢公關消毒', apologize: '公開道歉切割', fight: e.won ? '硬槓反控成功' : '硬槓反控炎上' })[e.choice] + '：' : e.title + '：') + e.text + ' → ' + signedVotes(e.votes) + ' 票', e.votes < 0 ? 'warn' : '', e.byGroup]);
     // The first row is the answer itself; stumbles, party lines, walk-backs and the like follow as their own rows, so the rows add up.
     const direct = p.direct || { votes: att.player?.votes, byGroup: p.byGroup };
     if (asking(p.action) && p.topic) rows.push(['你', where + (p.drawn ? '，被問到「' : '談「') + short(p.topic) + '」' + (p.quote ? '，說「' + p.quote + '」' : '') + ' → ' + signedVotes(direct.votes) + ' 票', '', direct.byGroup]);
     else if (p.action === 'rally') rows.push(['你', '在' + p.venueTitle + '辦造勢 → ' + signedVotes(direct.votes) + ' 票', '', direct.byGroup]);
+    else if (p.dealt) rows.push(['頭人', '拜訪' + p.dealt.name + '：' + [p.dealt.money ? '捐款 ' + wan(p.dealt.money) : '', p.dealt.bloc ? '組織票約 ' + num(p.dealt.bloc) : '', p.dealt.perk === 'tv' ? '一次免費上節目' : ''].filter(Boolean).join('、') + '；你公開支持「' + (G.TOPICS[p.dealt.topic]?.plans.find(x => x.id === p.dealt.plan)?.text || '') + '」→ ' + signedVotes(p.dealt.votes) + ' 票', '']);
     else if (QUIET_WORD[p.action]) rows.push(['你', (p.title || '') + '：' + (p.action === 'prepare' && G.TOPICS[p.topic] ? '查清楚「' + G.TOPICS[p.topic].title + '」。' : p.result) + ' ' + quietLine(p.action, att.rival?.effectOnYou, !!rv.attack), '']);
     else rows.push(['你', (p.title || '') + '：' + p.result, '']);
+    if (p.action === 'online' && p.effects) rows.push(['直播', '觸及 ' + num(p.effects.contacts) + ' 人' + (p.viral >= 1.8 ? '，這次爆紅' : p.viral <= .5 ? '，這次沒什麼人看' : ''), '']);
+    if (p.chief) rows.push(['里長', p.chief.broke ? p.chief.name + '點頭了：帶來約 ' + num(p.chief.bloc) + ' 票組織票，之後這裡的人更願意聽你' : p.chief.broken ? p.chief.name + '挺你，這裡的人更願意聽' : p.chief.name + '還不熟你（' + p.chief.visits + '／' + p.chief.need + ' 次），這裡的人先保留', p.chief.broke ? '' : p.chief.broken ? '' : 'warn']);
     if (p.partyLine) rows.push(['黨', (p.partyLine.kept ? '照黨的立場說，同黨選民加分 ' : '違反黨的立場，同黨選民流失 ') + signedVotes(p.partyLine.votes) + ' 票', p.partyLine.kept ? '' : 'warn']);
     if (p.stumble) rows.push([p.stumble.caught ? '識破' : '卡詞', (p.stumble.caught ? '沒查證就指控，當場被記者識破' : p.stumble.promise ? '沒研究就開支票，被主持人追問細節答不出來' : '被問到沒研究的題，說不出具體做法') + ' → ' + signedVotes(p.stumble.votes) + ' 票', 'warn']);
     if (p.debateEdge) rows.push(['壓制', '你深入查過這題，台上壓制周沐 → 他 ' + signedVotes(p.debateEdge) + ' 票', '']);
@@ -487,7 +510,7 @@
   }
   function dockRecap() {
     const r = state.recap, p = r.player, att = Object.fromEntries((r.attribution || []).map(a => [a.source, a]));
-    return '<div class="dock-recap"><p class="recap-total"><b>這回合你 ' + signedVotes(r.totalVotes) + ' 票</b>' + (p.byGroup ? groupDeltas(p.byGroup) : '') + '<span class="rival-total">周沐 ' + signedVotes((att.rival?.votes || 0) + (p.rivalLoss || 0) + (p.rivalHit || 0)) + '</span>' + (QUIET_WORD[p.action] ? '<small class="recap-why">' + esc(quietLine(p.action, att.rival?.effectOnYou, !!r.rival.attack)) + '</small>' : '') + '</p><button class="primary-button" data-action="next">' + (state.day < G.DAYS ? '開始第 ' + (state.day + 1) + ' 回合 →' : '開票 →') + '</button></div>';
+    return '<div class="dock-recap"><p class="recap-total"><b>這回合你 ' + signedVotes(r.totalVotes) + ' 票</b>' + (p.byGroup ? groupDeltas(p.byGroup) : '') + '<span class="rival-total">周沐 ' + signedVotes((att.rival?.votes || 0) + (p.rivalLoss || 0) + (p.rivalHit || 0)) + '</span>' + (QUIET_WORD[p.action] && !p.dealt ? '<small class="recap-why">' + esc(quietLine(p.action, att.rival?.effectOnYou, !!r.rival.attack)) + '</small>' : '') + '</p><button class="primary-button" data-action="next">' + (state.day < G.DAYS ? '開始第 ' + (state.day + 1) + ' 回合 →' : '開票 →') + '</button></div>';
   }
 
   /* ---------- travel, result ---------- */
@@ -517,7 +540,7 @@
   function reportMarkup() {
     const r = state.result, bg = G.BACKGROUNDS[state.settings.background], party = G.PARTIES[state.settings.affiliation], ok = r.outcome === 'elected';
     const verdict = ok ? '當選' : r.outcome === 'refunded' ? '落選・退保證金' : '落選';
-    const rounds = (r.roundsSummary || []).map(x => '<li><b>' + x.day + '</b><span>' + esc(x.action === 'canvass' ? x.where + '・談' + short(x.topic) : x.action === 'tv' ? '電視・談' + short(x.topic) : x.action === 'debate' ? '政見會・談' + short(x.topic) : x.action === 'rally' ? x.where + '・造勢' : x.action === 'press' ? '記者會爆料' : action(x.action)?.title || x.action) + '</span><strong class="' + (x.votes >= 0 ? 'up' : 'down') + '">' + signedVotes(x.votes) + '</strong><small>' + esc(roundParts(x)) + '</small></li>').join('');
+    const rounds = (r.roundsSummary || []).map(x => '<li><b>' + x.day + '</b><span>' + esc(x.action === 'canvass' ? x.where + '・談' + short(x.topic) : x.action === 'tv' ? '電視・談' + short(x.topic) : x.action === 'online' ? '直播・談' + short(x.topic) : x.action === 'debate' ? '政見會・談' + short(x.topic) : x.action === 'rally' ? x.where + '・造勢' : x.action === 'press' ? '記者會爆料' : action(x.action)?.title || x.action) + '</span><strong class="' + (x.votes >= 0 ? 'up' : 'down') + '">' + signedVotes(x.votes) + '</strong><small>' + esc(roundParts(x)) + '</small></li>').join('');
     const groups = r.race.groups.map((g, k) => '<div class="g-' + GROUP_KEYS[k] + '"><span class="dot"></span><b>' + esc(g.title) + '</b><span>你 ' + num(g.you) + '</span><span>周沐 ' + num(g.rival) + '</span></div>').join('');
     return '<article class="report-card"><header class="report-head"><div><span class="report-who">小沈｜' + esc(bg.title) + '・' + partyBadge(state.settings.affiliation) + esc(party.title) + '</span><h2 class="report-verdict ' + (ok ? 'win' : 'lose') + '">' + verdict + '</h2></div><span class="report-id">局號 ' + esc(state.seed.toString(36).toUpperCase()) + '</span></header><div class="report-grid"><section class="report-main"><figure class="report-scene" aria-label="' + esc(verdict + '的開票夜') + '">' + (Art?.countNight ? Art.countNight(r.outcome, { still: true, name: state.player.name, tally: { you: r.playerVotes, rival: r.rivalVotes, line: r.lastSeat } }) : '') + '</figure><div class="report-numbers"><div><span>你的得票</span><strong>' + num(r.playerVotes) + '</strong><small>第 ' + r.rank + ' 名（前 ' + r.seats + ' 名當選）</small></div><div><span>當選線</span><strong>' + num(r.lastSeat) + '</strong><small>今年第 ' + r.seats + ' 名的票數・' + (ok ? '你比第 ' + (r.seats + 1) + ' 名多 ' + num(r.gap) : '你還差 ' + num(r.gap)) + ' 票</small></div><div><span>周沐</span><strong>' + num(r.rivalVotes) + '</strong><small>' + (r.rivalElected ? '當選' : '落選') + '・' + esc(G.PARTIES[state.rival.party].title) + '</small></div></div>' + trendChart() + '<div class="report-groups">' + groups + '</div>' + keyFactors(r) + '</section><section class="report-rounds"><h3>每回合做了什麼</h3><ol>' + rounds + '</ol></section></div></article>';
   }
@@ -683,14 +706,17 @@
   }
   function pollMarkup(p) {
     if (!p) return '<p>開始後才有民調。</p>';
-    const topicsList = G.POLICY_TOPICS;
+    const topicsList = G.topicsOf(state);
     return raceBoard() + '<h3>' + esc(p.label) + '</h3><div class="poll-bars">' + ['小沈・你', '周沐', '其他 25 位', '未決定'].map((name, i) => '<div class="poll-line"><span>' + name + '</span><div class="poll-track"><i style="width:' + Math.max(0, Math.min(100, p.percentages[i])) + '%"></i></div><strong>' + pct(p.percentages[i]) + '</strong></div>').join('') + '</div><h3>各群最在意的議題</h3><table class="race-groups"><thead><tr><th></th>' + topicsList.map(t => '<th>' + esc(short(t)) + '</th>').join('') + '</tr></thead><tbody>' + p.issuesByGroup.map((row, g) => '<tr><th><span class="dot g-' + GROUP_KEYS[g] + '"></span>' + esc(groupTitle(g)) + '</th>' + topicsList.map(t => '<td>' + pct(row[t]) + '</td>').join('') + '</tr>').join('') + '</tbody></table>';
   }
   function rulesMarkup() {
     return '<h3>怎麼贏</h3><p>' + esc(RULE_LINE) + '上一屆當選線 ' + num(G.LINE) + ' 票，今年的當選線開票才知道。你和周沐都可能落選。</p>'
-      + '<h3>三幕</h3><ul class="rules-list"><li>第 1–3 回合：摸清三群、找第一桶金。</li><li>第 4–7 回合：議題升溫、黑料攻防，會有一次突發危機。</li><li>第 8–10 回合：政見發表會，第 9–10 回合可以選前催票。</li></ul>'
-      + '<h3>三群人</h3><ul class="rules-list"><li>長輩最在意健保和敬老卡，中年最在意育兒和交通，青年最在意居住。</li><li>各群挺哪個做法有固定邏輯：長輩挺長輩補貼、不愛新蓋社宅和多開公托；青年挺青年政策、不愛把錢花在長輩補貼；只有強弱每局不同。</li><li>每個地點有一群主要人潮，會從他們在意的三題挑一題問你。</li></ul>'
-      + '<h3>研究與回答</h3><ul class="rules-list"><li>每回合可以派 1 位助手研究一題（再派 1 人更深入），到場前就知道三群怎麼想。</li><li>被問到沒研究的題：說不出具體做法，只能先不答應（小扣分）或開空頭支票。在電視和政見會上，兩種都會被主持人追問、扣得更多。</li><li>電視從三個熱門議題抽一題；多花 ' + wan(G.COSTS.brief) + ' 買專訪可以指定題目。</li><li>空頭保證：吃承諾的那群加分、討厭空話的那群扣分；被周沐拆穿又沒更正，開票前相信的人會轉走；更正時當初相信的人也會失望。</li><li>黨的立場：每黨三題。照著說同黨選民加分，違反流失約兩倍。</li></ul>'
+      + '<h3>身分</h3><ul class="rules-list"><li>政二代（簡單）：錢多、基本盤大，市場和廟口的里長一去就幫；但沒準備過議題，被問倒扣得更多，爆料也比較多。</li><li>現任議員（普通）：有團隊，里長都認識你；但有上一屆的紀錄，周沐常拿來開刀，爆料也比較多。</li><li>全新素人（困難）：錢最少、里長不認識你；但開局已查過 2 題，街訪效果較好，很少有黑料。</li></ul>'
+      + '<h3>三幕</h3><ul class="rules-list"><li>第 1–3 回合：摸清三群、找第一桶金。</li><li>第 4–7 回合：議題升溫；第 5 回合起每回合都可能爆出黑料，一局最多兩次。</li><li>第 8–10 回合：政見發表會，第 9–10 回合可以選前催票。</li></ul>'
+      + '<h3>議題與三群人</h3><ul class="rules-list"><li>題庫有 16 題，每局抽 12 題；長輩最在意的健保、中年最在意的育兒、青年最在意的居住每局都有。</li><li>各群挺哪個做法有固定邏輯，只有強弱每局不同；每個做法至少有一群人支持。</li><li>白天街上以長輩和中年為主，青年大約一成；電視觀眾偏年長，青年要靠直播接觸。</li></ul>'
+      + '<h3>研究與回答</h3><ul class="rules-list"><li>每回合可以派 1 位助手研究一題（再派 1 人更深入），到場前就知道三群怎麼想。</li><li>答中在意這題的人想要的做法會加分，答反扣一樣多。</li><li>被問到沒研究的題：說不出具體做法，只能先不答應（小扣分）或開空頭支票；在電視和政見會上扣更多。</li><li>空頭保證：吃承諾的那群加分、討厭空話的那群扣分；被周沐拆穿又沒更正，開票前相信的人會轉走。</li><li>黨的立場：每黨三題。照著說同黨選民加分，違反流失約兩倍。</li></ul>'
+      + '<h3>里長與頭人</h3><ul class="rules-list"><li>木柵市場、廟前廣場、社區廣場各有里長。里長還不熟你時，那裡的人先保留；里長點頭後帶來組織票，那裡的人也不會因為你常來而膩。</li><li>六位頭人：建商、宮廟、里長聯誼會、商圈協會、派系（有黨籍才有）、政論製作人。募款時可以去拜訪其中一位，或會在第 2–3、5–6 回合主動來談；他們給錢、組織票或免費上節目，換你公開支持他們要的做法。之後改口，他們會撤回支持。</li><li>拿建商的錢，比較容易爆出黑料。</li></ul>'
+      + '<h3>直播</h3><ul class="rules-list"><li>用 1–2 位助手開直播，不花錢，主要接觸青年；網友從青年最在意的三題挑一題問你。觸及人數不穩定，可能爆紅，也可能沒人看。</li></ul>'
       + '<h3>周沐</h3><ul class="rules-list"><li>他攻擊你時，只有相關的兩個地點和電視會問這件事；可以去回應、花 ' + wan(G.COSTS.clarify) + ' 發澄清文宣，或不理他（逾期會再掉票）。</li><li>你可以點名反擊他，也可以加碼查他的經費（每次 ' + wan(G.COSTS.tipCheck) + '，不占回合）再開記者會；沒查證就指控，可能當場被識破。</li><li>第 8 回合政見發表會，不去的話他獨占舞台；深入查過題目，台上能壓制他。</li></ul>'
       + '<h3>花錢</h3><ul class="rules-list"><li>電視 ' + wan(G.COSTS.tv) + '、造勢 ' + wan(G.COSTS.rally) + '（至少表態 2 題）、小禮物 ' + wan(G.COSTS.gifts) + '（長輩最吃這套）、看板 ' + wan(G.COSTS.billboard) + '（最多 3 面；立場合當地人群效果加倍）。</li><li>第 9 回合起可以選前催票（' + wan(G.COSTS.gotv) + '）：傾向你的人確定出門投票。</li><li>助手可以擺小額募款攤；國民黨、民進黨候選人有黨部補助與較高的募款。</li></ul>';
   }
@@ -751,6 +777,7 @@
     if (data.action === 'pledge') { if (G.cleanPledge(state)) { save(); render(); announce('已宣示乾淨選戰。'); } return; }
     if (data.action === 'research') { researchPick = data.topic && G.TOPICS[data.topic] ? data.topic : ''; if (!researchPick) deepOn = false; error = ''; save(); render(); focusChoice('[data-action="research"][data-topic="' + (data.topic || '') + '"]'); return; }
     if (data.action === 'toggle') { const n = data.name; if (n === 'gifts') gifts = !gifts; else if (n === 'billboard') billboard = !billboard; else if (n === 'deep') deepOn = !deepOn; else if (n === 'booth') booth = !booth; else if (n === 'investigate') investigateOn = !investigateOn; else if (n === 'gotv') gotvOn = !gotvOn; else if (n === 'respond') { respondOn = !respondOn; if (respondOn) brief = null; } error = ''; save(); render(); focusChoice('[data-action="toggle"][data-name="' + n + '"]'); return; }
+    if (data.action === 'donor') { donor = data.id && G.BROKERS?.[data.id] ? data.id : null; error = ''; save(); render(); focusChoice('[data-action="donor"][data-id="' + (data.id || '') + '"]'); return; }
     if (data.action === 'brief' && G.TOPICS[data.topic]) { brief = brief === data.topic ? null : data.topic; respondOn = false; error = ''; save(); render(); focusChoice('[data-action="brief"][data-topic="' + data.topic + '"]'); return; }
     if (data.action === 'mode' && action(data.kind)) { selectedAction = data.kind; error = ''; save(); render(); focusChoice('[data-action="mode"][data-kind="' + data.kind + '"]'); return; }
     if (data.action === 'select-action' && action(data.kind)) {
