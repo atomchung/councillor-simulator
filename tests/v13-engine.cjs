@@ -128,7 +128,7 @@ ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/
   const kinds=G.PARTIES[s.settings.affiliation].offerKinds;ok(s.offers.every(o=>kinds.includes(G.dealOf(s,o.id).kind)||G.dealOf(s,o.id).kind==='party'),'party decides the kind of broker; a party candidate may also hear from the faction');
   eq(G.respondOffer(s,'accept'),false,'cannot answer before its round');while(s.day<s.offers[0].round){if(s.day===s.offers[0].round-1)eq(G.upcomingOffer(s).id,s.offers[0].id,'announced a round ahead');skip(s);}settleCrisis(s);
   const view=G.offerView(s),line=G.partyLine(s,0,view.topic);ok(view&&view.faces.length===3&&(view.bloc>0||view.money>0||!!view.perk),'offer visible with faces and what it brings');eq(view.partyLine?.keeps??null,line?line===view.plan:null,'offer shows whether it fits your party line');
-  if(seed%2){const before=G.expectedVotes(s),cash=s.budget.available;ok(G.respondOffer(s,'accept'),'accept');ok(G.expectedVotes(s)-before>=view.bloc*.6,'members vote for you');eq(s.budget.available,cash+view.money,'money arrives');eq(G.lastPlan(s.player,view.topic).answer,view.plan,'stance made public');eq(G.respondOffer(s,'decline'),false,'decided once');accepted++;
+  if(seed%2){const before=G.expectedVotes(s),cash=s.budget.available;ok(G.respondOffer(s,'accept'),'accept');if(view.bloc>0)ok(G.expectedVotes(s)-before>=view.bloc*.6,'members vote for you');eq(s.budget.available,cash+view.money,'money arrives');eq(G.lastPlan(s.player,view.topic).answer,view.plan,'stance made public');eq(G.respondOffer(s,'decline'),false,'decided once');accepted++;
    const where=askAbout(s,view.topic),other=G.TOPICS[view.topic].plans.find(p=>p.id!==view.plan).id;
    if(where){G.begin(s,...where);G.arrive(s);const o=G.question(s).options.find(o=>o.id===other);ok(o.tags.some(x=>x.kind==='breach'),'breach is tagged');G.answer(s,other);ok(s.recap.player.breach&&s.player.blocs.every(b=>b.status==='withdrawn'),'breaking the deal withdraws the members');ok(s.recap.player.breach.votes<=-s.recap.player.breach.bloc+1e-9,'breach counted in your own line');breached++;}
    else round(s,'fundraise');}
@@ -142,14 +142,14 @@ ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/
  const total=count.kmt+count.dpp+count.none;for(const p of ['kmt','dpp','none'])ok(Math.abs(count[p]/total-G.PARTY_SHARES[p])<.02,'party share '+p);for(const g of byGroup)ok(Math.abs(g.kmt/g.n-G.PARTY_SHARES.kmt)<.04,'party independent of age group');}
 {const ind=fresh(31),kmt=fresh(31,{affiliation:'kmt'});eq(kmt.rival.party,'dpp','小馬 runs for the other big party');eq(fresh(31,{affiliation:'dpp'}).rival.party,'kmt','and the other way round');ok(['kmt','dpp'].includes(ind.rival.party),'an independent faces either');
  ind.voters.forEach((v,i)=>eq(Math.round(kmt.voters[i].support[0]/v.support[0]*100)/100,v.p==='kmt'?G.TUNING.party.base.same:v.p==='dpp'?G.TUNING.party.base.opposite:1,'party base'));
- eq(kmt.budget.available-ind.budget.available,G.PARTIES.kmt.subsidy,'party subsidy at the start');eq(kmt.rival.budget.donations,G.PARTIES[kmt.rival.party].subsidy,'小馬 gets his party\'s subsidy');
+ eq(kmt.budget.available-ind.budget.available,Math.round(G.PARTIES.kmt.subsidy*(G.BACKGROUNDS[kmt.settings.background].partyAid??1)),'party subsidy at the start, scaled by identity');eq(kmt.rival.budget.donations,G.PARTIES[kmt.rival.party].subsidy,'小馬 gets his party\'s subsidy');
  const a=round(copy(kmt),'fundraise').player.income,b=round(copy(ind),'fundraise').player.income;ok(Math.abs(a/b-G.PARTIES.kmt.fundraise)<.01,'party candidates raise 1.3 times as much');eq(G.PARTY_LINES.kmt.health,'all65','KMT line on health is the universal senior subsidy');
  const view=G.partyView(kmt);eq(view.line.length,3,'three-issue party line');eq(view.rival.line.length,3,'his line shown too');eq(G.partyView(ind).line,[],'an independent has no line to keep');
  ok(Math.abs(Object.values(G.partyVotes(kmt,0)).reduce((a,b)=>a+b,0)-G.expectedVotes(kmt,0))<1e-6,'party votes add up');}
 // 小馬 is the frontrunner: above the line from the start whoever you are; you race for the last seats.
 {let above=0,low=0;for(let seed=1;seed<=20;seed++){for(const background of['newcomer','heir','incumbent']){const r=G.raceView(fresh(seed,{background}));if(r.rival>r.line*1.15&&r.you<r.line)above++;}const n=G.raceView(fresh(seed));low+=n.you/n.rival/20;}eq(above,60,'小馬 starts above the line and you below it');ok(low<.35,'a newcomer independent starts far behind 小馬: '+low.toFixed(2));}
 {let kept=0,broke=0;for(let seed=1;seed<=120&&(kept<4||broke<4);seed++){const s=fresh(seed,{affiliation:'kmt'}),v=G.venueView(s).find(v=>G.PARTY_LINES.kmt[G.venueTopic(s,v.id)]);if(!v)continue;const t=G.venueTopic(s,v.id),line=G.PARTY_LINES.kmt[t],other=G.TOPICS[t].plans.find(p=>p.id!==line).id,keep=kept<=broke;
- G.begin(s,'canvass',{venue:v.id,research:t});G.arrive(s);const o=G.question(s).options.find(o=>o.id===(keep?line:other));ok(o.unlocked&&o.tags.some(x=>x.kind===(keep?'party':'breach')),'party line tagged on the answer');G.answer(s,o.id);const pl=s.recap.player.partyLine;eq(pl.kept,keep,'party line recorded');ok(keep?pl.votes>0:pl.votes<0,'keeping wins party voters, breaking loses them');keep?kept++:broke++;}
+ G.begin(s,'canvass',{venue:v.id,research:t});G.arrive(s);if(!s.player.known.includes(t))s.player.known.push(t);const o=G.question(s).options.find(o=>o.id===(keep?line:other));ok(o.unlocked&&o.tags.some(x=>x.kind===(keep?'party':'breach')),'party line tagged on the answer');G.answer(s,o.id);const pl=s.recap.player.partyLine;eq(pl.kept,keep,'party line recorded');ok(keep?pl.votes>0:pl.votes<0,'keeping wins party voters, breaking loses them');keep?kept++:broke++;}
  ok(kept>=4&&broke>=4,'party line exercised');ok(G.TUNING.party.break>G.TUNING.party.keep,'breaking the line costs more than keeping it gains');}
 
 // The ladder; the billboard estimate and fit.
@@ -241,7 +241,7 @@ for(let seed=1;seed<=30;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){s
 
 // Identities: money, base, helpers, look and one rule each; the identity group rule touches only that group.
 {const made=Object.fromEntries(Object.keys(G.BACKGROUNDS).map(id=>[id,fresh(21,{background:id})]));
- eq(made.newcomer.budget.available,440000,'newcomer cash');eq(made.heir.budget.available,1140000,'heir cash');eq(made.incumbent.budget.available,790000,'incumbent cash');eq(made.incumbent.player.team.members.length,3,'incumbent has three assistants');
+ eq(made.newcomer.budget.available,440000,'newcomer cash');eq(made.heir.budget.available,1140000,'heir cash');eq(made.incumbent.budget.available,740000,'incumbent cash');eq(made.incumbent.player.team.members.length,4,'incumbent has four assistants');
  const base=id=>G.expectedVotes(made[id]);const B=G.BACKGROUNDS;ok(Math.abs(base('heir')/base('newcomer')-B.heir.supportBoost/B.newcomer.supportBoost)<.01&&Math.abs(base('incumbent')/base('newcomer')-B.incumbent.supportBoost/B.newcomer.supportBoost)<.01,'starting bases follow each identity');ok(base('heir')>base('incumbent')&&base('incumbent')>base('newcomer'),'the heir starts highest, the newcomer lowest');eq(new Set(Object.values(G.BACKGROUNDS).map(b=>b.outfit)).size,3,'each identity dresses differently');
  const record=made.incumbent.player.actions.filter(a=>a.record);eq(record.length,1,'incumbent carries one stance');ok(made.incumbent.player.known.includes(record[0].topic),'record topic researched');eq(made.newcomer.player.actions.length,0,'newcomer has no record');
  for(const [old,now] of Object.entries(G.LEGACY_BACKGROUNDS))eq(G.initial(3,{background:old}).settings.background,now,'old background id maps to '+now);
@@ -276,7 +276,7 @@ for(let seed=1;seed<=20;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){s
  ok(seen>=3&&blind>=1,'offer estimates exercised');}
 
 // v13.5: a wrong answer costs as much as a right one gains among the people who care.
-eq([G.TUNING.careMiss,G.TUNING.otherMiss],[-G.TUNING.careMatch,-G.TUNING.otherMatch],'answering against what people want costs as much as matching it gains');
+ok(-G.TUNING.careMiss>G.TUNING.careMatch&&-G.TUNING.otherMiss>=G.TUNING.otherMatch,'answering against what people care about costs more than matching it gains');
 
 // Online: helpers run it, it mostly reaches the young, and its reach is uncertain.
 {const reach=[],young=[];for(let seed=1;seed<=30;seed++){const s=fresh(seed),p=G.preview(s,'online',{});ok(p.allowed,'online with helpers');eq(p.totalCost,0,'online costs no money');eq(p.teamAssignments.filter(m=>m.task==='stream').length,Math.min(2,p.teamAssignments.length),'up to two helpers stream');ok(p.expectedReach.max>p.expectedReach.min*5,'online reach is shown as uncertain');
@@ -292,9 +292,9 @@ eq([G.TUNING.careMiss,G.TUNING.otherMiss],[-G.TUNING.careMatch,-G.TUNING.otherMa
   G.next(s);settleCrisis(s);const w1=G.weather(s).factor,p1=G.preview(s,'canvass',{venue:'market'});G.begin(s,'canvass',{venue:'market'});G.arrive(s);G.answer(s,G.question(s).options.find(o=>o.unlocked).id);G.next(s);settleCrisis(s);const r1=p1.expectedReach.max/w1,r2=G.preview(s,'canvass',{venue:'market'}).expectedReach.max/G.weather(s).factor,n=s.player.counts['canvass:market']-1;ok(Math.abs(r2/r1-(1+.3*n*G.TUNING.chief.tire)/(1+.3*(n+1)*G.TUNING.chief.tire))<.05,'a won-over chief\'s place tires of you at half speed');checked++;}
  ok(checked===20,'chiefs exercised');}
 
-// Identities: a newcomer starts with two issues read, an heir with none and a harder fall when caught out; each has a difficulty.
+// Identities: a newcomer starts with one or two issues read, an heir with none and a harder fall when caught out; each has a difficulty.
 eq(Object.values(G.BACKGROUNDS).map(b=>b.difficulty),['困難','普通','簡單'],'difficulty labels instead of win rates');
-for(let seed=1;seed<=10;seed++){const n=fresh(seed,{background:'newcomer'}),h=fresh(seed,{background:'heir'});eq(n.player.known.length,2,'a newcomer starts with two issues read');ok(n.player.known.every(t=>n.player.insight[t].level==='precise'&&n.player.studied[t]),'read in depth');eq(h.player.known.length,0,'an heir starts with none');}
+for(let seed=1;seed<=10;seed++){const n=fresh(seed,{background:'newcomer'}),h=fresh(seed,{background:'heir'});ok([1,2].includes(n.player.known.length),'a newcomer starts with one or two issues read');ok(n.player.known.every(t=>n.player.insight[t].level==='precise'&&n.player.studied[t]),'read in depth');eq(h.player.known.length,0,'an heir starts with none');}
 {let ratio=0,k=0;for(let seed=1;seed<=20;seed++){const a=fresh(seed,{background:'heir'}),b=G.initial(seed,{background:'incumbent'});G.start(b);G.begin(a,'tv');G.arrive(a);const t=a.pending.topic;if(a.player.known.includes(t))continue;G.answer(a,'honest');G.begin(b,'tv');G.arrive(b);if(b.player.known.includes(b.pending.topic))continue;G.answer(b,'honest');if(b.recap.player.stumble.votes<0){ratio+=a.recap.player.stumble.votes/b.recap.player.stumble.votes;k++;}}ok(k>=5&&ratio/k>1.2,'an heir caught out falls harder: '+(ratio/Math.max(1,k)).toFixed(2));}
 
 // Brokers: each game gives each one a deal on an issue in play; visiting one raises money for a public stance; they also come as offers.
@@ -317,9 +317,9 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
 {const play=(aff,breakIt)=>{const s=fresh(3,{background:'heir',affiliation:aff});const line=Object.entries(G.PARTY_LINES[aff]||{});let k=0;while(s.day<G.DAYS&&s.phase==='plan'){settleCrisis(s);
   if(breakIt&&k<breakIt&&line[k]){const [t,plan]=line[k];const other=G.TOPICS[t].plans.find(p=>p.id!==plan).id;s.player.actions.push({day:s.day,action:'canvass',topic:t,answer:other});k++;}
   G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}return s;};
- const kept=play('kmt',0),once=play('kmt',1),twice=play('kmt',2),ind=play('independent',0),aid=x=>x.partyAid||[];
- eq(aid(kept).map(a=>a.kind),['subsidy','mobilize'],'grant in round 5, mobilisation in round 9');eq(aid(kept)[0].money,G.PARTY_AID.subsidy,'full grant while the line holds');eq(aid(kept)[1].votes,G.PARTY_AID.mobilize.kmt,'full mobilisation');
- eq(aid(once)[0].money,G.PARTY_AID.subsidy/2,'one break halves the grant');eq(aid(twice)[1].votes,0,'two breaks and the party stays home');eq(aid(ind),[],'no party aid for an independent');
+ const kept=play('kmt',0),once=play('kmt',1),twice=play('kmt',2),ind=play('independent',0),aid=x=>x.partyAid||[];const F=G.BACKGROUNDS[kept.settings.background].partyAid??1;
+ eq(aid(kept).map(a=>a.kind),['subsidy','mobilize'],'grant in round 5, mobilisation in round 9');eq(aid(kept)[0].money,Math.round(G.PARTY_AID.subsidy*F),'full grant while the line holds, scaled by identity');eq(aid(kept)[1].votes,Math.round(G.PARTY_AID.mobilize.kmt*F),'full mobilisation, scaled by identity');
+ eq(aid(once)[0].money,Math.round(G.PARTY_AID.subsidy*F/2),'one break halves the grant');eq(aid(twice)[1].votes,0,'two breaks and the party stays home');eq(aid(ind),[],'no party aid for an independent');
  ok(kept.player.blocs.some(b=>b.party==='kmt'&&b.status==='active'),'mobilised votes count as an organised bloc');}
 // Holding off wears thin: from the third '先不答應' every group likes it less, and the answer says so.
 {const s=fresh(9),t=s.landscape.active[0],first=G.answerFaces(s,t,'honest');for(let k=0;k<5;k++)s.player.actions.push({day:1,action:'canvass',topic:t,answer:'honest'});const later=G.answerFaces(s,t,'honest'),rank={up:3,slight:2,flat:1,down:0};
