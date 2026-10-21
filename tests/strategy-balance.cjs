@@ -7,7 +7,8 @@ const G=require('../dist/day-engine');
 const EVAL_SEEDS=Number(process.env.BALANCE_SEEDS||150),SEARCH_SEEDS=Number(process.env.BALANCE_SEARCH_SEEDS||30);
 const IDS=Object.keys(G.BACKGROUNDS);
 // Limits by identity. Identities differ on purpose; their win rates are not evened out.
-const LIMITS={fixedMax:{newcomer:.35,incumbent:.55,heir:.75},adaptiveMargin:.15,adaptiveMin:{newcomer:.35,incumbent:.6,heir:.75},nearBest:.10,distinctRoutes:3,distinctMix:.6,randomMax:{newcomer:.05,incumbent:.15,heir:.35}};
+// Targets for good play: incumbent about 70%, heir about 60%, newcomer about 30%, each within a 15-point band.
+const LIMITS={fixedMax:{newcomer:.15,incumbent:.55,heir:.45},adaptiveMargin:.15,adaptiveMin:{newcomer:.30,incumbent:.70,heir:.60},adaptiveBand:.15,nearBest:.10,distinctRoutes:3,distinctMix:.6,randomMax:{newcomer:.05,incumbent:.25,heir:.15}};
 // BALANCE_TUNING='{"careMiss":-0.05}' overrides engine tuning for one run while searching for values; never commit with it set.
 if(process.env.BALANCE_TUNING&&G.TUNING){const deep=(t,o)=>{for(const[k,v]of Object.entries(o))if(v&&typeof v==='object'&&!Array.isArray(v))deep(t[k],v);else t[k]=v;};deep(G.TUNING,JSON.parse(process.env.BALANCE_TUNING));}
 const ACTION_IDS=G.ACTIONS.map(a=>a.id).filter(id=>id!=='press'),VENUE_IDS=Object.keys(G.VENUES),DONORS=['small',...Object.keys(G.BROKERS)];
@@ -167,12 +168,13 @@ for(const id of IDS){
   {id:id+':fixed-route-max',rule:title+'：固定路線當選率不超過 '+pct(LIMITS.fixedMax[id])+'%',value:pct(fixed.win),limit:pct(LIMITS.fixedMax[id]),pass:fixed.win<=LIMITS.fixedMax[id],route:fixed.name},
   {id:id+':adaptive-margin',rule:title+'：看局面的最佳打法比最佳固定路線高至少 15 個百分點',value:pct(adaptive.win-fixed.win),limit:pct(LIMITS.adaptiveMargin),pass:adaptive.win-fixed.win>=LIMITS.adaptiveMargin},
   {id:id+':adaptive-min',rule:title+'：看局面的最佳打法當選率至少 '+pct(LIMITS.adaptiveMin[id])+'%',value:pct(adaptive.win),limit:pct(LIMITS.adaptiveMin[id]),pass:adaptive.win>=LIMITS.adaptiveMin[id],route:adaptive.name},
+  {id:id+':adaptive-max',rule:title+'：看局面的最佳打法當選率不超過 '+pct(LIMITS.adaptiveMin[id]+LIMITS.adaptiveBand)+'%',value:pct(adaptive.win),limit:pct(LIMITS.adaptiveMin[id]+LIMITS.adaptiveBand),pass:adaptive.win<=LIMITS.adaptiveMin[id]+LIMITS.adaptiveBand+1e-9,route:adaptive.name},
   {id:id+':distinct-routes',rule:title+'：至少 3 條不同路線在最佳值 10 個百分點內',value:distinct.length,limit:LIMITS.distinctRoutes,pass:distinct.length>=LIMITS.distinctRoutes,routes:distinct.map(d=>d.name)},
   {id:id+':random-max',rule:title+'：完全隨機當選率不超過 '+pct(LIMITS.randomMax[id])+'%',value:pct(random.win),limit:pct(LIMITS.randomMax[id]),pass:random.win<=LIMITS.randomMax[id]});
 }
-// The difficulty labels must hold for good play: the heir is easiest and the newcomer hardest.
+// The difficulty labels must hold for good play: the incumbent is easiest and the newcomer hardest.
 const [n,i,h]=['newcomer','incumbent','heir'].map(x=>byIdentity[x].adaptive);
-criteria.push({id:'difficulty-order',rule:'看局面的最佳當選率：政二代 ≥ 現任議員 ≥ 全新素人',value:`素人 ${pct(n)} / 現任 ${pct(i)} / 政二代 ${pct(h)}`,limit:'由易到難',pass:h>=i&&i>=n});
+criteria.push({id:'difficulty-order',rule:'看局面的最佳當選率：現任議員 ≥ 政二代 ≥ 全新素人',value:`素人 ${pct(n)} / 政二代 ${pct(h)} / 現任 ${pct(i)}`,limit:'由易到難',pass:i>=h&&h>=n});
 for(const id of IDS){console.log('\n'+G.BACKGROUNDS[id].title+'（'+G.BACKGROUNDS[id].difficulty+'）');console.table(tables[id].map(r=>({類型:r.kind,打法:r.name,當選率:pct(r.win)+'%',平均票數:Math.round(r.votes)})));}
 if(process.env.BALANCE_DEBUG)for(const id of IDS)for(const r of tables[id].filter(r=>r.kind!=='random'))console.log(id,pct(r.win),r.name,JSON.stringify(Object.fromEntries(Object.entries(r.mix).map(([k,x])=>[k,Math.round(x*100)/100]))));
 const passed=criteria.every(c=>c.pass);

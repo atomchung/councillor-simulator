@@ -290,7 +290,7 @@ eq([G.TUNING.careMiss,G.TUNING.otherMiss],[-G.TUNING.careMatch,-G.TUNING.otherMa
  ok(checked===20,'chiefs exercised');}
 
 // Identities: a newcomer starts with two issues read, an heir with none and a harder fall when caught out; each has a difficulty.
-eq(Object.values(G.BACKGROUNDS).map(b=>b.difficulty),['困難','簡單','普通'],'difficulty labels instead of win rates');
+eq(Object.values(G.BACKGROUNDS).map(b=>b.difficulty),['困難','普通','簡單'],'difficulty labels instead of win rates');
 for(let seed=1;seed<=10;seed++){const n=fresh(seed,{background:'newcomer'}),h=fresh(seed,{background:'heir'});eq(n.player.known.length,2,'a newcomer starts with two issues read');ok(n.player.known.every(t=>n.player.insight[t].level==='precise'&&n.player.studied[t]),'read in depth');eq(h.player.known.length,0,'an heir starts with none');}
 {let ratio=0,k=0;for(let seed=1;seed<=20;seed++){const a=fresh(seed,{background:'heir'}),b=G.initial(seed,{background:'incumbent'});G.start(b);G.begin(a,'tv');G.arrive(a);const t=a.pending.topic;if(a.player.known.includes(t))continue;G.answer(a,'honest');G.begin(b,'tv');G.arrive(b);if(b.player.known.includes(b.pending.topic))continue;G.answer(b,'honest');if(b.recap.player.stumble.votes<0){ratio+=a.recap.player.stumble.votes/b.recap.player.stumble.votes;k++;}}ok(k>=5&&ratio/k>1.2,'an heir caught out falls harder: '+(ratio/Math.max(1,k)).toFixed(2));}
 
