@@ -1,7 +1,7 @@
 'use strict';
 // v12 engine rules: issue landscape, research levels, credibility, unkept guarantees, forecast, rival rumours,
 // deadlines and vote attribution. Engine checks only; not browser rendering or human play time.
-const A=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto'),G=require('../dist/day-engine');
+const A=require('node:assert/strict'),fs=require('node:fs'),crypto=require('node:crypto'),G=require('../dist/legacy-v12/day-engine');
 let checks=0;const eq=(a,b,m)=>{checks++;A.deepEqual(a,b,m);},ok=(v,m)=>{checks++;A.ok(v,m);},copy=x=>JSON.parse(JSON.stringify(x));
 const fresh=(seed,settings)=>{const s=G.initial(seed,settings);G.start(s);return s;};
 const venueFor=t=>Object.keys(G.VENUES).find(v=>G.VENUES[v].topics.includes(t));
@@ -92,4 +92,28 @@ for(let seed=1;seed<=30;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){c
 {const s=fresh(2),p=G.preview(s,'canvass',{venue:'market',topic:'senior'});ok(G.VENUES.market.topics.includes(p.topic),'market cannot raise senior transport');ok(p.topicReason.includes('聊不到'),'explains where the topic can be raised');}
 {const s=fresh(4);round(s,'canvass',{topic:'access',venue:'market',teamMode:'together'},'honest');const keys=Object.keys(s.player.counts).filter(k=>k.startsWith('team-canvass:'));eq(keys.length,2,'each assistant keeps a separate repeat count');}
 
-console.log(JSON.stringify({result:'passed',checks,scope:'v12 engine: seeded issue landscape independent of settings and venue, research levels, credibility previews, unkept guarantees, forecast, rumour accuracy, pre-emption, challenge deadlines, attribution sums, venue topics and per-assistant decay. Engine only; not browser, fun or play-time validation.'}));
+// Identities: different money, base, credibility and one rule each; old background ids still load.
+{const made=Object.fromEntries(Object.keys(G.BACKGROUNDS).map(id=>[id,fresh(21,{background:id})]));
+ eq(made.newcomer.budget.available,540000,'newcomer cash');eq(made.heir.budget.available,940000,'heir cash');eq(made.incumbent.budget.available,690000,'incumbent cash');
+ eq([made.newcomer.player.credibility,made.heir.player.credibility,made.incumbent.player.credibility],[65,40,50],'starting credibility by identity');eq(made.incumbent.player.team.members.length,3,'incumbent has three assistants');
+ ok(G.expectedVotes(made.heir)>G.expectedVotes(made.incumbent)&&G.expectedVotes(made.incumbent)>G.expectedVotes(made.newcomer),'starting base: heir > incumbent > newcomer');
+ for(const [id,s] of Object.entries(made))eq(s.budget.available+s.budget.spent+s.budget.deposit+s.budget.forfeited,s.budget.personalContribution+s.budget.donations,'cash conservation '+id);
+ const record=made.incumbent.player.actions.filter(a=>a.record);eq(record.length,1,'incumbent carries one stance from last term');ok(made.incumbent.player.known.includes(record[0].topic)&&made.incumbent.player.insight[record[0].topic],'record topic already researched');eq(made.newcomer.player.actions.length,0,'newcomer has no record');
+ for(const [old,now] of Object.entries(G.LEGACY_BACKGROUNDS))eq(G.initial(3,{background:old}).settings.background,now,'old background id maps to '+now);
+ const heir=copy(made.heir),newcomer=copy(made.newcomer);const hi=round(heir,'fundraise',{research:0}).player.income,lo=round(newcomer,'fundraise',{research:0}).player.income;ok(Math.abs(hi/lo-1.5)<.01,'heir raises 1.5 times as much on the same seed');
+ const g=copy(made.heir);G.begin(g,'canvass',{topic:'access',venue:'market',research:1});G.arrive(g);eq(G.question(g).options.find(o=>o.id==='guarantee').credibility,-7,'heir guarantees cost 7 credibility');
+ const inc=copy(made.incumbent),t=record[0].topic,other=G.TOPICS[t].plans.find(x=>x.id!==record[0].answer).id;G.begin(inc,'tv',{topic:t,research:0,responseMode:'answer'});G.arrive(inc);eq(G.question(inc).options.find(o=>o.id===other)?.credibility,-5,'incumbent flip costs 5');}
+
+// Cooperation offer: decided only in its round; accepting gives a TV credit, breaking it costs credibility.
+{const s=fresh(5,{affiliation:'dpp'});eq(s.settings.contract,'autonomy','no agreement at the opening');eq(s.offer.contract,'reform','dpp offer asks for reform');ok([2,3].includes(s.offer.round),'offer arrives in round 2 or 3');
+ eq(G.respondOffer(s,'accept'),false,'cannot answer before the offer round');while(s.day<s.offer.round){round(s,'fundraise',{research:0});G.next(s);}
+ ok(G.offerView(s),'offer visible in its round');const kept=copy(s);ok(G.respondOffer(s,'accept'),'accept');eq(s.settings.contract,'reform','agreement set');eq(s.cooperation.remaining,G.CONTRACTS.reform.credit,'credit granted');eq(G.respondOffer(s,'decline'),false,'decided once');
+ const tv=G.preview(s,'tv',{topic:'access',research:0});eq(tv.totalCost,180000-G.CONTRACTS.reform.credit,'credit discounts the next TV');
+ const before=s.player.credibility;round(s,'canvass',{topic:'access',venue:'market',research:1},q=>q.options.find(o=>o.id===G.TOPICS.access.plans[0].id&&o.unlocked)?.id||q.options.find(o=>o.unlocked).id);ok(s.cooperation.breach&&s.recap.credibility.some(c=>c.reason==='違反合作約定'&&c.delta===-3),'breaking the agreement costs 3 credibility once');ok(s.player.credibility<=before,'credibility did not rise on a breach round');
+ round(kept,'fundraise',{research:0});G.next(kept);eq(kept.offer.status,'expired','an unanswered offer lapses after its round');eq(kept.settings.contract,'autonomy','lapsed offer leaves no agreement');}
+
+// Research count: more researchers cover more topics; while you prepare, the others canvass on their own.
+{const s=fresh(8),two=G.preview(s,'tv',{topic:'access',research:2});eq(two.researchTopics.length,2,'two researchers, two topics');eq(two.researchTopics[0],'access','today\'s topic first');ok(G.landscapeView(s).ranking.findIndex(r=>r.topic===two.researchTopics[1])>=0,'second topic comes from the poll ranking');
+ eq(G.preview(s,'tv',{topic:'access',research:0}).researchTopics,[],'no researchers, no research');G.begin(s,'tv',{topic:'access',research:2});ok(two.researchTopics.every(t=>s.player.insight[t]),'both topics revealed this round');}
+{const s=fresh(8),p=G.preview(s,'prepare',{topic:'senior',research:1});ok(!p.researchTopics.includes('senior'),'assistant researches another topic while you prepare');eq(p.teamAssignments.filter(m=>m.task!=='research').map(m=>m.task),['canvass'],'the other assistant canvasses instead of idling');}
+console.log(JSON.stringify({result:'passed',checks,scope:'v12 engine: identities, cooperation offer, research count, seeded issue landscape independent of settings and venue, research levels, credibility previews, unkept guarantees, forecast, rumour accuracy, pre-emption, challenge deadlines, attribution sums, venue topics and per-assistant decay. Engine only; not browser, fun or play-time validation.'}));

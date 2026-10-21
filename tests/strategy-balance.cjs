@@ -4,78 +4,114 @@
 // Engine simulation only; it does not measure fun, browser layout or human play time.
 const G=require('../dist/day-engine');
 const EVAL_SEEDS=Number(process.env.BALANCE_SEEDS||300),SEARCH_SEEDS=Number(process.env.BALANCE_SEARCH_SEEDS||40);
-const LIMITS={fixedMax:.60,adaptiveMargin:.15,nearBest:.10,distinctRoutes:3,distinctMix:.6,randomMax:.15};
+const LIMITS={fixedMax:.60,adaptiveMargin:.15,nearBest:.10,distinctRoutes:3,distinctMix:.6,randomMax:.15,identityMin:.60,identitySpread:.20};
 // BALANCE_TUNING='{"careMiss":-0.05}' overrides engine tuning for one run while searching for values; never commit with it set.
 if(process.env.BALANCE_TUNING&&G.TUNING){const deep=(t,o)=>{for(const[k,v]of Object.entries(o))if(v&&typeof v==='object'&&!Array.isArray(v))deep(t[k],v);else t[k]=v;};deep(G.TUNING,JSON.parse(process.env.BALANCE_TUNING));}
-const ACTION_IDS=G.ACTIONS.map(a=>a.id),VENUE_IDS=Object.keys(G.VENUES);
+const ACTION_IDS=G.ACTIONS.map(a=>a.id).filter(id=>id!=='press'),VENUE_IDS=Object.keys(G.VENUES);
 const range=(start,n)=>Array.from({length:n},(_,i)=>start+i),evalSeeds=range(1,EVAL_SEEDS),searchSeeds=range(10001,SEARCH_SEEDS);
 
 // A fixed route may read only the round and its own bookkeeping: cash, data it holds and its public answers.
-function own(s){const answered={};for(const a of s.player.actions)if(a.answer)answered[a.topic]=a.answer;return{round:s.day,cash:s.budget.available,known:[...s.player.known],answered,team:(s.player.team?.members||[]).length,topics:G.availableTopics(s).map(t=>t.id)};}
-// An adaptive policy may also read what the plan screen shows before the decision. When a version adds
-// visible information (forecast, credibility, residents, turnout polls), add it here and nothing hidden.
-function visible(s){const last=s.journal.at(-1);return{...own(s),polls:s.polls.map(p=>({round:p.day,percentages:[...p.percentages]})),rivalLast:last?{action:last.rival.action,topic:last.rival.topic}:null,residents:Object.values(s.player.residents||{}).map(r=>({id:r.id,name:r.name,topic:r.topic,attitude:r.attitude,lastAnswer:r.lastAnswer})),events:G.eventView(s),cooperation:{contract:s.settings.contract,remaining:s.cooperation.remaining},
- forecast:G.forecast?.(s)||null,credibility:s.player.credibility??null,landscape:G.landscapeView?.(s)||null,rumor:G.rumorView?.(s)||null,challenges:G.pendingChallenges?.(s)||[],outlook:G.outlook?.(s)||null};}
+function own(s){const answered={};for(const a of s.player.actions)if(a.answer)answered[a.topic]=a.answer;return{round:s.day,cash:s.budget.available,known:[...s.player.known],answered,team:(s.player.team?.members||[]).length,billboards:(s.player.billboards||[]).length};}
+// An adaptive policy may also read what the plan screen shows before the decision; add new visible information here and nothing hidden.
+function visible(s){const last=s.journal.at(-1);return{...own(s),tvPool:G.tvPool(s),crisis:s.crisis?.status==='pending'?{...s.crisis}:null,tip:G.eventView(s).tip,rivalLast:last?{action:last.rival.action,topic:last.rival.topic}:null,forecast:G.forecast(s),landscape:G.landscapeView(s),rumor:G.rumorView(s),challenges:G.pendingChallenges(s),race:G.raceView(s),groups:G.groupView(s),party:G.partyView(s),venues:G.venueView(s),offer:G.offerView(s),upcoming:G.upcomingOffer(s),issuesByGroup:s.polls.at(-1)?.issuesByGroup||null};}
 
-const isPlan=o=>!['honest','guarantee'].includes(o.id)&&!o.id.startsWith('tip_');
-function pick(q,rule){const open=q.options.filter(o=>o.unlocked),plans=open.filter(isPlan),plan=plans[0],by=id=>open.find(o=>o.id===id),order={'plan>guarantee':[plan,by('guarantee')],'planB>guarantee':[plans.at(-1),by('guarantee')],'plan>honest':[plan,by('honest')],guarantee:[by('guarantee'),plan],honest:[by('honest'),plan]}[rule]||[plan];return(order.find(Boolean)||by('tip_private')||open[0]).id;}
-function freshTopic(o){const pool=o.topics.filter(t=>t!=='tip');return pool.find(t=>!o.answered[t])||pool[o.round%pool.length];}
+const isPlan=o=>!['honest','guarantee','counter'].includes(o.id)&&!o.id.startsWith('tip_');
+function pick(q,rule){if(rule==='faces')return chooseAnswer(q);const open=q.options.filter(o=>o.unlocked),plans=open.filter(isPlan),plan=plans[0],by=id=>open.find(o=>o.id===id),order={'plan>guarantee':[plan,by('guarantee')],'planB>guarantee':[plans.at(-1),by('guarantee')],'plan>honest':[plan,by('honest')],guarantee:[by('guarantee'),plan],honest:[by('honest'),plan]}[rule]||[plan];return(order.find(Boolean)||open[0]).id;}
 
-// Fixed route: one action per round with fixed venue, topic, research and answer rules.
-function fixedRoute(spec){return{kind:'fixed',name:spec.name,spec,decide(s){const o=own(s),action=spec.seq[o.round-1],venue=G.VENUES[spec.venue]?spec.venue:spec.venue==='rotate'?VENUE_IDS[(o.round-1)%VENUE_IDS.length]:VENUE_IDS[(o.round-1)%2],topic=spec.topic==='same'?'access':freshTopic(o);return{action,config:{venue,topic,teamMode:spec.research&&!o.known.includes(topic)?'research':'together'},answer:q=>pick(q,spec.answer)};}};}
-const route=(name,seq,extra={})=>({name,seq,venue:VENUE_IDS[0],topic:'fresh',answer:'plan>guarantee',research:true,...extra});
-const [C,T,F,P,H]=['canvass','tv','fundraise','prepare','recruit'],ALTERNATE=[C,T,C,T,C,T,C,T,C,C];
+// Fixed route: one action per round with fixed venue, answer, spending and offer rules.
+function fixedRoute(spec){return{kind:'fixed',name:spec.name,spec,offer:()=>spec.offer||'decline',decide(s){const o=own(s),action=spec.seq[o.round-1],venue=G.VENUES[spec.venue]?spec.venue:spec.venue==='rotate'?VENUE_IDS[(o.round-1)%VENUE_IDS.length]:VENUE_IDS[(o.round-1)%2];return{action,config:{venue,gifts:!!spec.gifts,billboard:(spec.boards||[]).includes(o.round),research:spec.research?G.POLICY_TOPICS.find(t=>!o.known.includes(t))||null:null,booth:!!spec.booth,gotv:!!spec.gotv&&o.round>=G.GOTV_FROM},answer:q=>pick(q,spec.answer)};}};}
+const route=(name,seq,extra={})=>({name,seq,venue:VENUE_IDS[0],answer:'plan>guarantee',offer:'decline',gifts:false,boards:[],research:false,booth:false,gotv:false,...extra});
+const [C,T,F,P,H,D,R]=['canvass','tv','fundraise','prepare','recruit','debate','rally'],ALTERNATE=[C,T,C,T,C,T,C,D,C,C];
 const STARTS=[
  route('電視與街訪交替',ALTERNATE),
- route('全程街訪',Array(10).fill(C)),
- route('前段電視、後段街訪',[T,T,T,T,C,C,C,C,C,C]),
- route('募款一次、多上電視',[C,T,F,T,C,T,C,T,C,T]),
- route('自己準備再街訪',[P,C,P,C,P,C,P,C,P,C],{research:false}),
- route('先擴編再街訪',[H,H,C,C,C,C,C,C,C,C]),
+ route('全程街訪',[C,C,C,C,C,C,C,D,C,C]),
+ route('全程街訪、合作都接',[C,C,C,C,C,C,C,D,C,C],{offer:'accept'}),
+ route('前段電視、後段街訪',[T,T,T,T,C,C,C,D,C,C]),
+ route('募款一次、多上電視',[C,T,F,T,C,T,C,D,C,T]),
+ route('自己準備再街訪',[P,C,P,C,P,C,P,D,P,C]),
+ route('先擴編再街訪',[H,H,C,C,C,C,C,D,C,C]),
+ route('造勢加看板、送小禮物',[C,C,R,C,R,C,C,D,R,C],{gifts:true,boards:[1,2]}),
+ route('每回合照順序研究、擺攤、最後催票',[C,C,C,T,C,C,C,D,C,C],{research:true,booth:true,gotv:true}),
 ];
-// Diagnostics for known v11 design gaps: these should start to differ from their baselines once fixed.
+// Diagnostics for known design gaps: these should start to differ from their baselines once fixed.
 const DIAGNOSTICS=[
  route('診斷：交替路線，方案全選另一個',ALTERNATE,{answer:'planB>guarantee'}),
  route('診斷：交替路線，地點全改最後一個',ALTERNATE,{venue:VENUE_IDS.at(-1)}),
- route('診斷：全程街訪、不查資料、全部空頭保證',Array(10).fill(C),{research:false,answer:'guarantee'}),
- route('診斷：全程街訪、不查資料、全部坦白',Array(10).fill(C),{research:false,answer:'honest'}),
+ route('診斷：全程街訪、全部空頭保證',[C,C,C,C,C,C,C,D,C,C],{answer:'guarantee'}),
+ route('診斷：全程街訪、全部坦白',[C,C,C,C,C,C,C,D,C,C],{answer:'honest'}),
+ // Answers chosen by reading the faces, but the route itself ignores crowds, TV risk, crises and saving for the final push.
+ route('診斷：交替路線、照順序研究、看臉色回答',ALTERNATE,{research:true,answer:'faces'}),
 ];
 
-// Adaptive policies read visible() each round: issue ranking from the poll, research results, the rival
-// rumour, open challenges with deadlines, the forecast and cash. They never read voters' hidden preferences.
-const plansOf=t=>G.TOPICS[t]?.plans||[],venueFor=t=>VENUE_IDS.find(v=>G.VENUES[v].topics.includes(t))||VENUE_IDS[0];
-function majority(v,t){const ins=v.landscape?.insight?.[t];return ins&&(ins.level==='precise'||!ins.close)?plansOf(t)[ins.side]?.id||null:null;}
-function informed(q,v,topic){const open=q.options.filter(o=>o.unlocked),by=id=>open.find(o=>o.id===id),want=majority(v,topic);if(want&&by(want))return want;return(by('honest')||open.find(isPlan)||by('tip_private')||open[0]).id;}
-function ranked(v){const share=t=>(v.landscape?.ranking?.find(r=>r.topic===t)?.share||0)*(v.landscape?.surge?.status==='active'&&v.landscape.surge.topic===t?1.5:1),clarity=t=>{const i=v.landscape?.insight?.[t];return!i?.75:i.level==='precise'||!i.close?1:.4;};return v.topics.filter(t=>t!=='tip').sort((a,b)=>share(b)*clarity(b)-share(a)*clarity(a));}
-function situational(s,{prepares=0,fundraises=1,tvFirst=false,recruits=0}={}){
- const v=visible(s),count=id=>s.player.actions.filter(a=>a.action===id).length,due=v.challenges.find(c=>c.roundsLeft<=1),order=ranked(v);
- let topic=due?.topic||order[0];
- if(!due&&v.rumor?.topic&&v.answered[v.rumor.topic]&&majority(v,v.rumor.topic))topic=v.rumor.topic;
- const research=t=>v.known.includes(t)?'together':'research',done=(action,t=topic)=>({action,config:{topic:t,venue:venueFor(t),teamMode:['tv','canvass'].includes(action)?research(t):'together'},answer:q=>informed(q,visible(s),t)});
- if(!due&&count('recruit')<recruits&&v.round<=2)return done('recruit');
- const shaky=order.slice(0,3).find(t=>v.landscape?.insight?.[t]?.level!=='precise');
- if(!due&&shaky&&count('prepare')<prepares)return done('prepare',shaky);
- const canTV=G.preview(s,'tv',{topic,teamMode:research(topic)}).allowed,rain=v.forecast?.now?.id==='rain';
- if(canTV&&(tvFirst||rain||count('tv')<=count('canvass')))return done('tv');
- if(!canTV&&v.round<=8&&count('fundraise')<fundraises&&v.cash<180000)return done('fundraise');
- return done('canvass');
+// Adaptive policies read visible() each round: group concerns from the poll, crowds and issues by place, face previews,
+// the party line, the rival rumour, open challenges, offers and cash. They never read voters' or groups' hidden leans.
+const FACE={up:2,slight:1,flat:0,split:.4,unknown:.8,down:-2};
+const care=(v,t,g)=>((v.issuesByGroup?.[g]?.[t]??15)+5)/100;
+// Value of the best visible answer on topic t for a crowd mix; unknown approaches count as "the scout will tell".
+function topicValue(s,v,t,mix,{promises=false}={}){const options=[...(G.TOPICS[t]?.plans||[]).map(p=>p.id),...(promises?['guarantee']:[]),'honest'],line=G.partyLine(s,0,t);let best=-1e9;for(const id of options){let val=G.answerFaces(s,t,id).reduce((n,f,g)=>n+mix[g]*care(v,t,g)*FACE[f],0);if(line&&G.TOPICS[t].plans.some(p=>p.id===id))val+=line===id?.05:-.08;if(id==='guarantee')val-=.15;if(val>best)best=val;}return best;}
+// A rally restates every public stance, so its value is how well your stances fit the crowd there.
+function platformValue(s,v,mix){let val=.05;for(const t of G.POLICY_TOPICS){const st=G.lastPlan(s.player,t);if(st)val+=G.answerFaces(s,t,st.answer).reduce((n,f,g)=>n+mix[g]*care(v,t,g)*FACE[f],0);}return val;}
+function chooseAnswer(q,{promises=false,last=false}={}){const mix=q.crowd||[1/3,1/3,1/3],open=q.options.filter(o=>o.unlocked);let top=null,score=-1e9;for(const o of open){if(o.id==='guarantee'&&!promises&&open.length>1)continue;let x=(o.faces||[]).reduce((n,f,g)=>n+mix[g]*FACE[f==='unknown'?'flat':f],0);for(const t of o.tags||[])x+=t.kind==='flip'?-.8:t.kind==='breach'?-1.2:t.kind==='promise'&&!last?-.4:t.kind==='party'?.15:t.kind==='counter'?.25:0;if(x>score){score=x;top=o;}}return(top||open[0]).id;}
+// Value of a destination over the issues it may raise, given what is known plus this round's research; unknown issues are worth only
+// a halting 'I will look into it'.
+function askValue(s,v,pool,odds,mix,research,{promises=false,stage=false}={}){const known=new Set(v.known);if(research)known.add(research);return pool.reduce((n,t,i)=>n+odds[i]*(known.has(t)?topicValue(s,v,t,mix,{promises}):G.answerFaces(s,t,'honest').reduce((m,f,g)=>m+mix[g]*care(v,t,g)*FACE[f],0)*(stage?.6:1)-(stage?.12:.05)),0);}
+const firstUnknown=(v,list)=>list.find(t=>G.POLICY_TOPICS.includes(t)&&!v.known.includes(t))||null;
+function situational(s,{rallySmart=false,tvSmart=false,prepares=0,fundraises=1,tvFirst=false,recruits=0,promises=false,rallies=0,boards=0,gifts=false,booth=false,investigate=false,deep=false}={}){
+ const v=visible(s),count=id=>s.player.actions.filter(a=>a.action===id&&!a.record).length,answer=q=>chooseAnswer(q,{promises,last:v.round===G.DAYS});
+ const late=v.round>=G.GOTV_FROM,reserve=late?0:G.COSTS.gotv*2,hot=(v.landscape?.ranking||[]).map(r=>r.topic);
+ const addons=(action,config)=>({...(['canvass','rally'].includes(action)?{gifts:gifts&&v.cash>400000+reserve,billboard:boards>v.billboards&&v.round<=5&&v.cash>500000+reserve}:{}),research:config.research!==undefined?config.research:firstUnknown(v,hot),deep:deep&&v.team>=2,booth:(booth||v.cash<250000)&&v.team>(deep?2:1),gotv:late&&['canvass','rally','tv'].includes(action)&&v.cash>=G.COSTS.gotv+(action==='tv'?G.COSTS.tv:action==='rally'?G.COSTS.rally:0),investigate:investigate&&v.round>=3&&v.tip?.canInvestigate&&v.cash>=G.COSTS.tipCheck+100000});
+ const done=(action,config={})=>({action,config:{...config,...addons(action,config)},answer});
+ if(v.round===G.DEBATE_ROUND)return done('debate',{research:G.POLICY_TOPICS.includes(s.debate?.topic)&&s.player.insight?.[s.debate.topic]?.level!=='precise'?s.debate.topic:firstUnknown(v,hot)});
+ if(count('recruit')<recruits&&v.round<=2)return done('recruit');
+ // A rally-first player takes two public stances, then saves for rallies where those stances fit the crowd best.
+ if(rallySmart&&count('rally')<rallies&&G.POLICY_TOPICS.filter(t=>G.lastPlan(s.player,t)).length>=2){const spot=v.venues.map(ven=>({id:ven.id,val:platformValue(s,v,ven.mix)})).sort((a,b)=>b.val-a.val)[0];
+  if(G.preview(s,'rally',{venue:spot.id}).allowed)return done('rally',{venue:spot.id,research:null});
+  if(count('fundraise')<fundraises&&v.round<=8)return done('fundraise');}
+ const heat=t=>v.landscape?.ranking?.find(r=>r.topic===t)?.share||0,shaky=[...G.POLICY_TOPICS].filter(t=>v.landscape?.insight?.[t]?.level!=='precise').sort((a,b)=>heat(b)-heat(a))[0];
+ if(shaky&&count('prepare')<prepares&&!v.challenges.length)return done('prepare',{topic:shaky,research:firstUnknown(v,hot.filter(t=>t!==shaky))});
+ if(investigate&&v.tip?.evidenceLevel>=2&&v.tip.truthLabel==='確認重複請款'&&!v.tip.publication&&v.round>=4)return done('press',{research:null});
+ const shares=v.groups.map(g=>g.share),moves=v.venues.map(ven=>{const pool=ven.topic?[ven.topic]:ven.pool,odds=ven.topic?[1]:ven.odds.map(o=>o/100),research=firstUnknown(v,pool);return{action:'canvass',venue:ven.id,research,value:askValue(s,v,pool,odds,ven.mix,research,{promises})*(pool.includes(v.rumor?.topic)?1.15:1)};});
+ const tvResearch=firstUnknown(v,v.tvPool),tvBlind=askValue(s,v,v.tvPool,v.tvPool.map(()=>1/3),shares,tvResearch,{promises,stage:true}),ready=v.tvPool.filter(t=>v.known.includes(t)),tvBrief=ready.length?ready.map(t=>({t,val:topicValue(s,v,t,shares,{promises})})).sort((a,b)=>b.val-a.val)[0]:null,useBrief=tvBrief&&tvBrief.val-.04>tvBlind&&v.cash>=G.COSTS.tv+G.COSTS.brief+120000;
+ moves.push({action:'tv',brief:useBrief?tvBrief.t:null,research:useBrief?firstUnknown(v,hot):tvResearch,value:(useBrief?tvBrief.val:tvBlind)*1.7});
+ if(count('rally')<rallies&&v.cash>=G.COSTS.rally+150000)for(const ven of v.venues)moves.push({action:'rally',venue:ven.id,value:platformValue(s,v,ven.mix)*1.6});
+ moves.sort((a,b)=>b.value-a.value);const street=moves.find(m=>m.action==='canvass'),canTV=G.preview(s,'tv',{}).allowed,rain=v.forecast?.now?.id==='rain',tv=moves.find(m=>m.action==='tv');
+ if(canTV&&(tvFirst||rain))return done('tv',{brief:tv.brief,research:tv.research});
+ // A TV-first player goes on air once enough of the likely questions are prepared, raises money when short, and otherwise
+ // walks the street while a helper researches the TV questions.
+ if(tvSmart){const ready=v.tvPool.filter(t=>v.known.includes(t)).length,tvR=firstUnknown(v,v.tvPool)||firstUnknown(v,hot);
+  if(canTV&&(ready>=2||tv.brief))return done('tv',{brief:tv.brief,research:tvR});
+  if(!canTV&&count('fundraise')<fundraises&&v.round<=8)return done('fundraise',{research:tvR});
+  return done('canvass',{venue:street.venue,research:tvR});}
+ const best=moves[0];if(best.action==='tv'&&!canTV){if(v.round<=8&&count('fundraise')<fundraises&&v.cash<180000)return done('fundraise');return done('canvass',{venue:street.venue,research:street.research});}
+ if(best.action==='rally'&&!G.preview(s,'rally',{venue:best.venue}).allowed)return done('canvass',{venue:street.venue,research:street.research});
+ return done(best.action,{venue:best.venue,brief:best.brief,research:best.research});
 }
+// Accept an offer when the visible faces, weighted by group size, plus the members' votes come out ahead.
+function prepRound(s){const v=visible(s);
+ if(v.crisis)G.respondCrisis(s,v.cash>=G.COSTS.crisis+350000?'pay':'apologize');
+ for(const c of G.pendingChallenges(s)){const here=G.venueView(s).filter(x=>c.venues.includes(x.id)),worth=v.known.includes(c.topic)&&here.some(x=>topicValue(s,v,c.topic,x.mix)>.05);if(!worth&&s.budget.available>=G.COSTS.clarify+300000)G.clarify(s,c.id);}
+ if(G.eventView(s).tip.canPledge)G.cleanPledge(s);}
+function judgeOffer(s){const v=visible(s),o=v.offer;if(!o)return'decline';const val=o.faces.reduce((n,f,g)=>n+v.groups[g].share*FACE[f],0)+o.bloc/1200-(o.flip?1:0)+(o.partyLine?(o.partyLine.keeps?.2:-.6):0);return val>=.2?'accept':'decline';}
 const ADAPTIVE=[
- {kind:'adaptive',name:'讀風向：電視與街訪交替',decide:s=>situational(s)},
- {kind:'adaptive',name:'做功課：先親自準備熱門議題',decide:s=>situational(s,{prepares:4,fundraises:0})},
- {kind:'adaptive',name:'募款加碼：電視最大化',decide:s=>situational(s,{fundraises:3,tvFirst:true})},
- {kind:'adaptive',name:'地面戰：先擴編再街訪',decide:s=>situational(s,{recruits:2,fundraises:0})},
+ {kind:'adaptive',name:'讀人群：哪裡合就去哪裡',offer:judgeOffer,prep:prepRound,decide:s=>situational(s)},
+ {kind:'adaptive',name:'做功課：先親自準備熱門議題',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{prepares:2,fundraises:0,deep:true})},
+ {kind:'adaptive',name:'空戰：先研究電視題目再上節目',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{fundraises:1,tvSmart:true,booth:true})},
+ {kind:'adaptive',name:'地面戰：擴編、看板、小禮物',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{recruits:2,fundraises:0,boards:2,gifts:true,booth:true})},
+ {kind:'adaptive',name:'造勢：表態兩題後存錢辦造勢',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{rallies:3,fundraises:0,rallySmart:true,booth:true,gifts:true})},
+ {kind:'adaptive',name:'黑料攻防：查周沐經費再出手',offer:judgeOffer,prep:prepRound,decide:s=>situational(s,{investigate:true,fundraises:1})},
 ];
 
 function mulberry(a){return()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296;};}
-function randomPolicy(){let r=Math.random;return{kind:'random',name:'完全隨機',reset(seed){r=mulberry(seed*7919+13);},decide(s){const ids=[...ACTION_IDS];for(let i=ids.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}const config={venue:VENUE_IDS[Math.floor(r()*VENUE_IDS.length)],teamMode:['together','research','canvass'][Math.floor(r()*3)]};return{action:ids.find(id=>G.preview(s,id,config).allowed)||F,config,answer:q=>{const open=q.options.filter(o=>o.unlocked);return open[Math.floor(r()*open.length)].id;}};}};}
+function randomPolicy(){let r=Math.random;return{kind:'random',name:'完全隨機',reset(seed){r=mulberry(seed*7919+13);},offer:()=>r()<.5?'accept':'decline',crisis:()=>['pay','apologize','fight'][Math.floor(r()*3)],decide(s){const ids=[...ACTION_IDS];for(let i=ids.length-1;i>0;i--){const j=Math.floor(r()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]];}const config={venue:VENUE_IDS[Math.floor(r()*VENUE_IDS.length)],gifts:r()<.3,billboard:r()<.15,research:r()<.5?G.POLICY_TOPICS[Math.floor(r()*G.POLICY_TOPICS.length)]:null,booth:r()<.3,gotv:r()<.3,investigate:r()<.2};return{action:ids.find(id=>G.preview(s,id,config).allowed)||F,config,answer:q=>{const open=q.options.filter(o=>o.unlocked);return open[Math.floor(r()*open.length)].id;}};}};}
 
-function play(policy,seed){
- policy.reset?.(seed);const s=G.initial(seed);G.start(s);const mix={};
+function play(policy,seed,settings={}){
+ policy.reset?.(seed);const s=G.initial(seed,settings);G.start(s);const mix={};
  while(s.phase!=='result'){
+  if(G.offerView(s))G.respondOffer(s,policy.offer?.(s)||'decline');
+  policy.prep?.(s);if(s.crisis?.status==='pending'){if(!G.respondCrisis(s,policy.crisis?.(s)||'apologize'))G.respondCrisis(s,'apologize');}
   const d=policy.decide(s);let id=d.action,config=d.config||{};
-  if(!G.preview(s,id,config).allowed){id=C;config={...config,teamMode:'together'};}
-  if(!G.preview(s,id,config).allowed){id=F;config={teamMode:'together'};}
+  if(!G.preview(s,id,config).allowed){id=C;config={venue:config.venue};}
+  if(!G.preview(s,id,config).allowed){id=F;config={};}
   if(!G.begin(s,id,config))throw new Error(`${policy.name}: round ${s.day} could not start ${id}`);
   G.arrive(s);if(s.phase==='question'){const q=G.question(s);if(!G.answer(s,d.answer?d.answer(q):q.options.find(o=>o.unlocked).id))throw new Error(`${policy.name}: round ${s.day} answer rejected`);}
   if(s.phase!=='recap')throw new Error(`${policy.name}: unexpected phase ${s.phase}`);
@@ -83,17 +119,18 @@ function play(policy,seed){
  }
  return{elected:s.result.outcome==='elected',votes:s.result.playerVotes,mix};
 }
-function evaluate(policy,seeds){let wins=0,votes=0;const mix={};for(const seed of seeds){const r=play(policy,seed);wins+=r.elected;votes+=r.votes;for(const [k,n]of Object.entries(r.mix))mix[k]=(mix[k]||0)+n;}const total=Object.values(mix).reduce((a,b)=>a+b,0);for(const k in mix)mix[k]=mix[k]/total;return{win:wins/seeds.length,votes:votes/seeds.length,mix};}
+function evaluate(policy,seeds,settings={}){let wins=0,votes=0;const mix={};for(const seed of seeds){const r=play(policy,seed,settings);wins+=r.elected;votes+=r.votes;for(const [k,n]of Object.entries(r.mix))mix[k]=(mix[k]||0)+n;}const total=Object.values(mix).reduce((a,b)=>a+b,0);for(const k in mix)mix[k]=mix[k]/total;return{win:wins/seeds.length,votes:votes/seeds.length,mix};}
 const better=(a,b)=>a.win>b.win||a.win===b.win&&a.votes>b.votes;
 
 // Coordinate search over fixed routes on separate seeds, so the gate does not depend on guessing the route.
 function searchFixed(){
  let best=null;for(const spec of STARTS){const score=evaluate(fixedRoute(spec),searchSeeds);if(!best||better(score,best.score))best={spec,score};}
- const rules={venue:[...VENUE_IDS,'rotate','pair'],topic:['fresh','same'],answer:['plan>guarantee','planB>guarantee','plan>honest','guarantee','honest'],research:[true,false]};
+ const rules={venue:[...VENUE_IDS,'rotate','pair'],answer:['plan>guarantee','planB>guarantee','plan>honest','guarantee','honest'],offer:['decline','accept'],gifts:[false,true],boards:[[],[1],[1,2],[1,2,3]],research:[false,true],booth:[false,true],gotv:[false,true]};
  for(let pass=0;pass<2;pass++){let improved=false;const tryOut=spec=>{const score=evaluate(fixedRoute(spec),searchSeeds);if(better(score,best.score)){best={spec,score};improved=true;}};
   for(let i=0;i<G.DAYS;i++)for(const id of ACTION_IDS)if(best.spec.seq[i]!==id)tryOut({...best.spec,seq:best.spec.seq.map((x,j)=>j===i?id:x)});
-  for(const [key,values]of Object.entries(rules))for(const value of values)if(best.spec[key]!==value)tryOut({...best.spec,[key]:value});
+  for(const [key,values]of Object.entries(rules))for(const value of values)if(JSON.stringify(best.spec[key])!==JSON.stringify(value))tryOut({...best.spec,[key]:value});
   if(!improved)break;}
+ if(process.env.BALANCE_DEBUG)console.error('best fixed spec',JSON.stringify(best.spec));
  return{...best.spec,name:'搜尋到的最佳固定路線（'+best.spec.seq.join('→')+'）'};
 }
 
@@ -110,8 +147,13 @@ const criteria=[
  {id:'adaptive-margin',rule:'看局面的最佳打法比最佳固定路線高至少 15 個百分點',value:pct(adaptive.win-fixed.win),limit:pct(LIMITS.adaptiveMargin),pass:adaptive.win-fixed.win>=LIMITS.adaptiveMargin},
  {id:'distinct-routes',rule:'至少 3 條不同路線在最佳值 10 個百分點內',value:distinct.length,limit:LIMITS.distinctRoutes,pass:distinct.length>=LIMITS.distinctRoutes,routes:distinct.map(d=>d.name)},
  {id:'random-max',rule:'完全隨機當選率不超過 15%',value:pct(random.win),limit:pct(LIMITS.randomMax),pass:random.win<=LIMITS.randomMax}];
-console.table(results.map(r=>({類型:r.kind,打法:r.name,當選率:pct(r.win)+'%',平均票數:Math.round(r.votes*10)/10})));
+// Every identity must be winnable by reading the situation, without one identity dominating.
+const byIdentity=Object.keys(G.BACKGROUNDS).map(id=>({id,best:top(ADAPTIVE.map(p=>({name:p.name,...evaluate(p,evalSeeds,{background:id})})))}));
+criteria.push({id:'identity-spread',rule:'每種身分看局面的最佳當選率都不低於 60%，彼此差距不超過 20 個百分點',value:byIdentity.map(x=>x.id+' '+pct(x.best.win)).join(' / '),limit:'≥60 且差距≤20',pass:byIdentity.every(x=>x.best.win>=LIMITS.identityMin)&&Math.max(...byIdentity.map(x=>x.best.win))-Math.min(...byIdentity.map(x=>x.best.win))<=LIMITS.identitySpread});
+// Parties follow the district's real lean, so they are reported rather than forced equal.
+const byParty=Object.keys(G.PARTIES).map(id=>({id,best:top(ADAPTIVE.map(p=>({name:p.name,...evaluate(p,evalSeeds,{affiliation:id})})))}));
+console.table(results.map(r=>({類型:r.kind,打法:r.name,當選率:pct(r.win)+'%',平均票數:Math.round(r.votes)})));
 if(process.env.BALANCE_DEBUG)for(const r of contenders.filter(r=>r.win>=bestWin-.2))console.log(pct(r.win),r.name,JSON.stringify(Object.fromEntries(Object.entries(r.mix).map(([k,n])=>[k,Math.round(n*100)/100]))),distinct.map(d=>Math.round(distance(d.mix,r.mix)*100)/100).join('/'));
 const passed=criteria.every(c=>c.pass);
-console.log(JSON.stringify({result:passed?'passed':'failed',engine:G.REVISION,evalSeeds:EVAL_SEEDS,searchSeeds:SEARCH_SEEDS,criteria,scope:'Scripted engine policies on fixed seeds with default settings; a search that finds no dominant route does not prove none exists. Not browser, fun or play-time validation.'}));
+console.log(JSON.stringify({result:passed?'passed':'failed',engine:G.REVISION,evalSeeds:EVAL_SEEDS,searchSeeds:SEARCH_SEEDS,criteria,parties:byParty.map(x=>x.id+' '+pct(x.best.win)).join(' / '),scope:'Scripted engine policies on fixed seeds with default settings; a search that finds no dominant route does not prove none exists. Not browser, fun or play-time validation.'}));
 if(!passed)process.exitCode=1;

@@ -1,4 +1,4 @@
-/* Original code-native Muzha miniature with block-human residents. No borrowed characters or textures. */
+/* Original code-native Muzha miniature with block-human residents, plus v13 venue scenes with a crowd of three fictional groups. No borrowed characters or textures. */
 (function () {
   'use strict';
 
@@ -23,7 +23,7 @@
   const roleAliases = {
     protagonist: 'player', candidate: 'player', volunteer: 'helper', staff: 'helper', host: 'resident',
     vendor: 'shop', shopkeeper: 'shop', merchant: 'shop', access: 'shop',
-    drain: 'shop2', neighbour: 'resident', neighbor: 'resident', elder: 'resident',
+    drain: 'shop2', neighbour: 'resident', neighbor: 'resident',
     opponent: 'rival'
   };
   const looks = {
@@ -32,19 +32,45 @@
     shop2: { shirt: '#6d8f8a', skin: '#b78868', shade: '#996c53', hair: '#343f3b', trousers: '#5a625e' },
     resident: { shirt: '#947d8f', skin: '#e0b493', shade: '#c18f73', hair: '#a9a99a', trousers: '#59656a' },
     helper: { shirt: '#7c98a2', skin: '#c99878', shade: '#a9785e', hair: '#535044', trousers: '#626a63' },
-    rival: { shirt: '#bd7e67', skin: '#dab08c', shade: '#b68a6b', hair: '#635143', trousers: '#545d64' }
+    rival: { shirt: '#bd7e67', skin: '#dab08c', shade: '#b68a6b', hair: '#635143', trousers: '#545d64' },
+    // Three fictional voter groups, two looks each; colours match the group chips in the interface.
+    elder: { shirt: '#93708a', skin: '#ddb193', shade: '#bf8f73', hair: '#dddad0', trousers: '#5d5a54' },
+    elder2: { shirt: '#86607a', skin: '#d6aa88', shade: '#b88a6c', hair: '#cfcbc0', trousers: '#57564f' },
+    middle: { shirt: '#4f7aa0', skin: '#d4a07c', shade: '#b78262', hair: '#34332f', trousers: '#46505a' },
+    middle2: { shirt: '#5d84a6', skin: '#c99876', shade: '#ab7a5c', hair: '#2c2b28', trousers: '#4d4d49' },
+    young: { shirt: '#d9a33a', skin: '#e2b896', shade: '#c39477', hair: '#2a2523', trousers: '#3d5868' },
+    young2: { shirt: '#cf9436', skin: '#d8ad8b', shade: '#b98d6e', hair: '#3a2d27', trousers: '#3b4757' }
   };
 
-  function humanMarkup(role = 'player', color) {
+  // The two candidates dress by identity and wear their party's colour; the controller sets this once per game.
+  const PARTY_COLORS = { kmt: '#1f4f9c', dpp: '#2e8b4f' };
+  let candidates = { player: { outfit: 'casual', party: null }, rival: { party: null } };
+  function setCandidates(next = {}) { candidates = { player: { ...candidates.player, ...(next.player || {}) }, rival: { ...candidates.rival, ...(next.rival || {}) } }; }
+  // Poses for the count night: arms up to cheer, hands together to clap, a bow, heads down; null is standing.
+  const POSES = {
+    cheer: { left: 'rotate(160 22 64)', right: 'rotate(-160 74 64)', mouth: 'smile' },
+    clap: { left: 'rotate(-38 22 64)', right: 'rotate(38 74 64)', mouth: 'smile' },
+    wave: { left: 'rotate(150 22 64)', mouth: 'smile' },
+    bow: { left: 'rotate(-14 22 64)', right: 'rotate(14 74 64)', head: 'translate(0 9)', mouth: 'frown' },
+    sad: { head: 'translate(0 6)', mouth: 'frown' }
+  };
+  const turn = t => t ? ' transform="' + t + '"' : '';
+  function humanMarkup(role = 'player', color, pose = null) {
+    const P = POSES[pose] || {};
     role = roleAliases[role] || role;
     if (!Object.prototype.hasOwnProperty.call(looks, role)) role = 'player';
-    const p = looks[role], shirt = safeColor(color, p.shirt);
+    const outfit = role === 'player' ? candidates.player.outfit : null, party = PARTY_COLORS[role === 'player' ? candidates.player.party : role === 'rival' ? candidates.rival.party : null] || null;
+    const p = looks[role], shirt = outfit === 'suit' ? '#2f3b52' : outfit === 'vest' ? '#efe9dc' : safeColor(color, p.shirt);
     let s = '<g class="human-avatar" data-role="' + role + '">';
     s += '<g class="leg-left">' + block(30, 96, 14, 27, 4, p.trousers, p.trousers, '#43504e') + rect(27, 123, 20, 7, '#3d4945') + '</g>';
     s += '<g class="leg-right">' + block(51, 96, 14, 27, 4, p.trousers, p.trousers, '#43504e') + rect(49, 123, 21, 7, '#3d4945') + '</g>';
-    s += '<g class="arm-left">' + block(17, 63, 10, 29, 4, shirt, shirt, '#4b625b') + block(17, 92, 10, 10, 4, p.skin, p.skin, p.shade) + '</g>';
+    s += '<g class="arm-left"' + turn(P.left) + '>' + block(17, 63, 10, 29, 4, shirt, shirt, '#4b625b') + block(17, 92, 10, 10, 4, p.skin, p.skin, p.shade) + '</g>';
     s += '<g class="body">' + block(29, 59, 36, 39, 5, shirt, shirt, '#456158') + rect(40, 52, 14, 9, p.skin);
-    if (role === 'player') {
+    if (role === 'player' && outfit === 'suit') {
+      s += poly([[38, 59], [56, 59], [47, 76]], '#f4efe2') + poly([[45, 62], [49, 62], [50, 80], [47, 84], [44, 80]], '#a8463c') + path('M38 59L47 80L56 59', '#1e2738', 2);
+    } else if (role === 'player' && outfit === 'vest') {
+      s += rect(29, 62, 12, 36, '#6f6a5c') + rect(53, 62, 12, 36, '#6f6a5c') + rect(31, 66, 3, 3, '#d8c27a') + poly([[41, 59], [53, 59], [47, 68]], '#f4efe2');
+    } else if (role === 'player') {
       s += poly([[34, 59], [42, 59], [47, 69], [42, 72]], '#e9e4cf') + poly([[52, 59], [60, 59], [52, 72], [47, 69]], '#e9e4cf');
       s += rect(53, 77, 8, 9, '#eee3bf') + rect(55, 79, 4, 2, '#c5ac72');
     } else if (role === 'shop' || role === 'shop2') {
@@ -57,15 +83,31 @@
     } else if (role === 'rival') {
       s += poly([[36, 59], [58, 59], [47, 89]], '#f1e6cf') + path('M47 63V94', '#93604f', 2);
       s += rect(54, 77, 7, 6, '#d9b878');
+    } else if (role === 'elder' || role === 'elder2') {
+      s += rect(46, 66, 3, 3, '#ecdccd') + rect(46, 76, 3, 3, '#ecdccd') + rect(46, 86, 3, 3, '#ecdccd') + path('M35 60L47 70L59 60', '#6f5068', 2);
+    } else if (role === 'middle') {
+      s += poly([[37, 59], [57, 59], [47, 67]], '#e9e4cf') + poly([[45, 63], [49, 63], [51, 84], [47, 89], [43, 84]], '#2f4f6a');
+    } else if (role === 'middle2') {
+      s += path('M33 61L62 93', '#4b3b2c', 3) + block(55, 88, 13, 11, 2, '#7a5f45', '#94765a', '#5f4a37');
+    } else if (role === 'young' || role === 'young2') {
+      s += poly([[33, 59], [61, 59], [57, 65], [37, 65]], '#b9832a') + path('M42 64V74M52 64V74', '#f6e5b8', 1.6) + rect(30, 60, 4, 32, '#5f4a2c') + rect(60, 60, 4, 32, '#5f4a2c');
     }
-    s += '</g><g class="arm-right">' + block(69, 63, 10, 29, 4, shirt, shirt, '#4b625b') + block(69, 92, 10, 10, 4, p.skin, p.skin, p.shade);
+    // Campaign sash and party badge in the party's colour.
+    if (party) s += poly([[30, 61], [38, 58], [66, 93], [59, 98]], party) + path('M31 63L60 97', '#ffffff', 1.2, 'opacity=".55"') + '<circle cx="54" cy="70" r="4.2" fill="#ffffff"/><circle cx="54" cy="70" r="2.6" fill="' + party + '"/>';
+    s += '</g><g class="arm-right"' + turn(P.right) + '>' + block(69, 63, 10, 29, 4, shirt, shirt, '#4b625b') + block(69, 92, 10, 10, 4, p.skin, p.skin, p.shade);
     if (role === 'resident') s += path('M73 101V94H84V103', '#a18e68', 3) + block(70, 102, 17, 17, 3, '#c4b17e', '#dac99d', '#a69466');
     if (role === 'rival') s += block(72, 91, 13, 18, 2, '#eee6cf', '#fff4db', '#c8bda2') + rect(75, 96, 7, 2, '#b3c2b1');
-    s += '</g><g class="head">';
+    if (role === 'elder2') s += path('M80 100V131', '#7a6248', 3.2) + path('M80 100H86', '#7a6248', 3);
+    s += '</g><g class="head"' + turn(P.head) + '>';
     if (role === 'shop') s += block(27, 29, 39, 29, 7, p.hair, p.hair, '#343c35');
     s += block(30, 19, 34, 34, 10, p.skin, '#e9c1a0', p.shade);
     s += poly([[30, 19], [40, 13.5], [74, 13.5], [64, 19]], p.hair) + rect(30, 19, 34, 8, p.hair) + poly([[64, 19], [74, 13.5], [74, 29], [64, 34]], p.hair);
-    if (role === 'resident') {
+    if (role === 'elder' || role === 'elder2') {
+      s += rect(30, 25, 5, 15, p.hair) + rect(60, 25, 4, 14, p.hair);
+      if (role === 'elder') s += '<g fill="none" stroke="#6b6560" stroke-width="1.8"><rect x="34" y="32" width="11" height="8"/><rect x="49" y="32" width="11" height="8"/><path d="M45 35H49"/></g>';
+    } else if (role === 'young2') {
+      s += block(28, 12, 38, 9, 6, '#3f6f8c', '#5786a2', '#2f566d') + rect(26, 19, 20, 4, '#2f566d');
+    } else if (role === 'resident') {
       s += rect(30, 25, 5, 14, p.hair) + rect(60, 25, 4, 13, p.hair);
       s += '<g fill="none" stroke="#657067" stroke-width="1.8"><rect x="34" y="32" width="11" height="8"/><rect x="49" y="32" width="11" height="8"/><path d="M45 35H49M60 34L68 30"/></g>';
     } else if (role === 'rival') {
@@ -76,7 +118,7 @@
       s += rect(30, 26, 6, 7, p.hair);
     }
     // Small square eyes and a single mouth: a deliberately human face.
-    s += rect(38, 34, 3, 3, C.ink) + rect(53, 34, 3, 3, C.ink) + rect(46, 40, 3, 3, p.shade) + path('M43 47H51', '#9b6f57', 1.5);
+    s += rect(38, 34, 3, 3, C.ink) + rect(53, 34, 3, 3, C.ink) + rect(46, 40, 3, 3, p.shade) + (P.mouth === 'smile' ? path('M42 45Q47 52 52 45', '#8b4f3f', 2) : P.mouth === 'frown' ? path('M43 49Q47 45 51 49', '#9b6f57', 1.5) : path('M43 47H51', '#9b6f57', 1.5));
     s += '</g></g>';
     return s;
   }
@@ -86,9 +128,24 @@
       poly([[22, 130], [49, 121], [82, 130], [52, 138]], '#647764', 'opacity=".16"') + humanMarkup(role, color) + '</svg>';
   }
 
-  function person(x, feetY, role, scale = .62) {
+  // A candidate in a given outfit and party, without changing the current game's look (opening cards, match-up).
+  function portrait(look = {}, role = 'player') {
+    const saved = candidates;
+    candidates = role === 'rival' ? { ...saved, rival: { party: look.party || null } } : { ...saved, player: { outfit: look.outfit || 'casual', party: look.party || null } };
+    try { return avatar(role); } finally { candidates = saved; }
+  }
+  // A campaign billboard: the candidate's name on a panel with a band in the party colour; (x, y) is where the posts meet the ground.
+  function boardMarkup(x, y, k, party) {
+    const band = PARTY_COLORS[party] || '#9a7b4f';
+    return '<g class="campaign-board" transform="translate(' + x + ' ' + y + ') scale(' + k + ')">' + rect(-38, -62, 7, 62, '#6d6a5c') + rect(31, -62, 7, 62, '#6d6a5c') +
+      rect(-58, -122, 116, 66, '#fffaf0', 'stroke="#55635b" stroke-width="3" rx="3"') + rect(-58, -122, 116, 17, band, 'rx="3"') +
+      label(0, -109, '市議員候選人', 11, '#ffffff', 'text-anchor="middle"') + label(0, -71, '小沈', 30, '#24443c', 'text-anchor="middle"') + '</g>';
+  }
+  function billboard(party) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-62 -126 124 130" aria-hidden="true" focusable="false" class="board-svg">' + boardMarkup(0, 0, 1, party) + '</svg>'; }
+
+  function person(x, feetY, role, scale = .62, pose = null) {
     return '<g class="day-resident" data-role="' + role + '" transform="translate(' + (x - 50 * scale) + ' ' + (feetY - 130 * scale) + ') scale(' + scale + ')">' +
-      poly([[22, 130], [49, 121], [82, 130], [52, 138]], '#647764', 'opacity=".14"') + humanMarkup(role) + '</g>';
+      poly([[22, 130], [49, 121], [82, 130], [52, 138]], '#647764', 'opacity=".14"') + humanMarkup(role, undefined, pose) + '</g>';
   }
 
   // True parallel 2.5D projection. The two ground axes slope in opposite
@@ -317,7 +374,6 @@
       s+=path(`M-15 ${166+i*13} Q70 ${111+i*13} 150 ${139+i*12} T310 ${121+i*11}`,i%2?'#91ad89':'#a2bd94',6,'stroke-linecap="round" opacity=".7"');
       s+=path(`M1000 ${160+i*12} Q1090 ${112+i*12} 1220 ${150+i*11}`,i%2?'#95b08c':'#a6bf97',5,'stroke-linecap="round" opacity=".7"');
     }
-    s+=label(40,35,'木柵意象縮景｜非實際地圖',12,'#6d8274','letter-spacing="1"');
     s+=label(1104,129,'貓空茶山',17,'#4f715b','text-anchor="middle" paint-order="stroke" stroke="#e7edda" stroke-width="5" stroke-linejoin="round"');
     return s+'</g>';
   }
@@ -493,5 +549,141 @@
     return s+'</svg>';
   }
 
-  window.DayArt = Object.freeze({scene,avatar,anchors,paths,route});
+  // v13 venue scenes: one backdrop per place, a crowd of the three fictional groups and, after an answer, a face over each person.
+  const GROUP_ROLES = [['elder', 'elder2'], ['middle', 'middle2'], ['young', 'young2']];
+  const TONES = { up: '#5f9e69', slight: '#93b97f', flat: '#b7b4a2', down: '#cf6f58', split: '#d9b24c', unknown: '#c9c6b5' };
+  function face(cx, cy, tone, r = 15) {
+    const color = TONES[tone] || TONES.flat, eye = r * .32, mouth = tone === 'up' ? `M${cx - r * .45} ${cy + r * .2}Q${cx} ${cy + r * .7} ${cx + r * .45} ${cy + r * .2}` : tone === 'slight' ? `M${cx - r * .4} ${cy + r * .3}Q${cx} ${cy + r * .55} ${cx + r * .4} ${cy + r * .3}` : tone === 'down' ? `M${cx - r * .42} ${cy + r * .55}Q${cx} ${cy + r * .1} ${cx + r * .42} ${cy + r * .55}` : `M${cx - r * .38} ${cy + r * .38}H${cx + r * .38}`;
+    if (tone === 'split' || tone === 'unknown') return `<g class="face" data-tone="${tone}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="#fffaf0" stroke-width="2.5"/>` + label(cx, cy + r * .42, tone === 'split' ? '≈' : '?', r * 1.15, '#fffaf0', 'text-anchor="middle"') + '</g>';
+    return `<g class="face" data-tone="${tone}"><circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}" stroke="#fffaf0" stroke-width="2.5"/><rect x="${cx - r * .42 - eye / 2}" y="${cy - r * .32}" width="${eye}" height="${eye}" fill="#fffaf0"/><rect x="${cx + r * .42 - eye / 2}" y="${cy - r * .32}" width="${eye}" height="${eye}" fill="#fffaf0"/><path d="${mouth}" fill="none" stroke="#fffaf0" stroke-width="${Math.max(2, r * .16)}" stroke-linecap="round"/></g>`;
+  }
+  function faceIcon(tone) { return '<svg viewBox="0 0 34 34" aria-hidden="true" focusable="false" class="face-icon">' + face(17, 17, tone, 14) + '</svg>'; }
+  function figure(x, feetY, role, scale, pose) { return person(x, feetY, role, scale, pose); }
+  const floor = (top, base, line) => { let s = rect(0, top, 1200, 650 - top, base); for (let y = top + 34; y < 650; y += 46) s += path(`M0 ${y}H1200`, line, 1.2, 'opacity=".55"'); for (let x = -40; x < 1240; x += 120) s += path(`M${x} ${top}L${x - 90} 650`, line, 1.1, 'opacity=".4"'); return s; };
+  function backdrop(kind) {
+    let s = rect(0, 0, 1200, 650, '#f4eedc');
+    if (kind === 'market') {
+      s += rect(0, 36, 1200, 320, '#e2cfb0') + rect(0, 36, 1200, 18, '#c9b490') + rect(452, 54, 296, 56, '#9e7354') + label(600, 96, '木柵市場', 36, '#fff3cf', 'text-anchor="middle"');
+      for (let i = 0; i < 4; i++) { const x = 32 + i * 292; s += rect(x, 150, 260, 200, '#d5c8ae'); for (let j = 0; j < 8; j++) s += rect(x + j * 32.5, 128, 32.5, 44, j % 2 ? '#f0e8cb' : '#7f9f7d'); s += rect(x, 172, 260, 9, '#5b806a') + rect(x + 12, 262, 236, 88, '#bd986c') + rect(x + 12, 262, 236, 10, '#d8b680'); for (let k = 0; k < 4; k++) s += rect(x + 26 + k * 56, 236, 42, 28, ['#b4c68a', '#e4b35f', '#bf8460', '#d7c27a'][(i + k) % 4]); }
+      s += floor(350, '#e7dfc7', '#d1c6a8');
+    } else if (kind === 'street') {
+      s += rect(0, 0, 1200, 240, '#e8eedf');
+      for (let i = 0; i < 5; i++) { const x = -20 + i * 250; s += rect(x, 70 + (i % 2) * 22, 230, 290 - (i % 2) * 22, ['#ede1c3', '#dfe5d2', '#eadbc0'][i % 3]) + rect(x + 18, 120 + (i % 2) * 22, 70, 60, '#79988d') + rect(x + 120, 120 + (i % 2) * 22, 70, 60, '#79988d') + rect(x + 10, 250, 210, 110, '#a5ad94') + rect(x + 22, 262, 186, 98, '#708c7b') + rect(x + 10, 228, 210, 22, ['#c97b5a', '#5f8071', '#b98b60'][i % 3]); }
+      s += floor(360, '#cfcdbd', '#b8b5a3');
+      for (let i = 0; i < 9; i++) s += poly([[90 + i * 120, 600], [150 + i * 120, 600], [200 + i * 120, 420], [150 + i * 120, 420]], '#f4f1e4', 'opacity=".8"');
+      s += rect(1080, 130, 12, 300, '#56685f') + rect(1060, 130, 52, 112, '#3f4f48') + '<circle cx="1086" cy="158" r="14" fill="#d86a54"/><circle cx="1086" cy="190" r="14" fill="#e3b54f" opacity=".45"/><circle cx="1086" cy="222" r="14" fill="#69a36d" opacity=".45"/>';
+    } else if (kind === 'plaza') {
+      s += rect(0, 0, 1200, 330, '#e6ecd8') + rect(0, 250, 1200, 110, '#c9d7b7');
+      for (const [x, k] of [[120, 1.4], [420, 1.1], [820, 1.25], [1090, 1.35]]) s += `<g transform="translate(${x} 300) scale(${k})">` + block(-6, -60, 12, 60, 5, '#a18e67', '#c4ad7f', '#837955') + poly([[-60, -70], [-34, -120], [10, -138], [58, -104], [50, -58], [6, -40], [-42, -50]], '#8fa67b') + poly([[-34, -120], [10, -138], [58, -104], [6, -88]], '#bfcca0') + '</g>';
+      s += rect(520, 150, 200, 130, '#71846c') + rect(532, 162, 176, 106, '#f2e6c6') + label(620, 205, '社區公告', 26, '#526c59', 'text-anchor="middle"') + path('M552 230H688M552 250H660', '#9aa98c', 4);
+      s += floor(350, '#e7e1ca', '#cfc6aa') + block(140, 400, 180, 22, 14, '#cbb58b', '#ddc89e', '#ae9269') + rect(150, 422, 10, 30, '#a58f68') + rect(300, 422, 10, 30, '#a58f68');
+    } else if (kind === 'river') {
+      s += rect(0, 0, 1200, 210, '#e9efdf') + poly([[0, 170], [160, 110], [330, 150], [520, 90], [740, 140], [930, 96], [1200, 150], [1200, 260], [0, 260]], '#c3d4b2') + poly([[0, 230], [220, 190], [470, 220], [760, 180], [1010, 214], [1200, 196], [1200, 300], [0, 300]], '#b0c8a2');
+      s += rect(0, 280, 1200, 80, '#8ab5b2') + path('M80 310Q140 300 200 312M520 330Q600 318 680 332M930 308Q990 298 1050 310', '#dce9d9', 3, 'opacity=".75"') + rect(0, 352, 1200, 30, '#7e9e75');
+      for (let x = 20; x < 1200; x += 90) s += rect(x, 330, 8, 50, '#8b9b82'); s += rect(0, 330, 1200, 7, '#a2b39a');
+      s += floor(380, '#e8e1c6', '#cfc8aa') + label(1010, 250, '道南河濱', 26, '#4f715b', 'text-anchor="middle" paint-order="stroke" stroke="#eef3e2" stroke-width="5"');
+    } else if (kind === 'temple') {
+      s += rect(0, 0, 1200, 360, '#efe5cf') + rect(250, 150, 700, 210, '#d9b989') + rect(250, 150, 700, 14, '#c79e6e');
+      s += poly([[190, 160], [600, 40], [1010, 160], [960, 176], [600, 72], [240, 176]], '#b66e4d') + poly([[230, 172], [600, 62], [970, 172], [930, 188], [600, 92], [270, 188]], '#9b5d43') + path('M180 158Q170 140 196 132M1020 158Q1030 140 1004 132', '#b98c57', 5, 'stroke-linecap="round"');
+      for (const x of [290, 430, 760, 900]) s += rect(x, 176, 20, 186, '#aa6b4b') + rect(x - 6, 176, 32, 12, '#c8a273');
+      s += rect(520, 200, 160, 162, '#5c5c4b') + rect(536, 216, 128, 146, '#84775b') + rect(450, 120, 300, 40, '#5b715d') + label(600, 150, '廟前廣場', 26, '#fff0c5', 'text-anchor="middle"');
+      for (const x of [380, 820]) s += `<circle cx="${x}" cy="210" r="18" fill="#d8875a"/><rect x="${x - 4}" y="228" width="8" height="10" fill="#9b5d43"/>`;
+      s += floor(362, '#e9e1ca', '#cbbf9f');
+    } else if (kind === 'tv') {
+      s += rect(0, 0, 1200, 650, '#38554e') + rect(0, 0, 1200, 380, '#466c60');
+      s += rect(330, 54, 540, 250, '#2a3f3a') + rect(346, 70, 508, 218, '#7fa79a') + label(600, 160, '街坊訪談', 46, '#fff4d2', 'text-anchor="middle"') + label(600, 210, 'LIVE・地方節目', 20, '#e8f1df', 'text-anchor="middle" letter-spacing="3"');
+      for (const x of [70, 1130]) s += path(`M${x} 650L${x} 470`, '#25332f', 5) + rect(x - 34, 420, 68, 50, '#25332f') + rect(x + (x < 600 ? 30 : -48), 434, 18, 22, '#1d2926') + `<circle cx="${x}" cy="445" r="9" fill="#ef835b"/>`;
+      s += poly([[0, 380], [1200, 380], [1200, 650], [0, 650]], '#3f5f57') + path('M0 380H1200', '#5f8578', 3);
+    } else if (kind === 'debate') {
+      s += rect(0, 0, 1200, 650, '#e8e2cf') + rect(80, 40, 1040, 200, '#5f8071') + rect(96, 56, 1008, 168, '#6f9282') + label(600, 128, '公辦政見發表會', 46, '#fff3d1', 'text-anchor="middle"') + label(600, 180, '臺北市第六選區・市議員', 22, '#e8f1df', 'text-anchor="middle" letter-spacing="2"');
+      s += rect(0, 360, 1200, 60, '#b98b60') + rect(0, 360, 1200, 12, '#d5ad7c') + rect(0, 420, 1200, 230, '#ece6d3');
+    } else s += floor(340, '#e7dfc7', '#d1c6a8');
+    return s;
+  }
+  const STREET_SLOTS = [[600, 470, .86], [697, 466, .86], [794, 471, .86], [891, 466, .86], [988, 470, .86], [1085, 466, .86], [652, 560, 1], [772, 564, 1], [892, 560, 1], [1012, 564, 1]];
+  const TV_SLOTS = [[858, 556, .44], [920, 556, .44], [982, 556, .44], [1044, 556, .44], [1106, 556, .44], [858, 626, .44], [920, 626, .44], [982, 626, .44], [1044, 626, .44], [1106, 626, .44]];
+  const DEBATE_SLOTS = [[70, 700, .8], [188, 704, .8], [306, 700, .8], [424, 704, .8], [542, 700, .8], [660, 704, .8], [778, 700, .8], [896, 704, .8], [1014, 700, .8], [1132, 704, .8]];
+  // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, variant, tone} or null.
+  function interior(kind, options = {}) {
+    const crowd = Array.isArray(options.crowd) ? options.crowd : [], roleOf = c => GROUP_ROLES[c.group]?.[c.variant ? 1 : 0] || 'resident';
+    let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '">' + backdrop(kind);
+    const slots = kind === 'tv' ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
+    if (kind === 'tv') s += rect(800, 396, 380, 248, '#22322e', 'rx="10"') + rect(812, 408, 356, 224, '#cfd9c6', 'rx="6"') + label(990, 438, '電視機前的觀眾', 17, '#3d574f', 'text-anchor="middle"');
+    const people = crowd.slice(0, slots.length).map((c, i) => ({ c, x: slots[i][0], y: slots[i][1], k: slots[i][2] }));
+    if (options.board && !['tv', 'debate'].includes(kind)) s += boardMarkup(110, 420, 1.35, options.board.party);
+    if (kind === 'debate') {
+      s += figure(600, 352, 'middle', .74) + figure(300, 340, 'player', 1.05) + figure(900, 340, 'rival', 1.05);
+      for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? '小沈' : '周沐', 18, '#5f4630', 'text-anchor="middle"');
+    }
+    for (const p of [...people].sort((a, b) => a.y - b.y)) s += figure(p.x, p.y, roleOf(p.c), p.k);
+    if (kind === 'tv') { s += figure(640, 585, 'middle', 1.3) + figure(380, 590, 'player', 1.34) + block(220, 478, 580, 92, 12, '#c9b48a', '#e0cca3', '#a8936c') + rect(240, 498, 540, 10, '#b19c73'); }
+    else if (options.mode === 'rally') {
+      // A rally: a wooden stage with flags in the party colour, the candidate speaking from it.
+      const flag = PARTY_COLORS[candidates.player.party] || '#c9a847';
+      s += block(70, 520, 420, 70, 10, '#a57f57', '#c49a6a', '#87653f') + rect(70, 586, 420, 10, '#7a5a38');
+      for (const x of [92, 468]) s += rect(x, 330, 7, 200, '#6d6a5c') + poly([[x + 7, 334], [x + 82, 350], [x + 7, 382]], flag) + path(`M${x + 9} 346H${x + 52}`, '#ffffff', 2, 'opacity=".6"');
+      s += rect(160, 296, 240, 42, '#fffaf0', 'stroke="#55635b" stroke-width="3" rx="4"') + rect(160, 296, 240, 12, flag, 'rx="4"') + label(280, 330, '小沈 選前之夜', 22, '#24443c', 'text-anchor="middle"');
+      s += block(250, 478, 60, 50, 6, '#8c6a4e', '#a98260', '#6f523c') + figure(240, 530, 'player', 1.25);
+    }
+    else if (kind !== 'debate') { if (options.speaker) s += figure(455, 602, roleOf(options.speaker), 1.18); s += figure(235, 614, 'player', 1.3); }
+    for (const p of people) if (p.c.tone) s += face(p.x, p.y - 140 * p.k - 22, p.c.tone, kind === 'tv' ? 15 : 21);
+    if (options.speaker?.tone && !['tv', 'debate'].includes(kind)) s += face(455, 602 - 140 * 1.18 - 26, options.speaker.tone, 26);
+    return s + '</svg>';
+  }
+
+  // Election night at the campaign office: a big screen for the count, the candidate on a small stage and supporters around. stage is
+  // 'count' while votes are read out, then 'elected', 'refunded' or 'forfeited'. Motion is CSS only, so a still frame shows the end state.
+  const NIGHT_CROWD = [[70, 608, .92, 'elder'], [168, 642, 1, 'young'], [262, 602, .9, 'middle2'], [130, 560, .76, 'young2'], [222, 548, .72, 'elder2'], [938, 602, .9, 'middle'], [1032, 642, 1, 'elder2'], [1130, 608, .92, 'young'], [978, 548, .72, 'young2'], [1070, 560, .76, 'middle2']];
+  const TALLY = [['小沈 一票！', 'you', 150, 452], ['周沐 一票！', 'rival', 1050, 452], ['小沈 一票！', 'you', 205, 382], ['無效票', 'void', 1000, 382], ['周沐 一票！', 'rival', 1090, 492], ['小沈 一票！', 'you', 110, 492]];
+  // A speech bubble centred on x whose tail points down at tail (default: the centre).
+  const bubbleAt = (x, y, text, color, cls = '', style = '', tail = x) => { const w = 26 + Array.from(text).length * 21; return '<g class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + poly([[tail - 9, y + 12], [tail + 7, y + 12], [tail - 6, y + 28]], color) + rect(x - w / 2, y - 26, w, 40, '#fffaf0', 'rx="12" stroke="' + color + '" stroke-width="3"') + poly([[tail - 7, y + 12], [tail + 5, y + 12], [tail - 5, y + 23]], '#fffaf0') + label(x, y + 2, text, 19, color, 'text-anchor="middle"') + '</g>'; };
+  // The candidate's line, with the tail just inside the bubble's left end, over the candidate's head.
+  const say = (text, color) => bubbleAt(628 - 30 + (26 + Array.from(text).length * 21) / 2, 338, text, color, 'speech', '', 628);
+  function countNight(stage = 'count', options = {}) {
+    const still = !!options.still, at = Number(options.elapsed) || 0, party = PARTY_COLORS[candidates.player.party] || '#c9a847', name = options.name || '小沈';
+    const won = stage === 'elected', lost = stage === 'forfeited', refunded = stage === 'refunded', done = won || lost || refunded;
+    let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650"' + (still ? ' preserveAspectRatio="xMidYMid slice"' : '') + ' aria-hidden="true" focusable="false" class="count-art' + (still ? ' still' : '') + '" data-stage="' + stage + '">';
+    s += rect(0, 0, 1200, 650, '#22312d') + rect(0, 0, 1200, 452, '#2c423c') + rect(0, 448, 1200, 8, '#3b5650');
+    for (let y = 486; y < 650; y += 38) s += path('M0 ' + y + 'H1200', '#1d2b27', 2, 'opacity=".8"');
+    // Strings of warm bulbs either side of the screen.
+    for (const [x0, y0, cx, cy, x1, y1] of [[0, 46, 125, 96, 250, 58], [950, 58, 1075, 96, 1200, 46]]) {
+      s += path('M' + x0 + ' ' + y0 + 'Q' + cx + ' ' + cy + ' ' + x1 + ' ' + y1, '#55665c', 2);
+      for (let i = 0; i <= 6; i++) { const t = i / 6, x = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * x1, y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y1; s += '<circle class="bulb" cx="' + x.toFixed(1) + '" cy="' + (y + 7).toFixed(1) + '" r="7" fill="' + ['#ffd27a', '#ff9f68', '#fff1b8'][i % 3] + '"/>'; }
+    }
+    // Two hanging banners in the party colour.
+    for (const [x, words] of [[58, name + '競選總部'], [1068, won ? '凍蒜' : '感謝支持']]) {
+      s += rect(x, 138, 74, 292, '#fffaf0', 'rx="4"') + rect(x, 138, 74, 22, party, 'rx="4"') + rect(x, 410, 74, 20, party);
+      Array.from(words).forEach((ch, i, all) => { s += label(x + 37, 160 + (all.length > 4 ? 44 : 60) * (i + 1) - (all.length > 4 ? 6 : 14), ch, all.length > 4 ? 34 : 44, '#24443c', 'text-anchor="middle"'); });
+    }
+    // The big screen; while the count runs its numbers are laid over it by the page.
+    s += rect(250, 24, 700, 286, '#101917', 'rx="12"') + rect(262, 36, 676, 262, '#0b1412', 'rx="6"');
+    for (let x = 300; x < 938; x += 56) s += path('M' + x + ' 36V298', '#14211e', 1);
+    if (options.tally) {
+      const t = options.tally, top = Math.max(t.you, t.rival, t.line) * 1.12 || 1, w = v => 470 * Math.min(1, v / top), lx = 380 + w(t.line);
+      s += label(600, 84, '開票結果', 30, '#e8f1df', 'text-anchor="middle"');
+      for (const [y, who, v, c] of [[120, name, t.you, '#7fc98f'], [200, '周沐', t.rival, '#e39a7f']]) s += label(300, y + 38, who, 26, '#e8f1df') + rect(380, y + 12, w(v), 36, c, 'rx="5"') + label(910, y + 40, Math.round(v).toLocaleString('zh-TW'), 26, '#fffaf0', 'text-anchor="end"');
+      s += path('M' + lx.toFixed(1) + ' 118V268', '#fff1b8', 3, 'stroke-dasharray="8 6"') + label(lx, 288, '最後一席 ' + Math.round(t.line).toLocaleString('zh-TW'), 18, '#fff1b8', 'text-anchor="middle"');
+    }
+    // The stage, the candidate and two assistants.
+    s += block(316, 516, 568, 48, 46, '#8c6a4e', '#a98260', '#6f523c') + rect(316, 558, 568, 8, '#6f523c') + rect(316, 516, 568, 6, party);
+    const crew = won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null;
+    if (refunded) s += rect(431, 418, 5, 78, '#6d6a5c') + rect(380, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(434, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
+    s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
+    // Supporters on the floor; each bobs on its own beat once the result is in.
+    NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null) + '</g>'; });
+    if (stage === 'count' && !still) TALLY.forEach(([text, who, x, y], i) => { s += bubbleAt(x, y, text, who === 'you' ? '#2f7a4a' : who === 'rival' ? '#b0563d' : '#7d847a', 'tally', 'animation-delay:' + (.6 + i * .38 - at).toFixed(2) + 's'); });
+    if (won) {
+      const colors = [party, '#f2c14e', '#e3765b', '#7fc98f', '#fffaf0', '#6fa8dc'];
+      for (let i = 0; i < 56; i++) { const x = (i * 97 + 31) % 1200, y = still ? 60 + (i * 53) % 520 : -40 - (i * 41) % 320; s += rect(x, y, 10, 16, colors[i % colors.length], 'class="confetto" transform="rotate(' + (i * 37 % 180) + ' ' + (x + 5) + ' ' + (y + 8) + ')"' + (still ? '' : ' style="animation-delay:-' + ((i % 9) * .31).toFixed(2) + 's;animation-duration:' + (2.1 + (i % 5) * .34).toFixed(2) + 's"')); }
+      for (const [x, y, c, d] of [[178, 74, '#f2c14e', 0], [1022, 70, '#e3765b', .5], [150, 300, '#6fa8dc', .9]]) { let rays = ''; for (let j = 0; j < 12; j++) { const r = j * Math.PI / 6; rays += path('M' + (x + Math.cos(r) * 14).toFixed(1) + ' ' + (y + Math.sin(r) * 14).toFixed(1) + 'L' + (x + Math.cos(r) * 44).toFixed(1) + ' ' + (y + Math.sin(r) * 44).toFixed(1), c, 4, 'stroke-linecap="round"'); } s += '<g class="burst"' + (still ? '' : ' style="animation-delay:' + d + 's"') + '>' + rays + '</g>'; }
+      s += say('謝謝大家！凍蒜！', '#2f7a4a');
+    } else if (done) {
+      s += rect(0, 0, 1200, 650, '#050908', 'class="dim" opacity="' + (lost ? .5 : .28) + '"');
+      if (lost) for (const [rx, ry, o] of [[230, 300, .05], [170, 250, .07], [110, 200, .09]]) s += '<ellipse cx="600" cy="430" rx="' + rx + '" ry="' + ry + '" fill="#fff6d8" opacity="' + o + '"/>';
+      s += say(lost ? '謝謝大家。' : '謝謝大家，我們下次再拚！', lost ? '#5f6a5b' : '#2f7a4a');
+    }
+    return s + '</svg>';
+  }
+
+  window.DayArt = Object.freeze({scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
 })();
