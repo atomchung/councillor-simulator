@@ -1,2 +1,2 @@
-模擬市議員 v13.5.0
+模擬市議員 v13.6.0
 Runtime source: this repository (v12 builds on v11 runtime 4cdac98e065b31b661761a23ac24f77e70c2459c)

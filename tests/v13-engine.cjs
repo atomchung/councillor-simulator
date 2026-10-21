@@ -20,7 +20,7 @@ const sums=r=>Math.abs(r.attribution.reduce((n,a)=>n+(a.source==='rival'?a.effec
 function askAbout(s,topic){const v=G.venueView(s).find(v=>G.venueTopic(s,v.id)===topic);if(v)return['canvass',{venue:v.id,research:topic}];if(G.tvPool(s).includes(topic)&&G.preview(s,'tv',{brief:topic}).allowed)return['tv',{brief:topic}];return null;}
 
 // Version, preserved v12 and v11 runtimes, isolation from older saves.
-eq(G.VERSION,13,'v13 engine');eq(G.REVISION,'13.5.0','v13.5 rules');eq(G.LINE,10693,'the seat line is last election\'s final seat');
+eq(G.VERSION,13,'v13 engine');eq(G.REVISION,'13.6.0','v13.6 rules');eq(G.LINE,10693,'the seat line is last election\'s final seat');
 for(const [dir,file] of [['legacy-v12','v12'],['legacy-v11','v11']]){const hashes=require('./fixtures/'+file+'-runtime-hashes.json');for(const [f,h]of Object.entries(hashes))eq(crypto.createHash('sha256').update(fs.readFileSync('dist/'+dir+'/'+f)).digest('hex'),h,'preserved '+file+' runtime '+f);}
 {const old=require('../dist/legacy-v12/day-engine').initial(5),oldCopy=copy(old);eq(G.start(old),false,'v13 never starts a v12 state');eq(G.upgrade(old),oldCopy,'v12 state untouched');}
 eq([G.actOf(1).id,G.actOf(3).id,G.actOf(4).id,G.actOf(7).id,G.actOf(8).id,G.actOf(10).id],[1,1,2,2,3,3],'three acts');
