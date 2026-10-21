@@ -185,7 +185,7 @@ function speakerFor(s,venue){const main=s.landscape?.main?.[venue]??0,group=GROU
 const tone=e=>e>=.03?'up':e>.005?'slight':e>=-.01?'flat':'down';
 const planIndex=(topic,mode)=>TOPICS[topic]?.plans?.findIndex(x=>x.id===mode)??-1;
 // The speaker reacts like the majority of their own group, so what they say matches the crowd's faces.
-function speakerTone(s,speaker,topic,mode){const G=s.landscape.groups[speaker.group],k=planIndex(topic,mode);if(topic==='tip')return mode==='tip_accuse'?'flat':'slight';if(k>=0){const lean=G.lean[topic],close=Math.abs(lean-.5)<.2;return k===sideOf(lean)?(close?'slight':'up'):(close?'flat':'down');}return tone(TUNING.promise[G.promise][mode==='guarantee'?'guarantee':'honest']);}
+function speakerTone(s,speaker,topic,mode){const G=s.landscape.groups[speaker.group],k=planIndex(topic,mode);if(topic==='tip')return mode==='tip_accuse'?'flat':'slight';if(k>=0){const lean=G.lean[topic],close=Math.abs(lean-.5)<.2;return k===sideOf(lean)?(close?'slight':'up'):(close?'flat':'down');}return tone(promiseValue(s,s.player,G.promise,mode));}
 const SPEAKER_LINES={up:'對！就是要這樣，我會投你。',slight:'還可以，細節再說清楚一點。',flat:'嗯，我記下了，有進度再說。',down:'這不是我要的。'};
 const ACTIONS=[
 {id:'prepare',title:'準備政見',cost:0,loc:'prepare',description:'自己把一個議題查清楚。',benefit:'看清三群人在這題的比例；之後談這題更有說服力。',risk:'占一回合；不對外曝光。'},
@@ -361,7 +361,7 @@ function answerFaces(s,topic,mode){
  if(mode==='counter'){const mine=counterPlan(s,topic);return mine?answerFaces(s,topic,mine.id):GROUPS.map(()=> 'unknown');}
  const k=planIndex(topic,mode);
  if(k>=0){const ins=s.player.insight?.[topic];return GROUPS.map((_,g)=>{const x=ins?.groups?.[g];if(!x)return'unknown';if(x.side===null||x.side===undefined)return'split';if(x.close)return x.side===k?'slight':'flat';return x.side===k?'up':'down';});}
- if(['guarantee','honest'].includes(mode))return s.landscape.groups.map(G=>tone(TUNING.promise[G.promise][mode]));
+ if(['guarantee','honest'].includes(mode))return s.landscape.groups.map(G=>tone(promiseValue(s,s.player,G.promise,mode)));
  return GROUPS.map(()=> 'unknown');
 }
 // The chance a voter in each group cares about an issue, from the designed concerns the rules describe; per-game noise is not read.
@@ -387,7 +387,7 @@ function answerEstimate(s,topic,mode,ctx=s.pending){
  const votes=GROUPS.map((g,gi)=>{const G=s.landscape.groups[gi],lift=partyLift*(rule&&gi===s.landscape.identityGroup?TUNING.lift[rule]:1),bonus=giftBonus(gifts,{g:gi}),f=e=>{const d=e*depth*scale+bonus;return d>0?d*lift:d;},one=(e,extra=0)=>(1-ps)*move(gi,f(e)+st+extra)+ps*move(gi,f(e)+st+extra+pd);
   let care=careOdds(s)[g.id][topic]||0,e;if(surgeActive(s,topic))care+=(1-care)*TUNING.surgeShare;
   if(k>=0){const pm=believedShare(s,topic,gi,k),resent=OPPOSE[t.plans[k].id]?.[g.id],back=isCounter?-TUNING.counter.backlash:0;e=care*pm*one(TUNING.careMatch)+care*(1-pm)*one(TUNING.careMiss,back)+(1-care)*pm*one(TUNING.otherMatch)+(1-care)*(1-pm)*one(Math.min(TUNING.otherMiss,resent??0),back);}
-  else{const x=TUNING.promise[G.promise][plan==='guarantee'?'guarantee':'honest'];e=care*one(x*TUNING.careBoost)+(1-care)*one(x);}
+  else{const x=promiseValue(s,s.player,G.promise,plan);e=care*one(x*TUNING.careBoost)+(1-care)*one(x);}
   return reached[gi]*e*PER_VOTER;});
  const add=(list,hit)=>{for(const i of list||[]){const v=s.voters[i];if(v)votes[v.g]+=move(v.g,hit(v.g))*PER_VOTER;}};
  const old=k>=0?lastPlan(a,topic):null;if(old&&old.answer!==plan){const ko=planIndex(topic,old.answer),hit=TUNING.flip*(identity(s).flip||1);add(a.heard?.[topic+':'+old.answer],g=>-hit*believedShare(s,topic,g,ko));}
@@ -429,6 +429,7 @@ function question(s){
  q.crowd=p.crowd||(p.id==='canvass'?crowdMix(s,p.venue):s.landscape.groups.map(g=>g.share));
  q.issueCard={concern:TOPICS[topic].ask,tradeoffs:(TOPICS[topic].plans||[]).map(x=>({title:x.text,text:x.detail})),commitment:stance(s,topic),insight:copy(s.player.insight?.[topic]||null),partyLine:partyLine(s,0,topic),rivalLine:partyLine(s,1,topic)};
  for(const option of q.options){option.faces=answerFaces(s,topic,option.id);option.tags=answerTags(s,topic,option.id);option.estimate=option.unlocked&&s.player.insight?.[topic]?.level==='precise'?answerEstimate(s,topic,option.id):null;
+  if(option.id==='honest'&&honestCount(s.player)>=HONEST_FATIGUE.free)option.tags.push({kind:'fatigue',text:`你已經 ${honestCount(s.player)} 次先不答應：再說一次，三群都會覺得你沒政見`});
   if(option.id==='honest'&&!known&&!owed)option.tags.push({kind:'unprepared',text:q.stage?'沒準備就上台：效果打折，還會扣分':'沒研究過，只能先不答應：小扣分'});
   if(option.id==='guarantee'&&!known&&q.stage&&!topicPromise(s.player,topic))option.tags.push({kind:'unprepared',text:'沒準備就開支票：主持人會追問細節，效果打折、還會扣分'});}
  return q;
@@ -440,13 +441,17 @@ function audienceWeights(s,action,venue){if(MEDIA_LEAN[action])return mediaMix(s
 function lift(s,a,v){const party=partyOf(s,a.index),R=TUNING.party.receptive,p=!party?(v.p==='none'&&a.index===0?R.swing:1):v.p==='none'?1:v.p===party?R.same:R.opposite;if(a.index!==0)return p;const rule=identity(s).rule;return p*(rule&&v.g===s.landscape.identityGroup?TUNING.lift[rule]:1);}
 // A rally restates your whole platform: each listener weighs your public stances on the issues they care about.
 function rallyEffect(s,a,v,i){let d=0,heard=0;for(const t of topicsOf(s)){if(!caresAbout(s,v,i,t))continue;const st=lastPlan(a,t);if(st){d+=prefers(v,t)===planIndex(t,st.answer)?TUNING.rally.match:TUNING.rally.miss;heard++;continue;}const promise=topicPromise(a,t);if(promise){d+=TUNING.promise[s.landscape.groups[v.g].promise].guarantee*.6;heard++;}else d+=TUNING.rally.open;}return heard?d:d+TUNING.rally.goodwill;}
+// Holding off ("先不答應") wears thin: the first two are free, then each further one lands worse with every group.
+const HONEST_FATIGUE={free:2,step:.01};
+const honestCount=a=>(a?.actions||[]).filter(x=>x.answer==='honest').length;
+function promiseValue(s,a,att,mode){const x=TUNING.promise[att][mode==='guarantee'?'guarantee':'honest'];return mode==='guarantee'?x:x-Math.max(0,honestCount(a)-HONEST_FATIGUE.free+1)*HONEST_FATIGUE.step;}
 function effectOf(s,a,v,i,topic,mode,plan,care){
  if(mode==='rally')return rallyEffect(s,a,v,i);
  if(mode==='billboard')return TUNING.billboard;
  if(topic==='tip'){const t=s.events.tip,ev=t.evidenceLevel,known=ev>=2||!!t.verification;if(mode==='tip_limited')return ev?(v.accuracy>.45?.012:.004):-.004;if(mode==='tip_correct')return v.accuracy>.4?.012:-.004;if(mode==='tip_accuse'){if(!known)return v.accuracy<.45?.012:-.008;const base=t.truth==='issue'?(v.accuracy<.45?.02:.01):t.truth==='false'?-.06:-.012;return t.truth==='issue'?base*1.2:base;}return 0;}
  if(plan>=0){const match=prefers(v,topic)===plan,resent=OPPOSE[TOPICS[topic].plans[plan].id]?.[GROUPS[v.g].id];return care?(match?TUNING.careMatch:TUNING.careMiss):match?TUNING.otherMatch:Math.min(TUNING.otherMiss,resent??0);}
  // Promises and candour land differently by group: one group rewards bold promises, another punishes them.
- return TUNING.promise[s.landscape.groups[v.g].promise][mode==='guarantee'?'guarantee':'honest']*(care?TUNING.careBoost:1);
+ return promiseValue(s,a,s.landscape.groups[v.g].promise,mode)*(care?TUNING.careBoost:1);
 }
 // Both focal candidates court the same swing voters: part of either one's gain comes out of the other's support.
 const apply=(v,index,delta,steal=0)=>{const before=v.support[index];v.support[index]=clamp(before+delta,.001,.16);const gained=v.support[index]-before;if(steal&&gained>0&&!(v.locked&&index===1))v.support[1-index]=clamp(v.support[1-index]-gained*steal,.001,.16);};

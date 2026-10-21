@@ -318,4 +318,7 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
  eq(aid(kept).map(a=>a.kind),['subsidy','mobilize'],'grant in round 5, mobilisation in round 9');eq(aid(kept)[0].money,G.PARTY_AID.subsidy,'full grant while the line holds');eq(aid(kept)[1].votes,G.PARTY_AID.mobilize.kmt,'full mobilisation');
  eq(aid(once)[0].money,G.PARTY_AID.subsidy/2,'one break halves the grant');eq(aid(twice)[1].votes,0,'two breaks and the party stays home');eq(aid(ind),[],'no party aid for an independent');
  ok(kept.player.blocs.some(b=>b.party==='kmt'&&b.status==='active'),'mobilised votes count as an organised bloc');}
+// Holding off wears thin: from the third '先不答應' every group likes it less, and the answer says so.
+{const s=fresh(9),t=s.landscape.active[0],first=G.answerFaces(s,t,'honest');for(let k=0;k<5;k++)s.player.actions.push({day:1,action:'canvass',topic:t,answer:'honest'});const later=G.answerFaces(s,t,'honest'),rank={up:3,slight:2,flat:1,down:0};
+ ok(later.every((f,g)=>rank[f]<=rank[first[g]])&&later.some((f,g)=>rank[f]<rank[first[g]]),'faces sour after many holds: '+first+' -> '+later);}
 
