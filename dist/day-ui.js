@@ -152,7 +152,7 @@
       for (const [i, e] of (j.planEffects || []).entries()) entries.push({ key: e.kind === 'crisis' ? 'crisis-day-' + j.day : 'plan-' + j.day + '-' + i, day: j.day, title: e.kind === 'crisis' ? crisisChoice(e) : e.title, text: e.text, votes: e.votes, tone: e.votes < 0 ? 'loss' : 'settled' });
       for (const [i, e] of (j.events || []).entries()) entries.push({ key: 'event-' + j.day + '-' + i, day: j.day, title: e.title, text: e.text, votes: e.effects?.votes, tone: 'settled' });
     }
-    for (const o of state.offers || []) if (o.respondedDay) entries.push({ key: 'offer-' + o.id + '-' + o.respondedDay, day: o.respondedDay, title: o.status === 'accepted' ? '接受合作' : '婉拒合作', text: G.dealOf(state, o.id)?.org || '合作邀約', votes: o.effect?.votes, tone: 'settled' });
+    for (const o of state.offers || []) if (o.respondedDay) entries.push({ key: 'offer-' + o.id + '-' + o.respondedDay, day: o.respondedDay, title: o.status === 'breached' ? '合作破局' : o.effect ? '接受合作' : '婉拒合作', text: G.dealOf(state, o.id)?.org || '合作邀約', votes: o.effect?.votes, tone: 'settled' });
     for (const c of state.challenges || []) entries.push({ key: c.id, day: c.issuedDay, title: '小馬提出質疑', text: c.quote, tone: c.status === 'open' && !c.mitigatedDay ? 'pending' : 'settled' });
     const c = state.crisis;
     if (c && !entries.some(e => e.key === 'crisis-day-' + c.round)) entries.push({ key: 'crisis-day-' + c.round, day: c.round, title: c.status === 'resolved' ? crisisChoice(c) : '突發危機・等待處理', text: c.text, votes: c.effect?.votes, tone: c.status === 'pending' ? 'pending' : c.effect?.votes < 0 ? 'loss' : 'settled' });
@@ -494,7 +494,9 @@
       bubble.hidden = false; bubble.dataset.stage = view.bubble.stage; bubble.dataset.kind = view.kind;
       bubble.innerHTML = '<span class="bubble-speaker">' + esc(view.bubble.who) + '</span><p>' + esc(view.bubble.text) + '</p>';
     } else { bubble.hidden = true; venue.innerHTML = ''; venue.dataset.key = ''; }
-    $('map-hotspots').innerHTML = view ? '' : hotspots();
+    const destinations = view ? '' : hotspots();
+    $('map-hotspots').innerHTML = destinations;
+    $('mobile-destinations').innerHTML = destinations;
     $('map-boards').innerHTML = view || !state.started ? '' : boardsOnMap();
     $('world').classList.toggle('is-rainy', state.started && !view && G.forecast(state).now?.id === 'rain');
     document.body.dataset.act = state.started ? String(G.actOf(state.day).id) : '';
@@ -853,7 +855,7 @@
     if (state.phase !== 'plan' || !state.started) return;
     if (data.action === 'topic' && G.availableTopics(state).some(t => t.id === data.topic)) { selectedTopic = data.topic; error = ''; save(); render(); focusChoice('[data-action="topic"][data-topic="' + selectedTopic + '"]'); return; }
     if (data.action === 'offer') { if (G.respondOffer(state, data.choice)) { save(); render(); announce(data.choice === 'accept' ? '已接受合作，立場已公開。' : '已婉拒合作。'); } return; }
-    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
+    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); $('event-feedback').querySelector?.('button')?.focus({preventScroll:true}); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
     if (data.action === 'clarify') { if (G.clarify(state, data.id)) { save(); render(); announce('已發澄清文宣。'); } return; }
     if (data.action === 'pledge') { if (G.cleanPledge(state)) { save(); render(); announce('已宣示乾淨選戰。'); } return; }
     if (data.action === 'research') { const t = data.topic; if (G.TOPICS[t]) researchPick = researchPick.includes(t) ? researchPick.filter(x => x !== t) : [...researchPick, t].slice(0, helpers()); error = ''; save(); render(); focusChoice('[data-action="research"][data-topic="' + (t || '') + '"]'); return; }
