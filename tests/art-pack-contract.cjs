@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),vm=require('node:vm'),assert=require('node:assert/strict');
+const root=path.resolve(__dirname,'../dist');let checks=0;
+const context={window:{},console};vm.createContext(context);vm.runInContext(fs.readFileSync(root+'/day-art.js','utf8'),context);const art=context.window.DayArt;
+for(const col of art.assetFrames)for(const f of col){assert.ok(f.x>=0&&f.y>=0&&f.x+f.w<=1536&&f.y+f.h<=1024&&f.sole>0&&f.sole<=f.h);checks++;}
+for(const id of ['market','street','temple','plaza','river','prepare','tv','online','fundraise','recruit','debate']){const route=art.visualRoute(id);assert.deepEqual(route.at(-1),art.spot(id));for(const p of route)assert.ok(p.x>=0&&p.x<=1200&&p.y>=0&&p.y<=650);checks++;}
+for(const [identity,column]of [['newcomer',0],['heir',1],['incumbent',2]]){const p=art.portrait({identity});assert.ok(p.includes('data-column="'+column+'"'));assert.ok(p.includes('cy="130"'));checks++;}
+const scene=art.scene();assert.ok(scene.includes('district.png'));art.setPack('unknown');assert.equal(art.getPack(),'original');assert.ok(art.scene().includes('<svg'));art.setPack('matte-toy-v1');assert.equal(art.scene(),scene);checks+=4;
+for(const name of ['district','candidates','market-square','street','river']){const b=fs.readFileSync(root+'/assets/matte-toy-v1/'+name+'.png');assert.equal(b.toString('hex',0,8),'89504e470d0a1a0a');if(name==='candidates')assert.equal(b[25],6);checks++;}
+// Exercise real controller switching through the established DOM harness, preserving the whole game state.
+const testSource=fs.readFileSync(__dirname+'/v13-interface.cjs','utf8');const prefix=testSource.slice(0,testSource.indexOf('\nconst ui=fs.readFileSync'));
+const scope={require,__dirname,console,module:{exports:{}}};vm.runInNewContext(prefix+'\nmodule.exports={harness,G};',scope);const {harness,G}=scope.module.exports;
+const h=harness();h.click({action:'start'});h.go('canvass','market');const before=h.state();h.click({action:'art-switch'});assert.deepEqual(h.state(),before);h.click({action:'art-switch'});assert.deepEqual(h.state(),before);h.commit();h.click({action:'skip'});assert.equal(h.state().phase,'question');assert.ok(h.scene().includes('market-square.png'));const q=G.question(h.state());h.answer(q.options.find(o=>o.unlocked).id);assert.equal(h.state().phase,'recap');checks+=5;
+console.log(JSON.stringify({result:'passed',checks,scope:'Sprite bounds, soles, semantic identity mapping, map routes, actual pack toggles and a production question/recap; no browser claim.'}));

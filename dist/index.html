@@ -6,7 +6,7 @@
   <meta name="game-build" content="13.6.0">
   <meta name="theme-color" content="#214b46">
   <meta name="description" content="30 天、10 回合的市議員選戰。點地圖上的地點出發，聽長輩、中年、青年三群人的訴求，和對手小馬搶同一批票，最後開票。">
-  <title>巷口，開始｜競選到開票</title>
+  <title>2026 議員選舉挑戰賽</title>
   <link rel="stylesheet" href="day.css?v=13.6.0">
   <script defer src="day-engine.js?v=13.6.0"></script>
   <script defer src="day-art.js?v=13.6.0"></script>
@@ -16,13 +16,13 @@
 <body class="v13">
   <a class="skip-link" href="#dock">跳到本回合的操作</a>
   <header class="masthead">
-    <a class="wordmark" href="./"><span class="wordmark-block" aria-hidden="true">巷</span><span>巷口，開始</span></a>
+    <a class="wordmark" href="./"><span class="wordmark-block" aria-hidden="true">2026</span><span>議員選舉挑戰賽</span></a>
     <section class="hud" aria-label="競選進度">
       <div class="hud-day"><strong id="day-label">第 1 回合<span>／ 10</span></strong><span id="day-dots" class="day-dots" aria-hidden="true"></span></div>
       <button class="hud-money" data-action="budget" aria-label="展開完整預算明細"><span class="eyebrow">競選款</span><strong id="cash">54 萬</strong></button>
       <button id="hud-race" class="hud-race" data-action="poll" aria-label="查看選情與民調"><span id="race-summary" class="race-summary">開始後估計</span></button>
     </section>
-    <nav aria-label="遊戲工具"><button data-action="journal">紀錄<span id="journal-count" class="count">0</span></button><button data-action="rules">規則</button><span id="global-controls"><button id="new-game" data-action="restart" class="new-game-button" title="回到選身分的畫面" hidden>新的一局</button></span></nav>
+    <nav aria-label="遊戲工具"><button id="art-switch" data-action="art-switch" aria-label="切換美術風格">霧面玩具</button><button data-action="journal">紀錄<span id="journal-count" class="count">0</span></button><button data-action="rules">規則</button><span id="global-controls"><button id="new-game" data-action="restart" class="new-game-button" title="回到選身分的畫面" hidden>新的一局</button></span></nav>
   </header>
   <main>
     <div id="save-warning" class="notice" role="status" hidden></div>
@@ -44,6 +44,7 @@
           <div id="conversation-bubble" class="conversation-bubble" aria-hidden="true" hidden></div>
           <div id="count-presentation" class="count-presentation" hidden><div id="count-scene" class="count-scene" aria-hidden="true"></div><div class="count-screen"><h2 id="count-stage" class="count-stage">投票結束，開票開始</h2><div class="count-board" aria-hidden="true"><b id="count-you-name">小沈</b><span class="count-track"><i id="count-meter"></i></span><strong id="count-votes">0</strong><b>小馬</b><span class="count-track rival"><i id="count-rival-meter"></i></span><strong id="count-rival">0</strong><i id="count-line" class="count-line"><span id="count-line-label">當選線</span></i></div></div><strong id="count-verdict" class="count-verdict" hidden></strong></div>
         </div>
+        <section id="event-timeline" class="event-timeline" aria-label="選戰事件時間線"></section>
         <section id="dock" class="dock" tabindex="-1" aria-label="本回合的操作"><div id="dock-body" aria-live="polite"></div><span id="dock-tools" class="dock-tools"></span></section>
       </section>
       <aside id="interaction" class="interaction" tabindex="-1" aria-label="局勢與結果"><div id="panel"></div></aside>
@@ -52,6 +53,7 @@
   </main>
   <footer><p>人物與事件皆為虛構。</p><p><a href="legacy-v12/index.html">v12 舊局 ↗</a></p></footer>
   <div id="dialog-overlay" class="dialog-overlay" hidden><section id="dialog" class="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1"><div class="dialog-top"><h2 id="dialog-title"></h2><span id="dialog-tools"></span><button data-action="close" id="close-dialog" aria-label="關閉視窗">×</button></div><div id="dialog-body"></div></section></div>
+  <aside id="event-feedback" class="event-feedback" role="region" aria-label="事件結果" hidden></aside>
   <div id="announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
   <noscript><p class="notice">這個互動遊戲需要 JavaScript。開啟後重新載入即可開始。</p></noscript>
 </body>

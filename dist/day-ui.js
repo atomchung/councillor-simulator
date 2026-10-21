@@ -157,13 +157,13 @@
   function announce(text) { $('announcer').textContent = text; }
   function focusDock() { $('dock').focus({ preventScroll: true }); }
   function revealDock() { if (window.innerWidth < 1024) $('dock').scrollIntoView?.({ behavior: reduced.matches ? 'auto' : 'smooth', block: 'nearest' }); }
-  function actorPosition(el, p) { el.style.left = p.x / 12 + '%'; el.style.top = p.y / 6.5 + '%'; el.style.zIndex = String(Math.round(p.y)); }
-  function setPosition() { actorPosition($('player'), position); }
+  function actorPosition(el, p, visual = false) { if (!visual && Art?.mapPoint) p = Art.mapPoint(p); el.style.left = p.x / 12 + '%'; el.style.top = p.y / 6.5 + '%'; el.style.zIndex = String(Math.round(p.y)); }
+  function setPosition() { const p = motion && Art?.travelPoint ? Art.travelPoint(motion.route,motion.index,position,motion.id,motion.venue) : Art?.mapPoint ? Art.mapPoint(position) : position; actorPosition($('player'), p, true); }
   // Both candidates dress for their identity and party; redraw only when that changes.
   function dress() {
     const key = state.settings.background + ':' + state.settings.affiliation + ':' + state.rival.party;
     if (key === dressed) return; dressed = key;
-    Art?.setCandidates?.({ player: { outfit: G.BACKGROUNDS[state.settings.background]?.outfit || 'casual', party: state.settings.affiliation === 'independent' ? null : state.settings.affiliation }, rival: { party: state.rival.party } });
+    Art?.setCandidates?.({ player: { identity:state.settings.background, outfit: G.BACKGROUNDS[state.settings.background]?.outfit || 'casual', party: state.settings.affiliation === 'independent' ? null : state.settings.affiliation }, rival: { party: state.rival.party } });
     $('player').innerHTML = Art ? Art.avatar('player') + '<span class="actor-name">小沈・你</span>' : '<span class="actor-name">小沈・你</span>';
     $('rival').innerHTML = Art ? Art.avatar('rival') + '<span class="actor-name">小馬</span>' : '';
   }
@@ -205,7 +205,7 @@
   const pickMark = on => '<span class="pick-mark" aria-hidden="true">' + (on ? '✓' : '') + '</span>';
   function identityCards() {
     const value = state.settings?.background;
-    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + Object.values(G.BACKGROUNDS).map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good">' + b.strengths.map(x => '＋ ' + esc(x)).join('<br>') + '</span><span class="identity-bad">' + b.weaknesses.map(x => '－ ' + esc(x)).join('<br>') + '</span></button>').join('') + '</div></fieldset>';
+    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + Object.values(G.BACKGROUNDS).map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ identity:b.id, outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good">' + b.strengths.map(x => '＋ ' + esc(x)).join('<br>') + '</span><span class="identity-bad">' + b.weaknesses.map(x => '－ ' + esc(x)).join('<br>') + '</span></button>').join('') + '</div></fieldset>';
   }
   function partyFacts(p) {
     if (p.id === 'independent') return ['沒有黨部補助', '沒有黨的立場要顧', '沒有政黨傾向的選民好感 ×' + G.TUNING.party.receptive.swing];
@@ -339,7 +339,7 @@
     if (!state.started || state.phase !== 'plan') return '';
     const rumor = G.rumorView(state), due = G.pendingChallenges(state), rumorSpot = rumor ? (rumor.action === 'canvass' ? rumor.venue : rumor.action === 'tv' ? 'tv' : rumor.action === 'debate' ? 'debate' : null) : null;
     return destinations().map(d => {
-      const key = d.venue || d.kind, p = HOTSPOTS[key] || anchors.start, selected = isSelected(d), canAnswer = d.kind === 'tv' ? due.length > 0 : d.kind === 'canvass' && due.some(c => c.venues.includes(d.venue));
+      const key = d.venue || d.kind, p = Art?.isToy?.() ? Art.spot(key) : HOTSPOTS[key] || anchors.start, selected = isSelected(d), canAnswer = d.kind === 'tv' ? due.length > 0 : d.kind === 'canvass' && due.some(c => c.venues.includes(d.venue));
       return '<button class="hotspot' + (d.kind === 'canvass' ? ' venue g-' + GROUP_KEYS[d.group] : ' building') + (selected ? ' selected' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="select-action" data-kind="' + d.kind + '"' + (d.venue ? ' data-venue="' + d.venue + '"' : '') + ' aria-pressed="' + selected + '"' + (d.disabled ? ' disabled aria-disabled="true"' : '') + ' aria-label="' + esc(d.title + '：' + d.sub) + '"><span class="pin">' + icon(d.kind) + '</span><span class="hotspot-label"><b>' + esc(d.title) + '</b><small>' + esc(d.sub) + '</small></span>' + (canAnswer ? '<span class="badge warn">回應</span>' : '') + (rumorSpot === key ? '<span class="badge rival">小馬?</span>' : '') + (d.boards ? '<span class="badge board">看板 ' + d.boards + '</span>' : '') + (d.chief ? '<span class="badge chief' + (d.chief.broken ? ' won' : '') + '" title="' + esc(d.chief.name + (d.chief.broken ? '挺你' : '：去了 ' + d.chief.visits + '／' + d.chief.need + ' 次')) + '">' + (d.chief.broken ? '里長挺你' : '里長 ' + d.chief.visits + '/' + d.chief.need) + '</span>' : '') + '</button>';
     }).join('');
   }
@@ -641,6 +641,9 @@
   function render() {
     if (selectedAction === 'prepare' && selectedTopic && !G.availableTopics(state).some(t => t.id === selectedTopic)) selectedTopic = null;
     dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport();
+    document.body.dataset.art = Art?.getPack?.() || 'original';
+    $('art-switch').textContent = Art?.isToy?.() ? '霧面玩具 ▾' : '原版方塊 ▾';
+    $('art-switch').disabled = state.phase === 'travel' || counting?.status === 'inprogress';
     $('dock-body').innerHTML = !state.started ? dockIntro() : state.phase === 'plan' ? dockPlan() : state.phase === 'travel' ? dockTravel() : state.phase === 'question' ? dockQuestion() : state.phase === 'recap' ? dockRecap() : dockResult();
     $('dock').dataset.phase = state.started ? state.phase : 'intro';
     $('panel').innerHTML = !state.started ? intro() : state.phase === 'plan' ? planPanel() : state.phase === 'travel' ? travelPanel() : state.phase === 'question' ? questionPanel() : state.phase === 'recap' ? recapPanel() : resultPanel();
@@ -666,7 +669,7 @@
     motion = { id, venue: state.pending.venue || 'market', destination: { ...destination }, stage: 'walk', route, index: 1, elapsed: 0 }; teamElapsed = 0;
     $('world').dataset.action = id;
     $('destination-marker').hidden = false; actorPosition($('destination-marker'), destination);
-    $('route-line').innerHTML = '<svg viewBox="0 0 1200 650"><polyline points="' + route.map(p => p.x + ',' + p.y).join(' ') + '"/></svg>';
+    $('route-line').innerHTML = '<svg viewBox="0 0 1200 650"><polyline points="' + (Art?.isToy?.() ? Art.visualRoute(id,state.pending.venue,Art.mapPoint(route[0])) : route).map(p => p.x + ',' + p.y).join(' ') + '"/></svg>';
     $('player').classList.add('walking');
     render();
     if (reduced.matches) finishTravel();
@@ -712,6 +715,7 @@
       const dx = next.x - position.x, dy = next.y - position.y, len = Math.hypot(dx, dy);
       if (len <= distance) { position = { ...next }; motion.index++; distance -= len; }
       else { position.x += dx / len * distance; position.y += dy / len * distance; distance = 0; }
+      if (Art?.isToy?.() && Art.facing(dx,dy)) $('player').innerHTML = Art.avatar('player');
       setPosition();
     }
   }
@@ -798,6 +802,7 @@
   }
   function focusChoice(selector) { ($('dock').querySelector?.(selector) || $('map-hotspots').querySelector?.(selector) || $('panel').querySelector?.(selector))?.focus({ preventScroll: true }); }
   function dispatch(data) {
+    if (data.action === 'art-switch' && !modal && state.phase !== 'travel' && counting?.status !== 'inprogress') { Art?.setPack?.(Art.isToy() ? 'original' : 'matte-toy-v1'); dressed=''; $('venue-scene').dataset.key=''; scene(); render(); return; }
     if (data.action === 'close') { closeDialog(); return; }
     if (data.action === 'restart') { restart(); return; }
     if (data.action === 'dismiss-notice') { saveNotice = ''; showNotice(); return; }
@@ -855,6 +860,11 @@
   document.addEventListener('visibilitychange', () => { lastFrame = null; $('world').classList.toggle('motion-paused', document.hidden || !!modal); if (document.hidden) save(); else if (motion && reduced.matches && !modal) finishTravel(); });
   window.addEventListener('pagehide', save);
   reduced.addEventListener?.('change', () => { if (reduced.matches && !modal) { if (motion) finishTravel(); if (counting?.status === 'inprogress') finishCounting(); } });
+  document.addEventListener('error', event => {
+    if (!event.target?.getAttribute?.('data-art-image') || !Art?.isToy?.()) return;
+    Art.setPack('original'); dressed=''; $('venue-scene').dataset.key=''; scene(); render();
+    announce('部分美術素材無法載入，已切回原版外觀，遊戲進度保留。');
+  }, true);
   scene();
   if (state.phase === 'result' && reduced.matches && counting?.status === 'inprogress') { counting = { status: 'seen', elapsed: COUNT.end }; save(); }
   render();

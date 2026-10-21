@@ -2,6 +2,42 @@
 (function () {
   'use strict';
 
+
+  // All matte assets, crops and map positions live here; canonical game coordinates stay unchanged.
+  const TOY_ROOT = 'assets/matte-toy-v1/';
+  const TOY_FRAMES = [
+    [{x:223,y:22,w:199,h:356,sole:354},{x:247,y:382,w:173,h:321,sole:319},{x:250,y:708,w:154,h:298,sole:286}],
+    [{x:676,y:24,w:213,h:349,sole:349},{x:691,y:384,w:170,h:319,sole:317},{x:703,y:708,w:148,h:300,sole:282}],
+    [{x:1076,y:35,w:254,h:341,sole:340},{x:1146,y:391,w:174,h:310,sole:310},{x:1152,y:711,w:215,h:298,sole:279}]
+  ];
+  const TOY_SPOTS = {start:[600,345],market:[370,348],temple:[157,285],street:[480,374],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]};
+  const TOY_PATHS = {market:[[500,353]],temple:[[470,337],[283,317]],street:[],plaza:[[650,316]],river:[[665,399],[684,468]],prepare:[[570,295]],recruit:[[570,295]],tv:[[765,357],[899,389]],online:[[765,357],[899,389],[1028,407]],fundraise:[[663,402],[650,466]],debate:[[650,316]]};
+  const TOY_VISITS = {market:'market-square.png',street:'street.png',river:'river.png'};
+  let artPack = 'matte-toy-v1', toyFacing = {row:0,mirror:false};
+  // Browser preferences are separate from election saves. Missing storage is harmless.
+  try { if (window.location) { const q = new URLSearchParams(window.location.search).get('art'); const v = q || window.localStorage?.getItem('wenshan-ui-art-pack-v1'); if(v) artPack = v === 'matte-toy-v1' ? v : 'original'; } } catch (_) {}
+  const isToy = () => artPack === 'matte-toy-v1';
+  function setPack(id) { artPack = id === 'matte-toy-v1' ? id : 'original'; try { window.localStorage?.setItem('wenshan-ui-art-pack-v1',artPack); } catch (_) {} return artPack; }
+  function spot(id) { const p = TOY_SPOTS[id] || TOY_SPOTS.start; return {x:p[0],y:p[1]}; }
+  function toyKey(id, venue) { return ['canvass','rally'].includes(id) ? (TOY_SPOTS[venue] ? venue : 'market') : id === 'press' ? 'tv' : id === 'dig' ? 'prepare' : id; }
+  function visualRoute(id, venue, from) { const key=toyKey(id,venue); return [from || spot('start'),...(TOY_PATHS[key] || []).map(p=>({x:p[0],y:p[1]})),spot(key)]; }
+  function mapPoint(p) {
+    if(!isToy()) return {...p};
+    const pairs = Object.entries(anchors).map(([key,a])=>({key:key==='canvass'?'market':key,a}));
+    pairs.push({key:'street',a:{x:609,y:384}},{key:'river',a:{x:551,y:474}},{key:'plaza',a:{x:713,y:243}},{key:'temple',a:{x:158.2,y:285.8}},{key:'debate',a:{x:935,y:175}});
+    const n=pairs.filter(v=>TOY_SPOTS[v.key]).sort((a,b)=>Math.hypot(a.a.x-p.x,a.a.y-p.y)-Math.hypot(b.a.x-p.x,b.a.y-p.y))[0];
+    const v=spot(n.key); return {x:v.x+(p.x-n.a.x)*.4,y:v.y+(p.y-n.a.y)*.4};
+  }
+  function alongVisual(points, t) { const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)); let d=lengths.reduce((a,b)=>a+b,0)*Math.max(0,Math.min(1,t)); for(let i=0;i<lengths.length;i++){if(d<=lengths[i]&&lengths[i])return {x:points[i].x+(points[i+1].x-points[i].x)*d/lengths[i],y:points[i].y+(points[i+1].y-points[i].y)*d/lengths[i]};d-=lengths[i];} return points.at(-1); }
+  function travelPoint(route,index,p,id,venue) { if(!isToy())return p; const lengths=route.slice(1).map((a,i)=>Math.hypot(a.x-route[i].x,a.y-route[i].y)); const total=lengths.reduce((a,b)=>a+b,0); const prev=route[Math.min(index-1,route.length-1)]; const done=lengths.slice(0,index-1).reduce((a,b)=>a+b,0)+Math.hypot(p.x-prev.x,p.y-prev.y); return alongVisual(visualRoute(id,venue,mapPoint(route[0])),total?done/total:1); }
+  function facing(dx,dy) { const next=Math.abs(dy)>Math.abs(dx)*1.15?{row:dy<0?2:0,mirror:false}:{row:1,mirror:dx<0}; const changed=next.row!==toyFacing.row||next.mirror!==toyFacing.mirror; toyFacing=next; return changed; }
+  function toySprite(column=0,row=0,mirror=false) {
+    const f=TOY_FRAMES[column][row], k=124/f.sole, w=f.w*k, h=f.h*k;
+    // Nested SVG clips each sprite without global clip IDs; every sole is exactly y=130.
+    return '<g class="toy-figure" data-column="'+column+'"><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/>'+ (mirror?'<g transform="translate(100,0) scale(-1,1)">':'<g>')+'<svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="candidate" href="'+TOY_ROOT+'candidates.png" width="1536" height="1024"/></svg></g></g>';
+  }
+  function toyColumn(look=candidates.player) {return look.identity==='heir'||look.outfit==='suit'?1:look.identity==='incumbent'||look.outfit==='vest'?2:0;}
+
   const C = {
     ink: '#394d47', sky: '#f5f0dc', paving: '#e7dfc7', pavingSide: '#cdbf9e',
     wall: '#ede1c3', wallSide: '#cfbea0', teal: '#658d7d', tealDark: '#466c60',
@@ -56,6 +92,7 @@
   };
   const turn = t => t ? ' transform="' + t + '"' : '';
   function humanMarkup(role = 'player', color, pose = null) {
+    if (isToy() && ['player','protagonist','candidate'].includes(role)) return toySprite(toyColumn(), pose ? 0 : toyFacing.row, pose ? false : toyFacing.mirror);
     const P = POSES[pose] || {};
     role = roleAliases[role] || role;
     if (!Object.prototype.hasOwnProperty.call(looks, role)) role = 'player';
@@ -130,6 +167,7 @@
 
   // A candidate in a given outfit and party, without changing the current game's look (opening cards, match-up).
   function portrait(look = {}, role = 'player') {
+    if (isToy() && role === 'player') return '<svg class="day-avatar-svg" viewBox="0 0 100 140">'+toySprite(toyColumn(look))+'</svg>';
     const saved = candidates;
     candidates = role === 'rival' ? { ...saved, rival: { party: look.party || null } } : { ...saved, player: { outfit: look.outfit || 'casual', party: look.party || null } };
     try { return avatar(role); } finally { candidates = saved; }
@@ -503,6 +541,7 @@
   function route(id) { return (paths[id] || [anchors.start]).map(p=>({x:p.x,y:p.y})); }
 
   function scene() {
+    if (isToy()) return '<img data-art-image="world" class="toy-world" src="'+TOY_ROOT+'district.png" alt="文山木柵意象街區：市場、社區、茶山、纜車及河岸；非實際道路地圖">';
     let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-label="木柵意象縮景：木柵市場上方的圖書館、文山行政中心與公車站、YouBike、景美溪道南河濱、貓空茶山與原創廟前廣場。行動場地以步道相連，居民皆為原創方塊人。非實際地圖。" class="day-art-svg">';
     s+='<title>木柵意象縮景｜非實際地圖</title><desc>原創 2.5D 木柵街區，以可辨識的地景元素組成非實際比例的意象縮景。左方木柵市場上層為木柵圖書館，遠方有文山行政中心、公車站與 YouBike；景美溪彎過道南河濱綠色自行車道，後方為層層貓空茶山。社區工作室、市場、訪談小棚、座談廣場等行動目的地均由步道相連；新增廟前廣場是虛構的公共空間與無障礙動線交流場地，不指涉特定廟宇，也不代表宗教群體的政治立場，所有角色皆為人類。地標只是場景背景，不代表任何機關支持或背書。</desc>';
     s+=rect(0,0,1200,650,'#f5f0df');
@@ -561,6 +600,7 @@
   function figure(x, feetY, role, scale, pose) { return person(x, feetY, role, scale, pose); }
   const floor = (top, base, line) => { let s = rect(0, top, 1200, 650 - top, base); for (let y = top + 34; y < 650; y += 46) s += path(`M0 ${y}H1200`, line, 1.2, 'opacity=".55"'); for (let x = -40; x < 1240; x += 120) s += path(`M${x} ${top}L${x - 90} 650`, line, 1.1, 'opacity=".4"'); return s; };
   function backdrop(kind) {
+    if (isToy() && TOY_VISITS[kind]) return '<image data-art-image="venue" href="'+TOY_ROOT+TOY_VISITS[kind]+'" width="1200" height="650" preserveAspectRatio="xMidYMid slice"/>';
     let s = rect(0, 0, 1200, 650, '#f4eedc');
     if (kind === 'market') {
       s += rect(0, 36, 1200, 320, '#e2cfb0') + rect(0, 36, 1200, 18, '#c9b490') + rect(452, 54, 296, 56, '#9e7354') + label(600, 96, '木柵市場', 36, '#fff3cf', 'text-anchor="middle"');
@@ -691,5 +731,5 @@
     return s + '</svg>';
   }
 
-  window.DayArt = Object.freeze({scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
+  window.DayArt = Object.freeze({getPack:()=>artPack,setPack,isToy,spot,visualRoute,mapPoint,travelPoint,facing,assetFrames:TOY_FRAMES,scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
 })();
