@@ -12,8 +12,9 @@
   ];
   const SUPPORT_FRAMES = [[{"x": 162, "y": 13, "w": 280, "h": 351, "sole": 351}, {"x": 656, "y": 18, "w": 209, "h": 346, "sole": 346}, {"x": 1088, "y": 16, "w": 285, "h": 347, "sole": 347}], [{"x": 164, "y": 370, "w": 249, "h": 334, "sole": 334}, {"x": 641, "y": 373, "w": 239, "h": 332, "sole": 332}, {"x": 1080, "y": 370, "w": 294, "h": 337, "sole": 337}], [{"x": 116, "y": 704, "w": 382, "h": 316, "sole": 316}, {"x": 639, "y": 710, "w": 236, "h": 311, "sole": 311}, {"x": 1130, "y": 711, "w": 224, "h": 311, "sole": 311}]];
   const WALK_FRAMES = [[{"x": 141, "y": 17, "w": 159, "h": 264, "sole": 264}, {"x": 434, "y": 18, "w": 165, "h": 263, "sole": 263}, {"x": 710, "y": 25, "w": 190, "h": 256, "sole": 256}], [{"x": 143, "y": 287, "w": 161, "h": 264, "sole": 264}, {"x": 442, "y": 289, "w": 152, "h": 262, "sole": 262}, {"x": 702, "y": 293, "w": 204, "h": 258, "sole": 258}], [{"x": 147, "y": 556, "w": 156, "h": 257, "sole": 257}, {"x": 446, "y": 556, "w": 153, "h": 257, "sole": 257}, {"x": 727, "y": 560, "w": 170, "h": 253, "sole": 253}], [{"x": 140, "y": 816, "w": 148, "h": 254, "sole": 254}, {"x": 438, "y": 816, "w": 150, "h": 255, "sole": 255}, {"x": 731, "y": 817, "w": 201, "h": 254, "sole": 254}], [{"x": 145, "y": 1071, "w": 140, "h": 236, "sole": 236}, {"x": 441, "y": 1071, "w": 140, "h": 235, "sole": 235}, {"x": 736, "y": 1072, "w": 185, "h": 234, "sole": 234}], [{"x": 149, "y": 1307, "w": 134, "h": 221, "sole": 221}, {"x": 438, "y": 1307, "w": 144, "h": 222, "sole": 222}, {"x": 738, "y": 1308, "w": 185, "h": 221, "sole": 221}]];
-  const TOY_SPOTS = {start:[600,345],market:[370,348],temple:[157,285],street:[480,374],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]};
-  const TOY_PATHS = {market:[[500,353]],temple:[[470,337],[283,317]],street:[],plaza:[[650,316]],river:[[665,399],[684,468]],prepare:[[570,295]],recruit:[[570,295]],tv:[[765,357],[899,389]],online:[[765,357],[899,389],[1028,407]],fundraise:[[663,402],[650,466]],debate:[[650,316]]};
+  const TOY_SPOTS = {start:[600,345],market:[370,348],temple:[157,285],street:[552,424],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]};
+  // Waypoints follow the paved streets of district.png, so walkers never cross roofs, stalls or gardens.
+  const TOY_PATHS = {market:[[520,328],[440,330]],temple:[[520,328],[440,330],[320,336],[240,332]],street:[[680,345],[700,410],[705,482],[600,484],[575,452]],plaza:[[650,316]],river:[[680,345],[700,410],[705,482]],prepare:[[570,295]],recruit:[[570,295]],tv:[[680,345],[700,410],[800,445],[880,488],[985,468],[995,432]],online:[[680,345],[700,410],[800,445],[880,488],[985,468],[1030,455]],fundraise:[[680,345],[700,410],[705,482]],debate:[[650,316]]};
   const TOY_VISITS = {market:'market-square.png',street:'street.png',river:'river.png'};
   let artPack = 'matte-toy-v1', toyFacing = {row:0,mirror:false};
   // Browser preferences are separate from election saves. Missing storage is harmless.
@@ -54,7 +55,7 @@
   function toyTeam(assignments,elapsed,id,venue,reduced) {
     return assignments.filter(a=>a.task!=='release').slice(0,6).map((a,i)=>{const dest=a.task==='research'?'prepare':a.task==='stream'?'online':a.task==='booth'?'fundraise':a.task==='idle'?'recruit':id;const target=toyKey(dest,venue);const p=alongVisual([spot('recruit'),spot('start'),...visualRoute(target).slice(1)],reduced?1:Math.min(1,elapsed/2.5));p.x+=(-28+i*14);p.y+=18+i%2*10;return '<span class="toy-helper" data-helper-id="'+String(a.id??i).replace(/[^a-zA-Z0-9_-]/g,'')+'" style="left:'+p.x/12+'%;top:'+p.y/6.5+'%;z-index:'+Math.round(p.y)+'">'+avatar('helper')+'</span>';}).join('');
   }
-  function toyResidents() { return [[420,365,'elder'],[462,390,'middle2'],[760,298,'young'],[656,501,'elder2'],[859,391,'young2'],[540,261,'middle']].map(([x,y,role])=>'<span class="toy-resident" style="left:'+x/12+'%;top:'+y/6.5+'%">'+avatar(role)+'</span>').join(''); }
+  function toyResidents() { return [[330,336,'elder'],[262,332,'middle2'],[760,298,'young'],[656,501,'elder2'],[915,500,'young2'],[540,261,'middle']].map(([x,y,role])=>'<span class="toy-resident" style="left:'+x/12+'%;top:'+y/6.5+'%">'+avatar(role)+'</span>').join(''); }
   function toyColumn(look=candidates.player) {return look.identity==='heir'||look.outfit==='suit'?1:look.identity==='incumbent'||look.outfit==='vest'?2:0;}
 
   const C = {
@@ -757,7 +758,8 @@
     // The stage, the candidate and two assistants.
     s += block(316, 516, 568, 48, 46, '#8c6a4e', '#a98260', '#6f523c') + rect(316, 558, 568, 8, '#6f523c') + rect(316, 516, 568, 6, party);
     const crew = won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null;
-    if (refunded) s += rect(431, 418, 5, 78, '#6d6a5c') + rect(380, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(434, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
+    // The placard stands left of the helpers so neither art pack hides its text.
+    if (refunded) s += rect(301, 418, 5, 78, '#6d6a5c') + rect(250, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(304, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
     s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
     // Supporters on the floor; each bobs on its own beat once the result is in.
     NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null) + '</g>'; });

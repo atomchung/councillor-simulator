@@ -437,7 +437,7 @@
   }
   function dockPlan() {
     const p = selectedAction ? G.preview(state, selectedAction, planConfig()) : null;
-    if (!p) return dockAlerts() + '<p class="dock-hint"><b>點地圖上的地點出發。</b>每個地點的主要人潮不同，會從他們在意的三題挑一題問你。</p>';
+    if (!p) return dockAlerts() + '<p class="dock-hint"><b><span class="hint-map">點地圖上的地點出發。</span><span class="hint-list">點地圖下方的地點出發。</span></b>每個地點的主要人潮不同，會從他們在意的三題挑一題問你。</p>';
     const id = selectedAction, venue = onSite(id) ? G.venueView(state).find(v => v.id === p.venue) : null, place = placeName(id, p.venue);
     let body = '';
     if (onSite(id)) {
