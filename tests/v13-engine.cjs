@@ -324,4 +324,9 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
 // The five places ask five different issues each round unless 小馬's open challenge pins one, so the map is a choice of issues.
 {let rounds=0,distinct=0;for(let seed=1;seed<=30;seed++){const s=fresh(seed);for(let d=1;d<=5&&s.phase==='plan';d++){settleCrisis(s);if(!(s.challenges||[]).some(c=>c.status==='open')){const asked=G.venueView(s).map(v=>G.venueTopic(s,v.id));rounds++;if(new Set(asked).size===asked.length)distinct++;}G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}}
  ok(distinct/rounds>.9,'places ask different issues: '+distinct+'/'+rounds);}
+// Polls: four for a party candidate (rounds 2, 4, 6, 8), two for an independent (3, 7); each gives the groups, the gap and the points it takes in each group.
+{const run=aff=>{const s=fresh(6,{background:'heir',affiliation:aff});while(s.day<G.DAYS&&s.phase==='plan'){settleCrisis(s);G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}return s;};
+ const kmt=run('kmt'),ind=run('independent');eq((kmt.pollReports||[]).map(p=>p.day),[2,4,6,8],'four polls for a party candidate');eq((ind.pollReports||[]).map(p=>p.day),[3,7],'two for an independent');
+ const p=ind.pollReports[0];eq(p.groups.length,3,'three groups');ok(p.groups.every(g=>g.youPct>=0&&g.addPct>=0),'shares and points needed are given');ok(p.need===Math.max(0,Math.round(p.line-p.you)),'the gap matches the poll');
+ const v=G.pollView(ind);eq(v.latest.day,7,'the latest poll stays until the next one');eq(v.next,null,'no poll after round 7 for an independent');}
 
