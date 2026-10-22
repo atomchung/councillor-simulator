@@ -947,3 +947,33 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 @media(max-width:900px){.v13 .hud-day .act-chip{display:none}}
 /* Street-type venues: the speaker stands at x=455/1200 with the head near 40% height, so the bubble sits just above and points at them. */
 @media(min-width:701px){.v13 .conversation-bubble:not([data-kind="tv"]):not([data-kind="debate"]):not([data-kind="online"]){left:20%;top:30%;width:34%}.v13 .conversation-bubble:not([data-kind="tv"]):not([data-kind="debate"]):not([data-kind="online"])::after{left:52%}}
+/* Dirt file: the map entry at the campaign office, its dialog, and the release row on press, TV and stream plans. */
+.v13 .hotspot.file-spot .pin{background:var(--rival-soft);color:var(--rival)}
+.v13 .hotspot.file-spot.ready{border-color:var(--rival)}
+@media(min-width:601px){.v13 #map-hotspots .hotspot.file-spot{margin-left:-58px;margin-top:-30px}}
+.v13 .dirt-file{display:grid;gap:10px}
+.v13 .dirt-lead{margin:0;font-weight:700}
+.v13 .lead{border:1px solid var(--line);border-left:4px solid #c4573e;border-radius:10px;background:var(--card);padding:9px 11px}
+.v13 .lead.status-solid{border-left-color:#2f7a4a}
+.v13 .lead.status-debunked,.v13 .lead.status-released{border-left-color:var(--line);opacity:.8}
+.v13 .lead p{margin:4px 0 0;font-size:13px;line-height:1.5}
+.v13 .lead-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.v13 .lead-status{font-size:12px;font-weight:700;color:var(--muted)}
+.v13 .lead.status-solid .lead-status{color:#2f7a4a}
+.v13 .lead-actions{display:flex;flex-wrap:wrap;gap:6px}
+.v13 .mini-button.go{border-color:var(--green);color:var(--green)}
+.v13 .mini-button small{margin-left:4px;font-weight:400}
+.v13 .dirt-dig{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;border-top:1px solid var(--line);padding-top:8px}
+.v13 .dirt-dig p,.v13 .dirt-risk{margin:0;font-size:13px;line-height:1.5}
+.v13 .dirt-dig small{color:var(--muted)}
+.v13 .dirt-outlets{margin:0}
+.v13 .dirt-risk b,.v13 .dirt-dig b,.v13 .dirt-outlets b{margin-right:6px}
+.v13 .dirt-against{font-size:13px}
+.v13 .dirt-against ul{margin:4px 0 0;padding-left:18px}
+.v13 .expose-row{display:flex;flex-wrap:wrap;align-items:stretch;gap:6px;margin:8px 0}
+.v13 .expose-row .pick-label{flex-basis:100%}
+.v13 .expose-chip{display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:5px 10px;min-height:44px;border:1.5px solid var(--line);border-left-width:4px;border-radius:8px;background:#fffdf7;font-size:12.5px;text-align:left}
+.v13 .expose-chip small{font-size:10.5px;color:var(--muted)}
+.v13 .expose-chip.solid{border-left-color:#2f7a4a}
+.v13 .expose-chip.risky{border-left-color:#c4573e}
+.v13 .expose-chip[aria-pressed="true"]{border-color:var(--green);background:var(--mint)}
