@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: river.png
+Final canvas: 1536 x 400
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-fb48c9d8-40ea-41ad-b8bc-cd47add78557.png
+Reference descriptions: No image reference; prompt-defined material/camera.
+Postprocessing: Remove alpha specks, crop bank/water strip, resample to1536x360, mirror half for exactly equal left/right edge pixels. Place at y20 on1536x400 transparent canvas.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Original game terrain asset, simplified matte clay miniature, muted warmbeige and sage palette, large shapes and minimal detail, orthographic front facing bottom with30degree elevated camera, no diagonallyrotated framing. TransparentRGBA outside object. NO text, letters, digits, logos, people, vehicles, symbols or background scene. Wide HORIZONTAL straight river strip, parallel banks, water flowslefttoright. Landscape1536x400 composition. Muted pale turquoise water middle, narrow warmgray stoneembankment strips along top andbottom, no rails. Both left andright sides cutstraight with same banklevels forrepeat. No perspective narrowing, bends, ends, bridge, plants or extraobjects. Sparse soft waterwave marks. Transparent outside banks. Keep bankheight constant acrossimage.
+

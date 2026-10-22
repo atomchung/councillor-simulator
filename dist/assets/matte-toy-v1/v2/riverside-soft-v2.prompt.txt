@@ -1,0 +1,9 @@
+Tool: built-in image_gen
+Target: riverside-soft-v2.png
+Canvas: 1536 x 1024
+Transparent background: false
+Reference: plaza.png
+
+Prompt:
+Original game environment, ONE opaque image EXACT1536x1024, landscape3:2. Match reference matte clay miniature game material and slightlyelevated frontal camera, but make a CALMER LOWERDETAIL alternative: soft warmcream, desaturated sage, muted terracotta; broad simple forms, no leaf-by-leaf or tiny tile decoration, no glossy plastic, no photorealism. Background should support the separately added characters and much dialogue. All buildings/furniture/plants in UPPER40percent (y0..410). At least LOWER60percent entirely clear flat pale matte floor for12 separately inserted people. Restrained wide groundseams only, no noisy textures. NO humans, animals, silhouettes, UI, words, letters, numbers, logos, badges, political symbols or flags. Signs/panels blank. No foreground objects blocking movement. Soft diffuse consistent shadow and no dramaticlight. TAIWANESE RIVERSIDE WALKWAY, calm lowdetail scene. Upperthird pale quiet river, distant simplified rolling greenhills, lowstonerailing at y320..395, one bench behindleftedge at y340, single roundcanopy tree farrightback, one discreet trashbin rearleft, allabove y410. Lower60percent broad empty cream promenade unobstructed. No foregroundriver, no water crossingwalkingzone, no bridge blockingpath. Shallowelevated frontalcamera, clear groundplane, sparse mutedshapes, almost no watertexture, no peoplesilhouettes or pets.
+

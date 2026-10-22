@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: bld-online.png
+Final canvas: 1024 x 1024
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-133d68d4-8add-4859-b966-08f9842c3130.png
+Reference descriptions: bld-office generated draft (camera/material)
+Postprocessing: Clean low-alpha generated haze and specks; normalize opaque sprite coverage; resize silhouette to280x195px. Place horizontal footprint center x512 and solid front-ground baseline y900 on1024x1024 transparent canvas. Add a narrow soft neutral contact shadow centered at(512,900); alpha0 outside silhouette/shadow. Front-facing elevated view visually checked with other buildings. Floor-height scale approximately90px; roof/antenna/umbrella height excluded from floor count.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Use case: stylized-concept. Isolated game map building on transparent RGBA, square canvas. Match reference MATTE CLAY, simplified warm beige miniature style and EXACT SAME camera: orthographic frontal with approx30degree downwardpitch, no yaw, no cornerturned view, frontface horizontal toward bottom, verticals vertical. Single-storey frontwall should be about1/3 as tall as overallbuildingwidth, so resized to300pxwidth wallheight is90px. All geometry remains centered and symmetric depth. Draw a clean recognizable silhouette, no oversized concretegroundslab, no grass, trees, roads, people, vehicles, text, letters, digits, logos, flags, party emblems. No background, blackplate, halo or glow, only faint soft neutral contactshadow immediatelyunderbase. Outside silhouette+shadow truealpha0. Wholeobjectvisible; leave15%padding. ONE single-storey small independent streaming studio, warm cream facade with muted apricot trim, broad frontwindow containing one clearly visible circular white ring light on a slim stand, simple plain entrance.
+

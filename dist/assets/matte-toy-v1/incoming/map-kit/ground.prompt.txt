@@ -1,0 +1,11 @@
+Tool: built-in image_gen
+Target: ground.png
+Canvas: 1536 x 1024
+Transparent background: false
+References (relative): ../temple-soft-v2.png, ../../district.png
+Specification: ../REQUEST-4-map-kit.md; ../REQUEST.md
+Validation: opaque 1536x1024; empty pale beige ground with rounded grass platform border; no objects, buildings, roads, trees or text.
+
+Prompt:
+Use case: stylized-concept. Create one game map ground plate, EXACT1536x1024 opaque. Reference1 gives simplified matte clay warm beige style; reference2 gives only OUTER ROUNDED GRASS PLATFORM SHAPE. Remove ALL content from district map. Final asset is a completely EMPTY broad flat very pale warm beige ground surface, surrounded only by a thin low rounded muted sage grass rim and shallow earth/clay edge on warm ivory background. Straight centered frontal elevated view approx30degrees looking down, front edge faces bottom of image, no diagonal rotated corner. Rounded rectangular platform nearly fills canvas, visible entire outline with modest margin, no mountain silhouette. Middle completely blank unpatterned uniform beige usable land with subtle soft material shading, no paving lines or speckle. Grass border narrow and smooth, not separate grass blades, no plants. No roads, paths, buildings, trees, bushes, mountains, hills, river, water, rocks, poles, vehicles, people, signs, letters, numbers, logos, symbols or objects. Simple muted matte toy miniature material, soft diffuse light, clean flat broad forms. This is empty ground for programmatically placing buildings and roads.
+

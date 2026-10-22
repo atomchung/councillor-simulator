@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: bld-mrt.png
+Final canvas: 1024 x 1024
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-e28043f1-df83-4654-9f38-1e2ed71a1772.png
+Reference descriptions: No image reference; prompt-defined material/camera.
+Postprocessing: Clean low-alpha generated haze and specks; normalize opaque sprite coverage; resize silhouette to280x170px. Place horizontal footprint center x512 and solid front-ground baseline y900 on1024x1024 transparent canvas. Add a narrow soft neutral contact shadow centered at(512,900); alpha0 outside silhouette/shadow. Front-facing elevated view visually checked with other buildings. Floor-height scale approximately90px; roof/antenna/umbrella height excluded from floor count.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Isolated game map building on transparentRGBA. Simplified matte clay miniature, warm beige and terracotta low saturation, broad shapes. Orthographic FRONT camera30degrees downwardpitch, yawzero, frontface horizontaltowardbottom, roofsvisible. Wholeobject visible with15%padding. No surrounding scenery, no largegroundslab, no roads, no people or vehicles, no text letters digits logos flags badges, no backdrop or glow. Faintcontactshadow. Compact Taiwanese metro station entrance pavilion, low warmgray frame and a simple clear canopy over stairwell descendinginside. Horizontal frontentrance opening, handrails, blank cream signplate. No transit logo, routes, text, ticket machines or ads. Width abouttwiceheight, stairwell recognizable.
+

@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: bridge.png
+Final canvas: 512 x 512
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-91f0fd97-8da5-41a3-aa26-527baf1bcdb4.png
+Reference descriptions: No image reference; prompt-defined material/camera.
+Postprocessing: Remove alpha specks and generated outer haze. Sprite250x440 at(131,36) on512x512; approaches extend beyond360px river/bank span. Front-to-back orientation across horizontal river.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Original game terrain asset, simplified matte clay miniature, muted warmbeige and sage palette, large shapes and minimal detail, orthographic front facing bottom with30degree elevated camera, no diagonallyrotated framing. TransparentRGBA outside object. NO text, letters, digits, logos, people, vehicles, symbols or background scene. One single pale warmgray stone footbridge oriented VERTICALLY from bottomcenter towardtopcenter, crossing a horizontal river that is NOT drawn. Viewdown30degrees, front entrance atbottom, backentrance attop, no yaw or rotation. Narrow straight walkingdeck, low simple stonebalustrades leftandright, one modest raised arch underdeck. Entire bridge isolated on transparency, no water, banks, ground or scenery. Bridge length about400px, deckwidth140px whenon512square. Entry andexit samewidth. Few big stoneblocks, simpleforms.
+

@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: bld-plaza.png
+Final canvas: 1024 x 1024
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-2d5a5bb7-baae-4b93-8473-4d4f775d71d8.png
+Reference descriptions: ../plaza-soft-v2.png
+Postprocessing: Clean low-alpha generated haze and specks; normalize opaque sprite coverage; resize silhouette to310x180px. Place horizontal footprint center x512 and solid front-ground baseline y900 on1024x1024 transparent canvas. Add a narrow soft neutral contact shadow centered at(512,900); alpha0 outside silhouette/shadow. Front-facing elevated view visually checked with other buildings. Floor-height scale approximately90px; roof/antenna/umbrella height excluded from floor count.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Use case: stylized-concept. One isolated map building sprite. Output1024x1024 genuine transparent RGBA. Style reference for simplified matte clay miniature, warmcream muted colors broadshapes, fewdetails. STRICT camera same orthographic FRONT view with30degree downwardpitch, yaw0, not isometric, facade perfectly horizontal facing canvas bottom, symmetrical depth foreshortening with roof topvisible, no cornerturnedview. Solidbase frontbottomcenter EXACTLYx512,y900, allfeatures above this point. Generalfootprint width260..320px; onefloorheight90px. Tiny building on mostly transparentcanvas, do not zoom or fillframe. Include only building and tiny attachedfunctionalprops, faintsoft contactshadow directly beneath, outside shadow alpha0. No district background, large plinth, garden, enclosinggroundplane, ground tiles, trees, roads, people, vehicles, text, letters, digits, logos, flags or party symbols. No saturated blue or green facades. Pure blank signfaces. One single-storey community activity center, warm cream walls, mutedterracotta lowroof, simple centered entrance porch and two small benches symmetrically beside doorway. Basewidth310px, single-storey wallheight90px. No trees.
+

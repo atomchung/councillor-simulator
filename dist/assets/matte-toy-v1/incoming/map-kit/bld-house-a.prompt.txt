@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: bld-house-a.png
+Final canvas: 1024 x 1024
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-63017337-f1a8-41af-8de0-ef50a236fff9.png
+Reference descriptions: bld-office generated draft (camera/material)
+Postprocessing: Clean low-alpha generated haze and specks; normalize opaque sprite coverage; resize silhouette to280x360px. Place horizontal footprint center x512 and solid front-ground baseline y900 on1024x1024 transparent canvas. Add a narrow soft neutral contact shadow centered at(512,900); alpha0 outside silhouette/shadow. Front-facing elevated view visually checked with other buildings. Floor-height scale approximately90px; roof/antenna/umbrella height excluded from floor count.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Isolated game map prop, transparentRGBA. Matte clay toy miniature, muted warmcream terracotta palette, broad roundedshapes, minimaldetail, softlight. OrthographicFRONT, camera30degrees downward from horizontal, yawzero, no rotatedcorner, horizontalfront, roofs/tops visible. Wholeobject visible15%padding. No text, digits, logos, flags, people, vehicles, groundplane, opaque background, outerglow or halo. Only subtle contactshadow below. One Taiwanese THREE-STOREY narrow townhouse, warm palecream walls withmutedterracotta details, three clearly separated floors each with windows, small groundfloor entrance and beige rainawning. Flat roof with ONE silvergray cylindricalwatertank. No dormers, no fourthstorey. Overall facade wallheight approximatelyequal facadewidth (3floors, floorheight90px at basewidth280px). Camera same asreference, front unrotated. Single isolated building.
+

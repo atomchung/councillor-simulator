@@ -1,0 +1,12 @@
+Tool: built-in image_gen
+Target: market-rain.png
+Requested canvas: 1536 x 1024
+Actual canvas: 1536 x 1024
+Transparent background: false
+Initial references (relative to this file): market-soft-v2.png
+Specification: REQUEST-3.md; common rules: REQUEST.md
+Validation note: Opaque1536x1024. Major placement visually follows source. Exact pixel-for-pixel geometry match is not guaranteed; wet textures may introduce small local changes.
+
+Prompt history:
+Use case: lighting-weather. EDIT THE PROVIDED IMAGE, do not redesign or reconstruct it. Output EXACTLY1536x1024 opaque. This is the RAIN weather state of the exact same game location. LOCK camera, crop, perspective, every building outline, every roof, post, tree, item, pavement seam, road and horizon position to the source image; no movement, zoom, additions/removals, changes to proportions or composition. Change ONLY WEATHER AND SURFACE LIGHTING: soft gray-blue overcast daylight, damp slightly darker materials, restrained shallow reflective wet patches on existing floor with soft reflections of existing architecture, a few subtle raindrop rings and sparse fine diagonal rain streaks. Rain must clearly read at game size while retaining simplified matte clay toy art, muted palette and readability. Keep lower ground equally unobstructed; wet patches are flat surface appearance not new objects. Maintain original awning geometry. No floods, no thunderstorm drama, no deep puddles, no bright glare. No humans, animals, umbrellas, text, digits, letters, logos, UI or new props. Preserve exact subject placement and all architectural details; only recolor/relight and add rain.
+

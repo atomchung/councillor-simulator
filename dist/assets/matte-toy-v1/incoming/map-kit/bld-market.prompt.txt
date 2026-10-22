@@ -1,0 +1,16 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: bld-market.png
+Final canvas: 1024 x 1024
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-b1fa798b-61de-49ef-8e59-b45f604346e3.png
+Reference descriptions: ../market-soft-v2.png
+Postprocessing: Clean low-alpha generated haze and specks; normalize opaque sprite coverage; resize silhouette to300x160px. Place horizontal footprint center x512 and solid front-ground baseline y900 on1024x1024 transparent canvas. Add a narrow soft neutral contact shadow centered at(512,900); alpha0 outside silhouette/shadow. Front-facing elevated view visually checked with other buildings. Floor-height scale approximately90px; roof/antenna/umbrella height excluded from floor count.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Create one isolated tiny game map MARKET BUILDING SPRITE on EXACT1024x1024 transparentRGBA canvas. Reference defines simplified matte clay lowdetail warmbeige/wood/cream style. Three compact adjoining fruit/vegetable market stalls with cream awnings and a few produce crates on counters. NO scene or groundplate. Strict camera orthographic FRONT with30degree downward pitch, no yaw or diagonalrotation, front facade towardBOTTOM. HARD PIXEL LAYOUT: entire market floor footprint from x362 to662 (width300px). Single storey frontwall height90px. The point where the CENTER of the solid base's FRONT BOTTOM EDGE touches ground must be EXACTLY(x512,y900). Front-bottomedge horizontal at y900. Stalls rise to abouty730, includingvisible awning roofsurface. Solid building stays within x350..674,y700..900. Remaining canvas mostly EMPTY TRANSPARENCY; do NOT enlarge tofitimage, DO NOT centerobjectvertically. Place tiny building nearbottomcenter, leave700px blankabove. One narrow soft contactshadow underfoot, outside shadow alpha0. Fullimage1024square, NOT1254square. No text, logos, signs, people, vehicles, trees, paths, flags, blue/green awnings, checkerboard or opaque backdrop. Produces only smallstalls, shadow andtransparentemptyspace. Technical alignment moreimportant than fillingframe.
+
+Refinement prompt:
+Technical correction of this market sprite. Required canvas EXACT1024x1024 pixels. Current stalls are900px wide, must be SHRUNK to300px wide total, as a tiny compact isolated map icon. Keep identical warm matteclay three awnings and produce stalls, FRONT view approx30degrees down. Uniformly shrink complete object by factor1/3. Place solid object within x362..662 andy816..900, final solid frontbottomedge horizontal y900, centerx512. Remaining canvas is huge empty transparent space. Do not scaleobjectup tofillframe, preserve tiny small icon size. Faint contactshadow only beneath base, outside shadow alpha0. No backdrop, grid, coordinates, letters, objects or newground. Deliver1024square, not1254. Geometry location strict: bottomcenter(x512,y900), totalwidth300pixels.
+

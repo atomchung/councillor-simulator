@@ -1,0 +1,11 @@
+Tool: built-in image_gen
+Target: fundraise.png
+Canvas: 1536 x 1024
+Transparent background: false
+Style sources: ../support.png, ../candidates.png (characters); ../market-square.png, ../street.png, ../scenes.png (environments).
+
+Pass 1
+ONE opaque standalone 1536x1024 PNG, landscape3:2, matching the indicated panel of reference scenes.png but as fullresolution single scene, no montage. Same matte rounded miniature-model rendering and slightlyelevated frontal view. Strictfloor layout: allfurniture and mainstructures in upper45%, y0..460; lower55% broad EMPTY unobstructed tilefloor for separate gamecharacters. Softmutedcolors, clean diffuselight. No people, characters or animals; no words letters digits logos emblems or realmedia branding anywhere. Screens entirely blank, no text or shapes representing text. No political flags or politicalcolors on apparel. No bakedshadows of missingpeople. Expand ONLY BOTTOMLEFT PANEL: neighborhood fundraising courtyard with warmcream facade and softorange/cream stripedawning over reardoor, simpledonationtable near upperright edge with plain blank cream donationbox and blank envelopes, a few planters and rear lampposts. No bunting flags, balloons or festiveconfetti. Table strictlyupper45%, lower55% opencreamstone plaza unobstructed.
+
+Pass 2
+Refine this exact game background to same1536x1024 opaqueimage. Preserve style, colors, blank screens and place identity. ONE CRITICAL layoutcorrection: move ALL furniture, cameras/tripods, desks, tables, plantpots and builtobjects BACK and shrink them until their bottommostedge is at y410 or higher. Their current edges aroundy520are too farforward. Keep upper set visuallycoherent. From y430 allthewayto1024 must be entirely EMPTY flat floor for characters, including leftandright edges. That is58percent emptyforeground. No objects in lowerhalf, no newobjects, no people, no text letters digits logos flags. Matteclaytoy diorama asreference. Keeplighting neutral and floorperspective. No crop of furniture.

@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: hills-back.png
+Final canvas: 1536 x 360
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-906432aa-1d2e-430a-9048-9bc7136c24c2.png
+Reference descriptions: No image reference; prompt-defined material/camera.
+Postprocessing: Clean low-alpha haze while retaining cable line. Resample silhouette1536x350, place y10, feather bottom6px to alpha0 for ground join.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Original game terrain asset, simplified matte clay miniature, muted warmbeige and sage palette, large shapes and minimal detail, orthographic front facing bottom with30degree elevated camera, no diagonallyrotated framing. TransparentRGBA outside object. NO text, letters, digits, logos, people, vehicles, symbols or background scene. A very WIDE LOW panorama strip of distant rounded Taiwanese TEA HILLS, simplified terraced tea bands in desaturatedsage, one verysimple cablecar line with three poles and two tiny muted terracotta/cream cablecabins. No sky, transparencyabovehill silhouette. Horizontalfrontview, loweredge flat mutedgrass joining ground, no whiteoutline. No temples, houses, roads, water or foregroundobjects. 1536x360 composition, gently varying hillheight with no tallpeaks. Sparse smoothshapes, no individualleaves.
+

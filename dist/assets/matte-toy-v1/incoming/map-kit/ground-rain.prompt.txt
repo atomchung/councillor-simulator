@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: ground-rain.png
+Final canvas: 1536 x 1024
+Transparent background: false
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-1cc4be99-9804-4557-b742-5a52e54c13e8.png
+Reference descriptions: ground.png
+Postprocessing: Original ground.png geometry retained without warp; cool RGB grade and generated wet-surface high-pass texture restricted to interior. Outer boundary and all geometry remain original pixel coordinates.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Edit only weather and lighting of this EXACT empty ground game plate. Output1536x1024 opaque, lock every edge, grass border outline, crop, camera and perspective to source. Do not regenerate shape. Change beige ground to overcast gray-blue slightly beige wet ground with subtle lowcontrast water patches/reflections and tiny light rain marks. Empty center stays completely empty and usable. Keep identical grass rim thickness and position. No roads, buildings, trees, rocks, objects, writing, people, vehicles. No new geometry or borders. Soft simplified matte toy material, neutral cool rainy light.
+

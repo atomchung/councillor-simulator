@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: tree-b.png
+Final canvas: 256 x 256
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-c9918945-4d47-40ec-a51f-2d7cb731bcce.png
+Reference descriptions: No image reference; prompt-defined material/camera.
+Postprocessing: Extract right tree from generated pair. Clean alpha; resize150x205. Trunk contact anchor(128,230) on256x256. Add narrow soft contact shadow, zero alpha outside.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Original game terrain asset, simplified matte clay miniature, muted warmbeige and sage palette, large shapes and minimal detail, orthographic front facing bottom with30degree elevated camera, no diagonallyrotated framing. TransparentRGBA outside object. NO text, letters, digits, logos, people, vehicles, symbols or background scene. Two isolated stylized ROUND TREES sidebyside, separatedbylargegap, eachfulltree includingtrunkbottom. LEFT one broad spherical muted sage crown onshortwarmbrowntrunk; RIGHT slightlytaller tree with3rounded lobes olivegreen canopy andslim warmbrowntrunk. No leaves individually, no fruit, no planters or bases, tiny contactshadow only. Same30degreeelevatedview. Each centered in ownhalf, cleartransparentgap, no overlap, no scenery. Maximumtreeheight400px on1024x512canvas. No text orgrid.
+

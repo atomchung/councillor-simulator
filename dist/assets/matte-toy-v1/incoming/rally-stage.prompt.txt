@@ -1,0 +1,15 @@
+Tool: built-in image_gen
+Target: rally-stage.png
+Requested canvas: 1536 x 1024
+Actual canvas: 1536 x 1024
+Transparent background: true
+Initial references (relative to this file): count-soft-v2.png
+Specification: REQUEST-3.md; common rules: REQUEST.md
+Validation note: RGBA with genuine alpha0 background. Main silhouette x365..1171 gives >20% margins; platform height <30% canvas. Residual alpha1/255 specks remain. White banners have slight material shading; not guaranteed constant pure-white pixels.
+
+Prompt history:
+Use case: stylized-concept. ONE isolated game prop asset EXACT1536x1024 transparent RGBA. Reference provides only matte clay miniature material and slightly elevated FRONT camera; do NOT copy its room, floor, walls, lights, plants or background. A small simple warm medium-brown WOODEN CAMPAIGN STAGE, centered horizontally in middle-lower part of canvas. Whole assembly entirely within x=340..1196 so left and right each retain at least20percent FULLY TRANSPARENT empty space for crowd. Low wooden platform top and front fascias occupy y=620..835, less than30percent of image height, with a small single central step if needed. On each side of platform is ONE upright hanging pure WHITE rectangular fabric banner on a slim simple stand: banner fabric at x400..510 andx1026..1136, y350..630. Both fabric faces squarely forward, totally blank plain purewhite, no trim, marks, seams across printable area, logos or color stripes. One simple slender dark gray microphone stand near rearcenter on stage, microphone directed toward center-front. Leave broad stage top empty for candidate figure, no podium, speakers, chairs or extra props. Soft matte simplified clay aesthetic, gentle diffuse shading on wood. Preserve fully opaque white banners; transparent background NOT transparent banners. Absolutely NO people, text, letters, numerals, symbols, flags, logos, floor plane, room, ground shadows, outer glow, halo or fog. Outside solid prop silhouettes alpha0. Everything visible with generous margins, no crop, no panorama background.
+
+Refinement prompt applied to generated draft:
+Edit this isolated prop. Exact output1536x1024 transparent RGBA. Keep woodstage, microphone and two purewhite blank banners identical design. IMPORTANT shrink the ENTIRE assembly uniformly to70% of its current size about canvas center, then position it slightly lower, so ALL props are STRICTLY confined within x350..1186, y400..830. The first and last350pixels across fullheight must be completely empty alpha0 transparent. Stage platform slab height less than200px. Do not enlarge tofillcanvas. Preserve broad unused transparent margins! No other changes, no text, no background, no exteriorglow, no shadow outside silhouette, no halo. White banners remain opaque.
+

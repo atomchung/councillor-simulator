@@ -1,0 +1,15 @@
+Tool: built-in image_gen
+Target: billboard.png
+Requested canvas: 1024 x 1024
+Actual canvas: 1254 x 1254
+Transparent background: true
+Initial references (relative to this file): plaza-soft-v2.png
+Specification: REQUEST-3.md; common rules: REQUEST.md
+Validation note: DOES NOT MEET REQUESTED DIMENSIONS: output is1254x1254, requested1024x1024. Two imagegen attempts retained1254x1254. Saved generated draft without resizing. RGBA with residual low-alpha specks. Panel is visually white but not constant purewhite/fully opaque: sampled center(252,252,252,254). Requires acceptance/correction.
+
+Prompt history:
+Use case: stylized-concept. ONE isolated game prop image EXACT1024x1024 transparent RGBA. Reference is only matte clay miniature material, warm muted palette and slightly elevated FRONT camera. A blank neighborhood campaign BILLBOARD: one plain horizontal rectangular pure WHITE opaque panel, FRONT FACE straight toward viewer (not diagonal), simple narrow rounded warm brown wooden frame. Exactly TWO sturdy wooden vertical posts below, evenly spaced, no third post, no ground or scenery. Panel roughly x180..844 y180..560, posts continue down to y860, all within image with generous empty margins. Slight top and side thickness visible consistent with slightly elevated camera but panelface straight and undistorted for game text overlay. Printable panel interior PURE WHITE, flat, even, smooth, NO gradient, lettering, logo, markings, icons, color band or illustration. Subtle matte shading only on frame and posts, simple clay toy rounded edges, no intricate grain. Entire outside silhouette genuine alpha0 TRANSPARENT, not white backdrop or black backdrop; no shadow/glow/fog/halo. White sign interior must be fully opaque. No people, animals, plants, text, numbers, flags, ground plane or extra props.
+
+Refinement prompt applied to generated draft:
+Edit this exact billboard into the REQUIRED output resolution 1024 x1024 pixels. Not1254x1254, not1536. Square1024pixels each edge. Same single blank purewhite front-facing panel, rounded woodframe and exactlytwo posts, simplified matteclay. Whole object fits x100..924,y150..900 on a fullytransparent RGBA canvas. Panelinterior opaque purewhite, no gradient or marks. Preserve design and frontal angle, no new object. Outside silhouette alpha0 with clean antialiased edges, remove halo and straypixels. No black background, no whitebackground, no glow, no groundshadow. Return one PNG EXACT1024x1024.
+

@@ -1,0 +1,13 @@
+Tool: built-in image_gen; user-authorized pixel postprocessing using Pillow/NumPy
+Output: road-cross.png
+Final canvas: 512 x 512
+Transparent background: true
+Specification: ../REQUEST-4-map-kit.md; common rules: ../REQUEST.md
+Generated source basename: exec-441f3e8a-9d77-40b7-a9b7-ab19bb69f083.png
+Reference descriptions: No image reference; prompt-defined material/camera.
+Postprocessing: Composite the same140px road strip horizontally and rotated90degrees vertically. All four road widths140px. Horizontal end pixels match road-straight, vertical ends match rotated straight.
+Authorization scope: Only this task's newly generated images; no game code, tests, existing source PNGs or provenance hashes modified.
+
+Generation prompt:
+Original game terrain asset, simplified matte clay miniature, muted warmbeige and sage palette, large shapes and minimal detail, orthographic front facing bottom with30degree elevated camera, no diagonallyrotated framing. TransparentRGBA outside object. NO text, letters, digits, logos, people, vehicles, symbols or background scene. One HORIZONTAL straight strip of ivory stonebrick paving from leftedge to rightedge, perfectly parallel top/bottom edges. Four wide staggered rows of smooth smallrectangular beige stones, subtle seams, no raisedcurbs. No otherobjects. Roadwidth140px in512square canvas centered y256; resttransparent. Ends cutstraight seamless repeat. Flat top surface of paving only, no flooroutside.
+

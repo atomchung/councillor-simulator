@@ -1,0 +1,10 @@
+Tool: built-in image_gen
+Target: market-soft-v2.png
+Canvas: 1536 x 1024
+Transparent background: false
+References (relative to this file): temple-soft-v2.png, plaza-soft-v2.png
+Specification: REQUEST-2.md; common rules: REQUEST.md
+
+Prompt:
+Use case: stylized-concept. Asset: ONE full-bleed game background, EXACTLY 1536 x 1024 pixels, opaque. Reference images are STYLE AND CAMERA references: keep their matte miniature clay material, warm beige low-saturation palette, soft terracotta and muted sage accents, very simplified broad shapes and slightly elevated frontal camera. Change location to Muzha neighborhood produce MARKET. Two or three simple market stalls seen straight on across the UPPER 40% ONLY: quiet cream/tan canvas sun awnings, wooden counters, a few simple vegetable and fruit crates ON the counters, one small weighing scale with a plain blank dial without numbers. Low density, no tiny repeated detail, no intricate produce or leaves, no busy stripes. CRITICAL layout: every stall, counter, crate, support leg, awning and prop must end BEFORE y=400; set the base of all stalls at y=380 to allow margin. The entire lower 60% (y=410..1024) must be flat EMPTY warm pale beige tiled floor, edge to edge, ample space for separately composited crowd of 12. Restrained large tile seams like temple reference. No perspective diorama border, no enclosing foreground walls, no objects along foreground edges. Soft diffuse shadows close to objects. Background subordinate to game characters and dialogue. NO people, animals, silhouettes, text, lettering, digits, logos, price signs, symbols, flags, UI, watermark, captions, scattered boxes or trash. No saturated blue roof. No dark drama or glossy surfaces. Produce one finished scene, no collage.
+

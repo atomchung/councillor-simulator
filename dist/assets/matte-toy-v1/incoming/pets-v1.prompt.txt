@@ -1,0 +1,9 @@
+Tool: built-in image_gen
+Target: pets-v1.png
+Canvas: 1536 x 1024
+Transparent background: true
+Reference: ../support.png
+
+Prompt:
+Create original simplified street CAT and DOG game sprite atlas, EXACT1536x1024 transparentRGBA,3columns2rows eachcell512square, ONEanimal percell. Reference human atlas is MATERIAL/softlighting only: do NOT draw people or give animals human noses, shoes, clothes or humanbody. Softmatteclaytoy, verysimple roundedforms, tinyblackdoteyes, no individualfur strands, no teeth or exaggeratedemotion, neutralgentlelook. Toprow SAME small orange-and-creamCAT: cell0 seated frontthreequarter facingright tailcurled; cell1 sideprofile WALKING RIGHT, fourlegs naturalwalk silhouette tailgentlyup; cell2 curledresting pose facingright eyesclosed. Bottomrow SAME small beigeandcream mixedbreedDOG with floppy darktanears: cell0 seated frontthreequarter facingright; cell1 sideprofile walkingright; cell2 lyingrestingheadup facingright. Animalproportionsnatural butcutechunky, pawsflatground, no leashes collars badges accessories or text. Keep each animal SMALL centered initscell, maximum300px high and330px wide, at least85px emptymargin allcellboundaries, at least120px clear gapsbetweenanimals; don'tenlargefigures. All six fullbody includingtails visible. GENUINE fullytransparentbackground alpha0 outsidecleansilhouette, no blackplate whiteplate glow halo groundshadow or fog. Independent cutouts, no scenery, no gridlines. Samepetidentity/patterns across3poses ofeachrow. Backgroundtransparent.
+

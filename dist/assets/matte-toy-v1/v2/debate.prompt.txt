@@ -1,0 +1,8 @@
+Tool: built-in image_gen
+Target: debate.png
+Canvas: 1536 x 1024
+Transparent background: false
+Style sources: ../support.png, ../candidates.png (characters); ../market-square.png, ../street.png, ../scenes.png (environments).
+
+Pass 1
+Generate ONE single opaque background image, EXACT 1536x1024px landscape, NOT an atlas. Match reference market-square.png / street.png: matte clay miniature diorama, rounded crafted forms, clean softlylit model, muted soft hues, front-facing slightly elevated camera. Composition is mandatory: ALL building structure and tall objects restricted to TOP45% (y0..460); BELOW y460 have broad EMPTY flat paved floor continuing all way to bottom edge, for up to12 gamecharacters. No people or animals. No foreground obstacles or furniture across lower55%, no frame. Edges may be simple floor edges but don't obstruct. NO text letters numbers logos badges partyflags or signs with writing anywhere, no realpoliticians or recognizablemedia. Blank panels truly blank. FORMAL PUBLIC DEBATE HALL interior: upper45% includes a wide blank beige backdrop panel, one centered official lectern, one empty simple desk on EACH SIDE of centrallectern, exactlythree speakingstations (centerlectern+leftdesk+rightdesk). Symmetric neutral beige, charcoal, warmwood stage design; equal treatmentofbothsides. Stageanddesks strictly inupper45%, near y400. Lower55% entirely empty audiencefloor infrontofstage with subdued stone floor, no seats or railings anywhere inlowerhalf. No screens displayinganything, no flags or bunting.
