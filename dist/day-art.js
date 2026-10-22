@@ -736,15 +736,21 @@
     s += rect(0, 0, 1200, 650, '#22312d') + rect(0, 0, 1200, 452, '#2c423c') + rect(0, 448, 1200, 8, '#3b5650');
     for (let y = 486; y < 650; y += 38) s += path('M0 ' + y + 'H1200', '#1d2b27', 2, 'opacity=".8"');
     // Strings of warm bulbs either side of the screen.
+    // After a loss the bulbs go out one by one: most of them for a forfeited deposit, about half otherwise.
+    let bulbIndex = 0;
+    const bulbOff = still && lost ? ' opacity=".12"' : still && refunded ? ' opacity=".45"' : '';
     for (const [x0, y0, cx, cy, x1, y1] of [[0, 46, 125, 96, 250, 58], [950, 58, 1075, 96, 1200, 46]]) {
       s += path('M' + x0 + ' ' + y0 + 'Q' + cx + ' ' + cy + ' ' + x1 + ' ' + y1, '#55665c', 2);
-      for (let i = 0; i <= 6; i++) { const t = i / 6, x = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * x1, y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y1; s += '<circle class="bulb" cx="' + x.toFixed(1) + '" cy="' + (y + 7).toFixed(1) + '" r="7" fill="' + ['#ffd27a', '#ff9f68', '#fff1b8'][i % 3] + '"/>'; }
+      for (let i = 0; i <= 6; i++) { const t = i / 6, x = (1 - t) * (1 - t) * x0 + 2 * (1 - t) * t * cx + t * t * x1, y = (1 - t) * (1 - t) * y0 + 2 * (1 - t) * t * cy + t * t * y1; s += '<circle class="bulb" style="--i:' + (bulbIndex++) + '"' + bulbOff + ' cx="' + x.toFixed(1) + '" cy="' + (y + 7).toFixed(1) + '" r="7" fill="' + ['#ffd27a', '#ff9f68', '#fff1b8'][i % 3] + '"/>'; }
     }
     if(isToy())s+=sceneAtlas('count');
     // Two hanging banners in the party colour.
+    // With the deposit forfeited, the right banner slips on one pin.
     for (const [x, words] of [[58, name + '競選總部'], [1068, won ? '凍蒜' : '感謝支持']]) {
-      s += rect(x, 138, 74, 292, '#fffaf0', 'rx="4"') + rect(x, 138, 74, 22, party, 'rx="4"') + rect(x, 410, 74, 20, party);
+      const sag = x > 600 && lost;
+      s += '<g' + (sag ? ' class="banner-sag"' + (still ? ' transform="rotate(4 ' + x + ' 138)"' : '') : '') + '>' + rect(x, 138, 74, 292, '#fffaf0', 'rx="4"') + rect(x, 138, 74, 22, party, 'rx="4"') + rect(x, 410, 74, 20, party);
       Array.from(words).forEach((ch, i, all) => { s += label(x + 37, 160 + (all.length > 4 ? 44 : 60) * (i + 1) - (all.length > 4 ? 6 : 14), ch, all.length > 4 ? 34 : 44, '#24443c', 'text-anchor="middle"'); });
+      s += '</g>';
     }
     // The big screen; while the count runs its numbers are laid over it by the page.
     s += rect(250, 24, 700, 286, '#101917', 'rx="12"') + rect(262, 36, 676, 262, '#0b1412', 'rx="6"');
@@ -772,7 +778,10 @@
       s += say('謝謝大家！凍蒜！', '#2f7a4a');
     } else if (done) {
       s += rect(0, 0, 1200, 650, '#050908', 'class="dim" opacity="' + (lost ? .5 : .28) + '"');
-      if (lost) for (const [rx, ry, o] of [[230, 300, .05], [170, 250, .07], [110, 200, .09]]) s += '<ellipse cx="600" cy="430" rx="' + rx + '" ry="' + ry + '" fill="#fff6d8" opacity="' + o + '"/>';
+      // One spotlight stays on the candidate; a few flyers drift down, and after a forfeited deposit more of them already lie on the floor.
+      for (const [rx, ry, o] of lost ? [[230, 300, .05], [170, 250, .07], [110, 200, .09]] : [[200, 280, .04], [130, 220, .06]]) s += '<ellipse class="dim" cx="600" cy="430" rx="' + rx + '" ry="' + ry + '" fill="#fff6d8" opacity="' + o + '"/>';
+      if (lost) for (const [x, y, r] of [[262, 602, -12], [352, 622, 18], [868, 598, 7], [958, 628, -20], [1112, 606, 25]]) s += rect(x, y, 30, 20, '#efe6cf', 'opacity=".75" transform="rotate(' + r + ' ' + (x + 15) + ' ' + (y + 10) + ')"');
+      for (const [x, d] of (lost ? [[420, 0], [840, 3.4]] : [[380, 0], [720, 2.3], [980, 4.6]])) s += rect(x, still ? 470 : -40, 26, 18, '#f5ecd6', 'class="flyer" opacity=".85"' + (still ? ' transform="rotate(24 ' + (x + 13) + ' 479)"' : ' style="animation-delay:' + d + 's"'));
       s += say(lost ? '謝謝大家。' : '謝謝大家，我們下次再拚！', lost ? '#5f6a5b' : '#2f7a4a');
     }
     return s + '</svg>';

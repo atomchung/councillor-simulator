@@ -765,7 +765,13 @@ body.v13[data-act="3"] .world .scene{filter:sepia(.2) saturate(1.1) hue-rotate(-
 .v13 .count-art .speech{transform-box:fill-box;transform-origin:center bottom;animation:v13-say .4s .35s ease-out both}
 @keyframes v13-say{from{opacity:0;transform:translateY(10px) scale(.9)}to{opacity:1;transform:none}}
 .v13 .count-art .bulb{animation:v13-bulb 1.2s ease-in-out infinite alternate}
-.v13 .count-art[data-stage="forfeited"] .bulb{opacity:.3;animation:none}
+.v13 .count-art[data-stage="refunded"] .bulb{animation:v13-off-soft .8s calc(.8s + var(--i) * .2s) ease-in forwards}
+.v13 .count-art[data-stage="forfeited"] .bulb{animation:v13-off-deep .7s calc(.5s + var(--i) * .24s) ease-in forwards}
+@keyframes v13-off-soft{from{opacity:1}to{opacity:.45}}@keyframes v13-off-deep{from{opacity:1}to{opacity:.12}}
+.v13 .count-art .flyer{transform-box:fill-box;transform-origin:center;animation:v13-flyer 7.5s linear infinite}
+@keyframes v13-flyer{0%{opacity:0;transform:translate(0,0) rotate(0)}10%{opacity:.85}50%{transform:translate(34px,300px) rotate(150deg)}90%{opacity:.85}100%{opacity:0;transform:translate(-8px,620px) rotate(300deg)}}
+.v13 .count-art .banner-sag{transform-box:view-box;transform-origin:1068px 138px;animation:v13-sag 1.6s 2.2s ease-in both}
+@keyframes v13-sag{from{transform:none}to{transform:rotate(4deg)}}
 @keyframes v13-bulb{from{opacity:.6}to{opacity:1}}
 .v13 .count-art.still *{animation:none!important}
 .v13 .report-scene{aspect-ratio:1200/650;height:auto;margin:0;border-radius:12px;overflow:hidden;background:#22312d}
@@ -926,3 +932,6 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 .v13 .stand-bar{position:relative}.v13 .stand-bar .need-mark{top:-2px;bottom:-2px}
 .v13 .tug-num em{font-style:normal;font-size:11px;color:var(--muted);margin-left:4px}
 .v13 .poll-sum{margin:.2rem 0 .3rem;font-size:.85rem}
+
+/* Hindsight: what a better answer was worth, in the recap and on the report. */
+.v13 .miss-tag{display:block;margin-top:2px;font-style:normal;font-weight:700;color:#a5432e}

@@ -554,7 +554,7 @@
     for (const e of r.planEffects || []) rows.push([e.kind === 'clarify' ? '澄清' : e.kind === 'crisis' ? '危機' : '宣示', (e.kind === 'crisis' ? ({ pay: '花錢公關消毒', apologize: '公開道歉切割', fight: e.won ? '硬槓反控成功' : '硬槓反控炎上' })[e.choice] + '：' : e.title + '：') + e.text + ' → ' + signedVotes(e.votes) + ' 票', e.votes < 0 ? 'warn' : '', e.byGroup]);
     // The first row is the answer itself; stumbles, party lines, walk-backs and the like follow as their own rows, so the rows add up.
     const direct = p.direct || { votes: att.player?.votes, byGroup: p.byGroup };
-    if (asking(p.action) && p.topic) rows.push(['你', where + (p.drawn ? '，被問到「' : '談「') + short(p.topic) + '」' + (p.quote ? '，說「' + p.quote + '」' : '') + ' → ' + signedVotes(direct.votes) + ' 票', '', direct.byGroup]);
+    if (asking(p.action) && p.topic) { rows.push(['你', where + (p.drawn ? '，被問到「' : '談「') + short(p.topic) + '」' + (p.quote ? '，說「' + p.quote + '」' : '') + ' → ' + signedVotes(direct.votes) + ' 票', '', direct.byGroup]); const h = hindsightLine(state.hindsight?.[r.day]); if (h) rows.push(h); }
     else if (p.action === 'rally') rows.push(['你', '在' + p.venueTitle + '辦造勢 → ' + signedVotes(direct.votes) + ' 票', '', direct.byGroup]);
     else if (p.dealt) rows.push(['頭人', '拜訪' + p.dealt.name + '：' + [p.dealt.money ? '捐款 ' + wan(p.dealt.money) : '', p.dealt.bloc ? '組織票約 ' + num(p.dealt.bloc) : '', p.dealt.perk === 'tv' ? '一次免費上節目' : ''].filter(Boolean).join('、') + '；你公開支持「' + (G.TOPICS[p.dealt.topic]?.plans.find(x => x.id === p.dealt.plan)?.text || '') + '」→ ' + signedVotes(p.dealt.votes) + ' 票', '']);
     else if (QUIET_WORD[p.action]) rows.push(['你', (p.title || '') + '：' + (p.action === 'prepare' && G.TOPICS[p.topic] ? '查清楚「' + G.TOPICS[p.topic].title + '」。' : p.result) + ' ' + quietLine(p.action, att.rival?.effectOnYou, !!rv.attack), '']);
@@ -626,7 +626,7 @@
     const r = state.result, bg = G.BACKGROUNDS[state.settings.background], party = G.PARTIES[state.settings.affiliation], ok = r.outcome === 'elected';
     const verdict = '第 ' + r.rank + ' 名' + (ok ? '當選' : r.outcome === 'refunded' ? '落選・退保證金' : '落選');
     const key = [...(r.roundsSummary || [])].sort((a, b) => Math.abs(b.votes) - Math.abs(a.votes)).slice(0, 3).map(x => x.day);
-    const rounds = (r.roundsSummary || []).map(x => '<li' + (key.includes(x.day) ? ' class="key-round"' : '') + '><b>' + x.day + '</b><span>' + esc(x.action === 'canvass' ? x.where + '・談' + short(x.topic) : x.action === 'tv' ? '電視・談' + short(x.topic) : x.action === 'online' ? '直播・談' + short(x.topic) : x.action === 'debate' ? '政見會・談' + short(x.topic) : x.action === 'rally' ? x.where + '・造勢' : x.action === 'press' ? '記者會爆料' : action(x.action)?.title || x.action) + '</span><strong class="' + (x.votes >= 0 ? 'up' : 'down') + '">' + signedVotes(x.votes) + '</strong><small>' + (key.includes(x.day) ? '<em class="key-tag">影響最大前三</em>' : '') + esc(roundParts(x)) + '</small></li>').join('') + (r.unkept || []).map(u => '<li class="unkept"><b>✕</b><span>開票・被小馬拆穿的保證</span><strong class="down">' + signedVotes(u.votes) + '</strong><small>「' + esc(u.text) + '」沒有更正，信的人改投別人</small></li>').join('');
+    const rounds = (r.roundsSummary || []).map(x => '<li' + (key.includes(x.day) ? ' class="key-round"' : '') + '><b>' + x.day + '</b><span>' + esc(x.action === 'canvass' ? x.where + '・談' + short(x.topic) : x.action === 'tv' ? '電視・談' + short(x.topic) : x.action === 'online' ? '直播・談' + short(x.topic) : x.action === 'debate' ? '政見會・談' + short(x.topic) : x.action === 'rally' ? x.where + '・造勢' : x.action === 'press' ? '記者會爆料' : action(x.action)?.title || x.action) + '</span><strong class="' + (x.votes >= 0 ? 'up' : 'down') + '">' + signedVotes(x.votes) + '</strong><small>' + (key.includes(x.day) ? '<em class="key-tag">影響最大前三</em>' : '') + esc(roundParts(x)) + (state.hindsight?.[x.day]?.best?.gain >= HINDSIGHT_MIN ? '<em class="miss-tag">答「' + esc(state.hindsight[x.day].best.text) + '」約多 ' + num(state.hindsight[x.day].best.gain) + ' 票</em>' : '') + '</small></li>').join('') + (r.unkept || []).map(u => '<li class="unkept"><b>✕</b><span>開票・被小馬拆穿的保證</span><strong class="down">' + signedVotes(u.votes) + '</strong><small>「' + esc(u.text) + '」沒有更正，信的人改投別人</small></li>').join('');
     // Your final votes split by group in proportion to the support model, so the three add up to the count.
     const est = r.race.groups.reduce((n, g) => n + g.you, 0) || 1, split = r.race.groups.map(g => r.playerVotes * g.you / est), pct = (v, t) => t ? '（' + (v / t * 100).toFixed(1) + '%）' : '', groups = r.race.groups.map((g, k) => '<div class="g-' + GROUP_KEYS[k] + '"><span class="dot"></span><b>' + esc(g.title) + '</b><span>' + num(split[k]) + ' 票' + pct(split[k], r.groupTotals?.[k]) + '</span></div>').join('');
     return '<article class="report-card"><header class="report-head"><div><span class="report-who">' + esc(state.player.name) + '｜' + esc(bg.title) + '・' + partyBadge(state.settings.affiliation) + esc(party.title) + '</span><h2 class="report-verdict ' + (ok ? 'win' : 'lose') + '">' + verdict + '</h2></div></header><figure class="report-scene" aria-label="' + esc(verdict + '的開票夜') + '">' + (Art?.countNight ? Art.countNight(r.outcome, { still: true, name: state.player.name, tally: { you: r.playerVotes, line: r.lastSeat, rank: r.rank, seats: r.seats } }) : '') + '</figure><div class="report-grid"><section class="report-main"><div class="report-numbers"><div><span>你的得票</span><strong>' + num(r.playerVotes) + '</strong><small>第 ' + r.rank + ' 名（前 ' + r.seats + ' 名當選）</small></div><div><span>當選線</span><strong>' + num(r.lastSeat) + '</strong><small>' + (ok ? '多 ' : '還差 ') + num(r.gap) + ' 票</small></div><div><span>得票率</span><strong>' + (r.valid ? (r.playerVotes / r.valid * 100).toFixed(1) + '%' : '—') + '</strong><small>有效票 ' + num(r.valid) + '</small></div></div>' + trendChart() + '<div class="report-groups">' + groups + '</div></section><section class="report-rounds"><h3>每回合做了什麼</h3><ol>' + rounds + '</ol></section></div></article>';
@@ -778,12 +778,32 @@
     if (G.begin(state, id, planConfig())) { error = ''; resetToggles(); save(); startMotion(); focusDock(); announce('第 ' + state.day + ' 回合：' + p.title + '，花費 ' + money(p.totalCost) + '。'); }
     locked = false;
   }
+  // Each other answer replayed on a copy with the same draws, so the recap can say what a better answer was worth.
+  function alternatives(id) {
+    if (state.pending?.topic === 'tip') return null;
+    const base = JSON.stringify(state);
+    return G.question(state).options.filter(o => o.unlocked && o.id !== id).map(o => { const t = JSON.parse(base); return G.answer(t, o.id) ? { id: o.id, text: o.text, total: t.recap.totalVotes, byGroup: t.recap.totalByGroup || null } : null; }).filter(Boolean);
+  }
+  function remember(alts, option) {
+    if (!alts) return;
+    const r = state.recap, best = [...alts].sort((a, b) => b.total - a.total)[0], gain = best ? best.total - r.totalVotes : 0;
+    (state.hindsight ||= {})[state.day] = { chosen: option.text, best: gain >= 1 ? { text: best.text, gain, byGroup: best.byGroup && r.totalByGroup ? best.byGroup.map((v, k) => v - r.totalByGroup[k]) : null } : null };
+  }
+  const HINDSIGHT_MIN = 30;
+  // One line: the better answer and the group that would have made the difference.
+  function hindsightLine(h) {
+    if (!h) return null;
+    if (!h.best || h.best.gain < HINDSIGHT_MIN) return ['檢討', '這題你答得最好。', ''];
+    const k = h.best.byGroup ? h.best.byGroup.indexOf(Math.max(...h.best.byGroup)) : -1;
+    return ['檢討', '答「' + h.best.text + '」約多 ' + num(h.best.gain) + ' 票' + (k >= 0 && h.best.byGroup[k] >= 1 ? '，差在' + groupTitle(k) + '（' + signedVotes(h.best.byGroup[k]) + '）' : '') + '。', 'warn'];
+  }
   function answer(id) {
     if (modal || locked || state.phase !== 'question') return;
     const q = G.question(state), option = q?.options.find(o => o.id === id);
     if (!option?.unlocked) return;
     locked = true;
-    if (G.answer(state, id)) { save(); render(); focusDock(); const c = state.recap?.player?.conversation; announce((c ? c.reaction + ' ' : '') + '這回合你 ' + signedVotes(state.recap.totalVotes) + ' 票。'); }
+    const alts = alternatives(id);
+    if (G.answer(state, id)) { remember(alts, option); save(); render(); focusDock(); const c = state.recap?.player?.conversation; announce((c ? c.reaction + ' ' : '') + '這回合你 ' + signedVotes(state.recap.totalVotes) + ' 票。'); }
     locked = false;
   }
 
