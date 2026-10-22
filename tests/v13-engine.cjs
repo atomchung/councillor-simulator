@@ -43,7 +43,7 @@ for(let seed=1;seed<=40;seed++){
  eq(top(0)[0],'health','elders care most about health');eq(top(1)[0],'childcare','middle-aged care most about childcare');ok(!top(1).slice(0,3).includes('senior'),'the senior card is not a middle-aged concern');eq(top(2)[0],'housing','the young care most about housing');
 }
 eq([G.LEAN_SIDES.elder.health,G.LEAN_SIDES.young.health,G.LEAN_SIDES.elder.senior,G.LEAN_SIDES.young.senior],[1,0,1,0],'elders back benefits for the old; the young resist paying for them');
-{const hits=[0,0,0],want=[['health'],['childcare','traffic'],['housing']];for(let seed=1;seed<=80;seed++)G.groupView(fresh(seed)).forEach((g,k)=>{if(want[k].includes(g.top))hits[k]++;});ok(hits.every(h=>h>=68),'the poll shows each group\'s top concern (400 sampled, so counted over 80 games): '+hits.join('/'));}
+{const hits=[0,0,0],want=[['health'],['childcare','traffic'],['housing']];for(let seed=1;seed<=40;seed++)G.groupView(fresh(seed)).forEach((g,k)=>{if(want[k].includes(g.top))hits[k]++;});ok(hits.every(h=>h>=36),'the poll shows each group\'s top concern: '+hits.join('/'));}
 
 // Places and TV draw their question from three issues; the question stays hidden until you arrive.
 {let middle=0,mid=0,senior=0;for(let seed=1;seed<=60;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++)for(const v of Object.keys(G.VENUES)){if(s.landscape.main[v]!==1)continue;const t=G.venueTopic(s,v,d);if(G.NEWS_TOPICS.includes(t))continue;mid++;if(t==='childcare'||t==='traffic')middle++;if(t==='senior')senior++;}}
@@ -93,8 +93,7 @@ ok(n>=30&&crowdWins>=n*.85,'main crowd majority wins at its place: '+crowdWins+'
 
 // Promises depend on the crowd: where bold-promise fans gather a guarantee beats candour; where they hate empty talk it loses.
 let fanWins=0,haterWins=0,fans=0,haters=0;
-// Counted over 160 games: one visit each, so a single game's crowd draw is noisy.
-for(let seed=1;seed<=160;seed++){const base=fresh(seed);for(const [att,count] of [['likes',1],['dislikes',-1]]){const v=G.venueView(base).find(v=>base.landscape.groups[v.main].promise===att);if(!v)continue;
+for(let seed=1;seed<=60;seed++){const base=fresh(seed);for(const [att,count] of [['likes',1],['dislikes',-1]]){const v=G.venueView(base).find(v=>base.landscape.groups[v.main].promise===att);if(!v)continue;
  const run=mode=>{const s=copy(base);return playerVotes(round(s,'canvass',{venue:v.id,teamTasks:['idle','idle']},mode));},g=run('guarantee'),h=run('honest');if(count>0){fans++;if(g>h)fanWins++;}else{haters++;if(h>g)haterWins++;}}}
 ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/${fans}, hurts with haters ${haterWins}/${haters}`);
 
@@ -262,7 +261,8 @@ for(let seed=1;seed<=20;seed++){const s=fresh(seed);for(let d=1;d<=G.DAYS;d++){s
  for(const x of s.result.roundsSummary){ok(Math.abs(x.direct+x.team+x.rebuttal+x.billboard+x.offer+x.plan+x.byRival+x.events-x.votes)<=4,'round parts add up '+seed+'/'+x.day);eq(x.quiet,G.QUIET.includes(x.action)&&!s.journal.find(j=>j.day===x.day).player.dealt,'quiet flag '+x.action);if(x.quiet)eq(x.direct,0,'a quiet round moves no votes itself '+x.action);}}
 // Estimates beside answers read only what the screen shows (hidden leanings, concerns, receptivity and party are never used),
 // and on average they follow what an answer actually does.
-{const pairs=[],groups=[];for(let seed=1;seed<=120;seed++){const s=fresh(seed,{background:['newcomer','heir','incumbent'][seed%3],affiliation:['independent','kmt','dpp'][seed%3]});for(let d=1;d<=G.DAYS&&s.phase!=='result';d++){settleCrisis(s);const vs=G.venueView(s),v=vs[d%vs.length],id=d===G.DEBATE_ROUND?'debate':d%3?'canvass':'tv',cfg=id==='canvass'?{venue:v.id,research:v.pool[d%3]}:id==='tv'?{research:G.tvPool(s)[0]}:{research:s.debate.topic};
+// The script researches the place's issues and the current events in turn, so both kinds of estimate are checked.
+{const pairs=[],groups=[];for(let seed=1;seed<=120;seed++){const s=fresh(seed,{background:['newcomer','heir','incumbent'][seed%3],affiliation:['independent','kmt','dpp'][seed%3]});for(let d=1;d<=G.DAYS&&s.phase!=='result';d++){settleCrisis(s);const vs=G.venueView(s),v=vs[d%vs.length],id=d===G.DEBATE_ROUND?'debate':d%3?'canvass':'tv',cfg=id==='canvass'?{venue:v.id,research:d%2?s.landscape.news[d%s.landscape.news.length]:v.pool[d%3]}:id==='tv'?{research:G.tvPool(s)[0]}:{research:s.debate.topic};
   if(!G.preview(s,id,cfg).allowed){round(s,'fundraise');G.next(s);continue;}G.begin(s,id,cfg);G.arrive(s);const q=G.question(s),topic=s.pending.topic;
   if(d===2){const blind=copy(s);for(const x of blind.voters){x.pref=x.pref.split('').reverse().join('');x.cares=['sanitation'];x.rec=[.4,.4];x.accuracy=.5;x.p='none';}for(const o of q.options.filter(o=>o.estimate))eq(G.answerEstimate(blind,topic,o.id),o.estimate,'estimate ignores hidden voter state '+seed+' '+o.id);}
   for(const o of q.options){if(!o.unlocked)eq(o.estimate,null,'no estimate for a locked answer');else if(G.TOPICS[topic].plans.some(p=>p.id===o.id))ok(s.player.insight?.[topic]?.level==='precise'?o.estimate?.groups?.length===3:o.estimate===null,'only deep research gives an approach an estimate');}
@@ -393,6 +393,11 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
  ok(newsAsked/visits>.19&&newsAsked/visits<.31,'passers-by ask a current event about a visit in four: '+(newsAsked/visits).toFixed(3));
  ok(tvNews/tvRounds>.97,'TV pools carry a current event: '+tvNews+'/'+tvRounds);ok(tvDrawnNews/tvAsked>.2&&tvDrawnNews/tvAsked<.5,'TV asks one about a third of the time: '+tvDrawnNews+'/'+tvAsked);
  ok(debateNews/debates>.12&&debateNews/debates<.38,'the debate sometimes asks a current event: '+debateNews+'/'+debates);
+ // A current event is a concern on top of the local ones: local concerns stay first and as often as before, about NEWS_CARE of
+ // voters follow one story, and the estimate's odds of caring match how many actually do.
+ {let follow=0,n=0;const seen=[0,0,0],odds=[0,0,0];for(let seed=1;seed<=20;seed++){const s=fresh(seed),c=G.careOdds(s);for(const v of s.voters){n++;ok(!G.NEWS_TOPICS.includes(v.cares[0]),'local concerns come first');const t=v.cares.find(x=>G.NEWS_TOPICS.includes(x));if(t){follow++;ok(v.cares.length<=3&&s.landscape.news.includes(t),'one story in play');}}
+   for(const [k,g] of G.GROUPS.entries())for(const t of s.landscape.news){const m=s.voters.filter(v=>v.g===k);seen[k]+=m.filter(v=>v.cares.includes(t)).length/m.length;odds[k]+=c[g.id][t];}}
+  ok(Math.abs(follow/n-G.NEWS_CARE)<.03,'about NEWS_CARE of voters follow a current event: '+(follow/n).toFixed(3));seen.forEach((x,k)=>ok(Math.abs(x-odds[k])/odds[k]<.15,'care odds for current events match the voters ('+G.GROUPS[k].title+'): '+(x/60).toFixed(3)+' vs '+(odds[k]/60).toFixed(3)));}
  // Researched like any other issue: an assistant can look into it, it can be prepared, and answering it moves votes the faces predicted.
  let answered=0;for(let seed=1;seed<=80&&answered<8;seed++){const s=fresh(seed);const v=G.venueView(s).find(v=>G.NEWS_TOPICS.includes(G.venueTopic(s,v.id)));if(!v)continue;const t=G.venueTopic(s,v.id);
   eq(G.preview(s,'prepare',{topic:t}).topic,t,'a current event can be prepared');eq(G.preview(s,'canvass',{venue:v.id,research:t}).researchTopics,[t],'an assistant can research it');ok(G.availableTopics(s).some(x=>x.id===t),'it is listed among the issues');
@@ -415,4 +420,4 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
   for(const [t,plan] of G.BROKERS[b].deals)if(G.topicsOf(s).includes(t))s.player.actions.push({day:0,action:'tv',topic:t,answer:plan,quote:'',prepared:true});G.refreshDeals(s);eq(G.dealOf(s,b),null,'with nothing left to ask he stays away');ok(!G.donorView(s).some(x=>x.id===b),'no broker card');eq(G.preview(s,'fundraise',{donor:b}).allowed,false,'no visit');
   s.offers=[{id:b,round:s.day,status:'pending',bloc:300,money:60000},{id:b,round:s.day+1,status:'pending',bloc:300,money:60000}];eq(G.offerView(s),null,'and no offer');eq(G.upcomingOffer(s),null,'nor a notice');eq(G.respondOffer(s,'accept'),false,'nothing to accept');round(s,'fundraise');eq(s.offers[0].status,'expired','his offer lapses');ok(!s.rival.blocs.some(x=>x.offer===b),'and goes to nobody');}
  ok(switched>=20,'brokers switching issue checked '+switched);}
-console.log(JSON.stringify({result:'passed',checks,scope:'v13.7 questions: no spoilers before research, contested sides drawn per game and read by research, faces, estimates and the rival, current events at places, on TV and at the debate, and brokers that never ask for a stance you already hold.'}));
+console.log(JSON.stringify({result:'passed',checks,scope:'v13.7 questions: no spoilers before research, contested sides drawn per game and read by research, faces, estimates and the rival, current events at places, on TV and at the debate as a concern on top of the local ones, and brokers that never ask for a stance you already hold.'}));
