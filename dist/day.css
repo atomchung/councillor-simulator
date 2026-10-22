@@ -935,3 +935,15 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 
 /* Hindsight: what a better answer was worth, in the recap and on the report. */
 .v13 .miss-tag{display:block;margin-top:2px;font-style:normal;font-weight:700;color:#a5432e}
+
+.toy-helper-count{position:absolute;right:-30%;top:4%;min-width:1.7em;padding:1px 4px;border-radius:999px;background:#f2c14e;color:#2b2a1f;border:1.5px solid #fffaf0;font-size:clamp(9px,.9vw,12px);font-weight:800;line-height:1.3;text-align:center;box-shadow:0 1px 2px #0003}
+.wordmark-sub{display:block;font-size:.6em;font-weight:700;letter-spacing:.14em;opacity:.75;margin-top:1px}
+.pick-line{display:block;font-size:13px;line-height:1.45;margin:4px 0 8px;color:inherit;font-weight:600}
+.pick-meters{display:grid;gap:5px;color:inherit;width:100%;align-self:stretch;box-sizing:border-box}
+.pick-meter{display:grid;width:100%;grid-template-columns:4.2em minmax(30px,1fr) 3.4em;align-items:center;gap:6px;font-size:12px}
+.pick-meter i{font-style:normal;opacity:.75}.pick-meter em{font-style:normal;font-weight:700;text-align:right;white-space:nowrap}
+.pick-bar{height:7px;border-radius:99px;background:#0000001a;overflow:hidden}.pick-bar b{display:block;height:100%;border-radius:inherit;background:var(--party,#4f7a68)}
+/* The act also shows in the world heading, so the HUD chip yields first when the masthead is narrow. */
+@media(max-width:900px){.v13 .hud-day .act-chip{display:none}}
+/* Street-type venues: the speaker stands at x=455/1200 with the head near 40% height, so the bubble sits just above and points at them. */
+@media(min-width:701px){.v13 .conversation-bubble:not([data-kind="tv"]):not([data-kind="debate"]):not([data-kind="online"]){left:20%;top:30%;width:34%}.v13 .conversation-bubble:not([data-kind="tv"]):not([data-kind="debate"]):not([data-kind="online"])::after{left:52%}}

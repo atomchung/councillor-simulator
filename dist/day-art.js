@@ -15,7 +15,10 @@
   const TOY_SPOTS = {start:[600,345],market:[370,348],temple:[157,285],street:[552,424],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]};
   // Waypoints follow the paved streets of district.png, so walkers never cross roofs, stalls or gardens.
   const TOY_PATHS = {market:[[520,328],[440,330]],temple:[[520,328],[440,330],[320,336],[240,332]],street:[[680,345],[700,410],[705,482],[600,484],[575,452]],plaza:[[650,316]],river:[[680,345],[700,410],[705,482]],prepare:[[570,295]],recruit:[[570,295]],tv:[[680,345],[700,410],[800,445],[880,488],[985,468],[995,432]],online:[[680,345],[700,410],[800,445],[880,488],[985,468],[1030,455]],fundraise:[[680,345],[700,410],[705,482]],debate:[[650,316]]};
-  const TOY_VISITS = {market:'market-square.png',street:'street.png',river:'river.png'};
+  // Simplified v2 backdrops keep the lower half empty for the crowd; every venue now has one.
+  const TOY_VISITS = {market:'v2/market-soft-v2.png',street:'v2/street-residential-v2.png',river:'v2/riverside-soft-v2.png',temple:'v2/temple-soft-v2.png',plaza:'v2/plaza-soft-v2.png',debate:'v2/debate.png'};
+  const TOY_SCENES = {tv:'v2/tv.png',online:'v2/online.png',fundraise:'v2/fundraise.png',count:'v2/count-soft-v2.png'};
+  const SUPPORT2_FRAMES = [[{x:114,y:128,w:239,h:352,sole:350},{x:654,y:120,w:273,h:359,sole:357},{x:1168,y:126,w:245,h:355,sole:353}],[{x:134,y:587,w:215,h:344,sole:342},{x:646,y:588,w:297,h:342,sole:340},{x:1196,y:584,w:231,h:351,sole:349}]];
   let artPack = 'matte-toy-v1', toyFacing = {row:0,mirror:false};
   // Browser preferences are separate from election saves. Missing storage is harmless.
   try { if (window.location) { const q = new URLSearchParams(window.location.search).get('art'); const v = q || window.localStorage?.getItem('wenshan-ui-art-pack-v1'); if(v) artPack = v === 'matte-toy-v1' ? v : 'original'; } } catch (_) {}
@@ -34,10 +37,10 @@
   function alongVisual(points, t) { const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)); let d=lengths.reduce((a,b)=>a+b,0)*Math.max(0,Math.min(1,t)); for(let i=0;i<lengths.length;i++){if(d<=lengths[i]&&lengths[i])return {x:points[i].x+(points[i+1].x-points[i].x)*d/lengths[i],y:points[i].y+(points[i+1].y-points[i].y)*d/lengths[i]};d-=lengths[i];} return points.at(-1); }
   function travelPoint(route,index,p,id,venue) { if(!isToy())return p; const lengths=route.slice(1).map((a,i)=>Math.hypot(a.x-route[i].x,a.y-route[i].y)); const total=lengths.reduce((a,b)=>a+b,0); const prev=route[Math.min(index-1,route.length-1)]; const done=lengths.slice(0,index-1).reduce((a,b)=>a+b,0)+Math.hypot(p.x-prev.x,p.y-prev.y); return alongVisual(visualRoute(id,venue,mapPoint(route[0])),total?done/total:1); }
   function facing(dx,dy) { const next=Math.abs(dy)>Math.abs(dx)*1.15?{row:dy<0?2:0,mirror:false}:{row:1,mirror:dx<0}; const changed=next.row!==toyFacing.row||next.mirror!==toyFacing.mirror; toyFacing=next; return changed; }
-  function toySprite(column=0,row=0,mirror=false) {
+  function toySprite(column=0,row=0,mirror=false,party=candidates.player.party) {
     const f=TOY_FRAMES[column][row], k=124/f.sole, w=f.w*k, h=f.h*k;
     // Nested SVG clips each sprite without global clip IDs; every sole is exactly y=130.
-    return '<g class="toy-figure" data-column="'+column+'"><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/>'+ (mirror?'<g transform="translate(100,0) scale(-1,1)">':'<g>')+'<svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="candidate" href="'+TOY_ROOT+'candidates.png" width="1536" height="1024"/></svg></g></g>';
+    return '<g class="toy-figure" data-column="'+column+'"><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/>'+ (mirror?'<g transform="translate(100,0) scale(-1,1)">':'<g>')+'<svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="candidate" href="'+TOY_ROOT+'candidates.png" width="1536" height="1024"/></svg></g>'+toySash(party)+'</g>';
   }
   let toyWalk = { active: false, time: 0, frame: 0 };
   function walkStep(dt, active) { const old = toyWalk.frame, was = toyWalk.active; toyWalk.active = active; toyWalk.time = active ? toyWalk.time + dt : 0; toyWalk.frame = Math.floor(toyWalk.time / .19) % 2; return old !== toyWalk.frame || was !== active; }
@@ -47,14 +50,21 @@
   }
   function toyWalker() {
     const row=toyFacing.row*2+toyWalk.frame, column=toyColumn(), content=atlasFigure('walk.png',WALK_FRAMES[row][column],1024,1536,'data-walk-frame="'+row+'"');
-    return toyFacing.mirror ? '<g transform="translate(100,0) scale(-1,1)">'+content+'</g>' : content;
+    return (toyFacing.mirror ? '<g transform="translate(100,0) scale(-1,1)">'+content+'</g>' : content)+toySash(candidates.player.party);
   }
-  const SUPPORT_ROLES = {elder:0,elder2:1,middle:3,middle2:2,young:4,young2:5,resident:2,shop:2,shop2:3,rival:6,helper:7,host:8};
-  function supportFigure(role) { const n=SUPPORT_ROLES[role]??7;return atlasFigure('support.png',SUPPORT_FRAMES[Math.floor(n/3)][n%3],1536,1024,'data-support-role="'+role+'"'); }
-  function sceneAtlas(kind) { const cell={tv:[0,0],online:[768,0],fundraise:[0,512],count:[768,512]}[kind]; if(!cell)return '';return '<svg width="1200" height="650" viewBox="'+cell[0]+' '+cell[1]+' 768 512" preserveAspectRatio="none" overflow="hidden"><image data-art-image="scene" href="'+TOY_ROOT+'scenes.png" width="1536" height="1024"/></svg>'; }
+  // v1 cell 3 (bald, glasses) reads as an elder and as the incumbent, so middle-aged men and the party-neutral rival come from support-v2.
+  const SUPPORT_ROLES = {elder:0,elder2:1,middle2:2,young:4,young2:5,resident:2,shop:2,helper:7,host:8};
+  const SUPPORT2_ROLES = {middle:[0,0],shop2:[0,1],rival:[1,1]};
+  function supportFigure(role) { const v2=SUPPORT2_ROLES[role],n=SUPPORT_ROLES[role]??7,body=v2?atlasFigure('v2/support-v2.png',SUPPORT2_FRAMES[v2[0]][v2[1]],1536,1024,'data-support-role="'+role+'"'):atlasFigure('support.png',SUPPORT_FRAMES[Math.floor(n/3)][n%3],1536,1024,'data-support-role="'+role+'"');return role==='rival'?body+toySash(candidates.rival.party):body; }
+  // The party sash drawn over a matte figure; the sprites themselves carry no party colour.
+  function toySash(party) { const c=PARTY_COLORS[party]; return c?'<g class="toy-sash" data-party="'+party+'"><path d="M37 58L43 55L66 91L60 95Z" fill="'+c+'" stroke="#ffffff" stroke-width="1.2"/><circle cx="53" cy="76" r="4" fill="#ffffff"/><circle cx="53" cy="76" r="2.4" fill="'+c+'"/></g>':''; }
+  function sceneAtlas(kind) { const file=TOY_SCENES[kind]; return file?'<image data-art-image="scene" href="'+TOY_ROOT+file+'" width="1200" height="650" preserveAspectRatio="xMidYMid slice"/>':''; }
+  // Assistants headed to the same place walk as one figure with a head count, so identical sprites never trail the candidate as clones.
   function toyTeam(assignments,elapsed,id,venue,reduced) {
-    return assignments.filter(a=>a.task!=='release').slice(0,6).map((a,i)=>{const dest=a.task==='research'?'prepare':a.task==='stream'?'online':a.task==='booth'?'fundraise':a.task==='idle'?'recruit':id;const target=toyKey(dest,venue);const p=alongVisual([spot('recruit'),spot('start'),...visualRoute(target).slice(1)],reduced?1:Math.min(1,elapsed/2.5));p.x+=(-28+i*14);p.y+=18+i%2*10;return '<span class="toy-helper" data-helper-id="'+String(a.id??i).replace(/[^a-zA-Z0-9_-]/g,'')+'" style="left:'+p.x/12+'%;top:'+p.y/6.5+'%;z-index:'+Math.round(p.y)+'">'+avatar('helper')+'</span>';}).join('');
+    const groups=[];for(const a of assignments.filter(a=>a.task!=='release')){const dest=a.task==='research'?'prepare':a.task==='stream'?'online':a.task==='booth'?'fundraise':a.task==='idle'?'recruit':id,target=toyKey(dest,venue),g=groups.find(x=>x.target===target);if(g)g.n++;else groups.push({target,n:1});}
+    return groups.map((g,i)=>{const p=alongVisual([spot('recruit'),spot('start'),...visualRoute(g.target).slice(1)],reduced?1:Math.min(1,elapsed/2.5));p.x+=-34+i*22;p.y+=20+i%2*10;return '<span class="toy-helper" data-helper-target="'+g.target+'" style="left:'+p.x/12+'%;top:'+p.y/6.5+'%;z-index:'+Math.round(p.y)+'">'+avatar('helper')+(g.n>1?'<b class="toy-helper-count">×'+g.n+'</b>':'')+'</span>';}).join('');
   }
+
   function toyResidents() { return [[330,336,'elder'],[262,332,'middle2'],[760,298,'young'],[656,501,'elder2'],[915,500,'young2'],[540,261,'middle']].map(([x,y,role])=>'<span class="toy-resident" style="left:'+x/12+'%;top:'+y/6.5+'%">'+avatar(role)+'</span>').join(''); }
   function toyColumn(look=candidates.player) {return look.identity==='heir'||look.outfit==='suit'?1:look.identity==='incumbent'||look.outfit==='vest'?2:0;}
 
@@ -187,7 +197,7 @@
 
   // A candidate in a given outfit and party, without changing the current game's look (opening cards, match-up).
   function portrait(look = {}, role = 'player') {
-    if (isToy() && role === 'player') return '<svg class="day-avatar-svg" viewBox="0 0 100 140">'+toySprite(toyColumn(look))+'</svg>';
+    if (isToy() && role === 'player') return '<svg class="day-avatar-svg" viewBox="0 0 100 140">'+toySprite(toyColumn(look),0,false,look.party||null)+'</svg>';
     const saved = candidates;
     candidates = role === 'rival' ? { ...saved, rival: { party: look.party || null } } : { ...saved, player: { outfit: look.outfit || 'casual', party: look.party || null } };
     try { return avatar(role); } finally { candidates = saved; }
@@ -671,7 +681,7 @@
       for (const x of [70, 1130]) s += path(`M${x} 650L${x} 470`, '#25332f', 5) + rect(x - 34, 420, 68, 50, '#25332f') + rect(x + (x < 600 ? 30 : -48), 434, 18, 22, '#1d2926') + `<circle cx="${x}" cy="445" r="9" fill="#ef835b"/>`;
       s += poly([[0, 380], [1200, 380], [1200, 650], [0, 650]], '#3f5f57') + path('M0 380H1200', '#5f8578', 3);
     } else if (kind === 'debate') {
-      s += rect(0, 0, 1200, 650, '#e8e2cf') + rect(80, 40, 1040, 200, '#5f8071') + rect(96, 56, 1008, 168, '#6f9282') + label(600, 128, '公辦政見發表會', 46, '#fff3d1', 'text-anchor="middle"') + label(600, 180, '臺北市第六選區・市議員', 22, '#e8f1df', 'text-anchor="middle" letter-spacing="2"');
+      s += rect(0, 0, 1200, 650, '#e8e2cf') + rect(80, 40, 1040, 200, '#5f8071') + rect(96, 56, 1008, 168, '#6f9282') + label(600, 128, '公辦政見發表會', 46, '#fff3d1', 'text-anchor="middle"') + label(600, 180, '臺北市大安文山區・市議員', 22, '#e8f1df', 'text-anchor="middle" letter-spacing="2"');
       s += rect(0, 360, 1200, 60, '#b98b60') + rect(0, 360, 1200, 12, '#d5ad7c') + rect(0, 420, 1200, 230, '#ece6d3');
     } else s += floor(340, '#e7dfc7', '#d1c6a8');
     return s;
@@ -682,7 +692,7 @@
   // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, variant, tone} or null.
   function toyInterior(kind, options) {
     let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" class="venue-art" data-kind="'+kind+'">'+sceneAtlas(kind);
-    if(kind!=='fundraise')s+=label(600,175,kind==='tv'?'中立新聞台':(candidates.player.name||'小沈')+'的選戰直播',42,'#fffdf7','text-anchor="middle"')+label(600,225,options.topic||'選區議題・即時回應',24,'#e8f0df','text-anchor="middle"');
+    if(kind!=='fundraise')s+=label(600,108,kind==='tv'?'中立新聞台':(candidates.player.name||'小沈')+'的選戰直播',42,'#fffdf7','text-anchor="middle"')+label(600,150,options.topic||'選區議題・即時回應',24,'#e8f0df','text-anchor="middle"');
     s+=figure(330,570,'player',1.8,'speak')+figure(600,570,kind==='tv'?'host':'helper',1.55);
     const crowd=(options.crowd||[]).slice(0,10);
     if(crowd.length){s+=rect(800,355,380,280,'#fffdf7','rx="20"')+label(990,390,kind==='tv'?'觀眾反應':'網友反應',20,'#345761','text-anchor="middle"');for(let i=0;i<crowd.length;i++){const c=crowd[i],x=840+(i%5)*72,y=490+Math.floor(i/5)*120;s+=figure(x,y,GROUP_ROLES[c.group]?.[c.variant?1:0]||'young',.56);if(c.tone)s+=face(x,y-89,c.tone,13);}}
@@ -699,8 +709,9 @@
     const people = crowd.slice(0, slots.length).map((c, i) => ({ c, x: slots[i][0], y: slots[i][1], k: slots[i][2] }));
     if (options.board && !['tv', 'debate'].includes(kind)) s += boardMarkup(110, 420, 1.35, options.board.party);
     if (kind === 'debate') {
-      s += figure(600, 352, 'middle', .74) + figure(300, 340, 'player', 1.05) + figure(900, 340, 'rival', 1.05);
-      for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? (candidates.player.name || '小沈') : '小馬', 18, '#5f4630', 'text-anchor="middle"');
+      const toy = isToy(), sy = toy ? 470 : 340, sk = toy ? 1.75 : 1.05, ly = toy ? 498 : 342;
+      s += figure(600, toy ? 440 : 352, toy ? 'host' : 'middle', toy ? 1.35 : .74) + figure(300, sy, 'player', sk) + figure(900, sy, 'rival', sk);
+      for (const x of [300, 900]) s += (toy ? '' : block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c')) + rect(x - 50, ly - 20, 100, 26, '#f2e3bf', 'rx="6"') + label(x, ly, x < 600 ? (candidates.player.name || '小沈') : '小馬', 18, '#5f4630', 'text-anchor="middle"');
     }
     for (const p of [...people].sort((a, b) => a.y - b.y)) s += figure(p.x, p.y, roleOf(p.c), p.k);
     if (kind === 'online') { s += figure(350,560,'player',1.7) + figure(600,560,'helper',1.05) + rect(200,528,440,44,'#446f61','rx="20"') + rect(525,420,56,90,'#263c48','rx="12"') + path('M553 510V548','#263c48',7); }

@@ -37,6 +37,7 @@ const STARTS=[
  route('造勢加看板、送小禮物',[C,C,R,C,R,C,C,D,R,C],{gifts:true,boards:[1,2]}),
  route('每回合照順序研究、擺攤、最後催票',[C,C,C,T,C,C,C,D,C,C],{research:true,booth:true,gotv:true}),
  route('直播與街訪交替',[O,C,O,C,O,C,O,D,O,C]),
+ route('挖黑料再上電視引爆',[C,'dig',T,C,'dig',T,C,D,C,C]),
  route('同一個市場蹲到底',[C,C,C,C,C,C,C,D,C,C],{venue:'market'}),
 ];
 // Diagnostics for known design gaps: these should start to differ from their baselines once fixed.
