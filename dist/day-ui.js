@@ -418,10 +418,12 @@
   }
   // On a trip: what may be asked here and whether you are ready. Research itself happens on a preparation round, before the trip.
   function askRow() {
-    const pool = askPool(), odds = onSite(selectedAction) ? (G.venueView(state).find(v => v.id === plannedVenue())?.odds || []) : [];
+    const pool = askPool(), place = onSite(selectedAction) ? G.venueView(state).find(v => v.id === plannedVenue()) : null, odds = place?.odds || [];
+    // A passer-by may ask a current event instead; the place's own odds are scaled so the chips add up to the whole chance.
+    const news = selectedAction === 'canvass' ? place?.news || null : null, keep = news ? 1 - news.chance / 100 : 1, newsChip = news ? '<span class="research-chip other"><b>時事 ' + news.chance + '%</b><small>' + news.topics.map(t => esc(short(t))).join('、') + '</small></span>' : '';
     if (!pool.length) return '';
     const ready = pool.filter(t => state.player.known.includes(t)).length;
-    return '<div class="research-row ask-only" role="group" aria-label="這裡可能問"><span class="pick-label">可能問</span>' + pool.map((t, i) => '<span class="research-chip ' + depthClass(t) + '"><b>' + esc(short(t)) + (odds[i] ? ' ' + odds[i] + '%' : '') + '</b><small>' + statusOf(t) + '</small></span>').join('') + '</div>' + (ready === pool.length ? '' : '<p class="research-note">沒研究的題被問到會卡詞' + info('要研究，得派助手查或回社區工作室準備；查到的下回合起用得到。研究過的題再查一次就是深入研究，看得到三群各占幾成和預估票數。') + '</p>');
+    return '<div class="research-row ask-only" role="group" aria-label="這裡可能問"><span class="pick-label">可能問</span>' + pool.map((t, i) => '<span class="research-chip ' + depthClass(t) + '"><b>' + esc(short(t)) + (odds[i] ? ' ' + Math.round(odds[i] * keep) + '%' : '') + '</b><small>' + statusOf(t) + '</small></span>').join('') + newsChip + '</div>' + (ready === pool.length ? '' : '<p class="research-note">沒研究的題被問到會卡詞' + info('要研究，得派助手查或回社區工作室準備；查到的下回合起用得到。研究過的題再查一次就是深入研究，看得到三群各占幾成和預估票數。') + '</p>');
   }
   function researchRow() {
     const free = helpers(), picks = researchTopic() || [], ranking = (G.landscapeView(state).ranking || []).map(r => r.topic).filter(t => G.topicsOf(state).includes(t)), list = [...new Set([...ranking, ...G.topicsOf(state)])].filter(t => state.player.insight?.[t]?.level !== 'precise' && t !== selectedTopic);
@@ -456,7 +458,7 @@
     let body = '';
     if (onSite(id)) {
       const stances = G.topicsOf(state).filter(t => stanceOf(t)).length;
-      body = modeButtons([['canvass', '街頭拜訪', '免費・回答一題'], ['rally', '辦造勢活動', wan(G.COSTS.rally) + (stances < 2 ? '・先表態 2 題才能辦' : '・講你全部的立場'), stances < 2]]) + crowdLine(p.crowd, '現場 10 人', !crowdKnown(p.venue)) + '<p class="dock-info">' + (id === 'canvass' ? (venue.challenged ? '這裡的人都在問小馬對你的批評。' : esc(venue.mainTitle) + '多' + info('會從下面三題挑一題問你。')) : '你公開過 ' + stances + ' 個立場' + info('造勢會講你全部公開過的立場：合這裡人群的加分，不合的扣分。連續辦，來的人會越來越少。')) + '</p>' + chiefLine(p.chief) + addonButtons(p);
+      body = modeButtons([['canvass', '街頭拜訪', '免費・回答一題'], ['rally', '辦造勢活動', wan(G.COSTS.rally) + (stances < 2 ? '・先表態 2 題才能辦' : '・講你全部的立場'), stances < 2]]) + crowdLine(p.crowd, '現場 10 人', !crowdKnown(p.venue)) + '<p class="dock-info">' + (id === 'canvass' ? (venue.challenged ? '這裡的人都在問小馬對你的批評。' : esc(venue.mainTitle) + '多' + info('會從下面三題挑一題問你；路人也可能改問時事。')) : '你公開過 ' + stances + ' 個立場' + info('造勢會講你全部公開過的立場：合這裡人群的加分，不合的扣分。連續辦，來的人會越來越少。')) + '</p>' + chiefLine(p.chief) + addonButtons(p);
     } else if (['tv', 'press'].includes(id)) {
       const tip = G.eventView(state).tip, tipReady = tip?.available;
       body = modeButtons([['tv', '上節目', (state.player.tvCredit ? '免費（老K 的節目）' : wan(G.COSTS.tv)) + '・長輩、中年多'], ['press', '開記者會爆料', tipReady ? '免費・公開小馬經費資料' : '第 3 回合起', !tipReady]]) + (id === 'tv' ? crowdLine(p.crowd, '電視觀眾 10 人') + '<p class="dock-info">' + (p.respond ? '你主動回應小馬，節目談「' + esc(G.TOPICS[p.topic].title) + '」。' : p.brief ? '節目談「' + esc(G.TOPICS[p.brief].title) + '」' + info('你買了專訪時段，開錄前先打聽好。') : '主持人從下面三題抽一題' + info('抽到沒研究的題會卡詞；買專訪可以指定題目。')) + '</p>' + addonButtons(p) + tvCards(p) : '<p class="dock-info">手上的資料：' + esc(tip.evidenceText) + ' 還沒查證就指控，可能當場被記者識破。</p>');
