@@ -1116,3 +1116,47 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 .v13 .expose-chip.solid{border-left-color:#2f7a4a}
 .v13 .expose-chip.risky{border-left-color:#c4573e}
 .v13 .expose-chip[aria-pressed="true"]{border-color:var(--green);background:var(--mint)}
+/* Per-game goal: origin presets on the identity cards, the vote-bank route, its targets on the race board and its cues on the map. */
+.v13 .pick-card>.origin-tag{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 6px;width:100%;margin-top:2px;padding:5px 8px;border:1px dashed #b9c2ad;border-radius:8px;background:#fbf8ee;line-height:1.35}
+.v13 .origin-tag i{font-style:normal;font-size:10.5px;color:var(--muted)}
+.v13 .origin-tag b{font-size:13px;color:#263c48}
+.v13 .pick-card>.origin-line{display:flex;flex-wrap:wrap;gap:2px 8px;line-height:1.4}
+.v13 .origin-line em,.v13 .profile-origin em{font-style:normal;font-size:11.5px;white-space:nowrap}
+.v13 .og{color:#2f6a46}.v13 .ob{color:#9a3f2b}
+.v13 .dock-intro .route-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.v13 .route-card{border-left:5px solid var(--g)}
+.v13 .route-card>b{color:var(--g)}
+.v13 .pick-card>.route-targets{display:flex;flex-wrap:wrap;gap:2px 8px}
+.v13 .route-targets em{font-style:normal;color:var(--muted);white-space:nowrap}
+.v13 .route-targets em.focus{color:#263c48;font-weight:700}
+.v13 .pick-card>.route-perk{color:#2f6a46}
+.v13 .route-card[aria-pressed="true"]{border-color:var(--green);border-left-color:var(--g)}
+.v13 .route-plan{margin-top:10px;border:1px solid var(--line);border-radius:10px;background:#fffdf7;padding:10px 12px}
+.v13 .route-goals{display:flex;flex-wrap:wrap;gap:4px 12px;margin:6px 0 2px;font-size:13px}
+.v13 .route-goals span{color:var(--muted)}.v13 .route-goals span.focus{color:#263c48}
+.v13 .route-goals b{font-variant-numeric:tabular-nums}
+.v13 .route-sum{margin:0;font-size:11.5px;color:var(--muted)}
+.v13 .profile-origin{display:flex;flex-wrap:wrap;align-items:center;gap:2px 8px;margin:4px 0 6px;font-size:12px}
+.v13 .profile-origin>b{padding:0 6px;border-radius:999px;background:#efe9d8;font-size:10.5px;color:#6b5a32}
+.v13 .profile-origin>span{font-weight:700}
+.v13 .sup-est[data-route] .sup-row{grid-template-columns:5em minmax(0,1fr) 5.4em 4.8em}
+.v13 .sup-est[data-route] .sup-name .dot{flex:0 0 auto}
+.v13 .sup-goal{font-size:10.5px;color:var(--muted);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.v13 .sup-row.main .sup-goal{color:#263c48;font-weight:700}
+.v13 .sup-row.minor{opacity:.72}
+.v13 .sup-star{font-style:normal;font-size:10px;color:#b98a1e}
+.v13 .sup-row.near .sup-num{color:#9a6a12}
+.v13 .hotspot .route-cue{position:absolute;bottom:-10px;left:-4px;display:inline-flex;align-items:center;gap:2px;padding:1px 5px;border-radius:6px;font-size:9.5px;font-weight:700;line-height:1.35;white-space:nowrap;color:#fff;background:#a5432e;box-shadow:0 1px 3px #2c543133;pointer-events:none}
+.v13 .hotspot .route-cue i{font-style:normal;font-size:8px}
+.v13 .hotspot .route-cue.near{background:#b98a1e}
+.v13 .hotspot .route-cue.ahead{background:#2f7a4a}
+.v13 .hotspot .route-cue:not(.main){opacity:.92}
+@media (max-width:620px){
+ .v13 .dock-intro .route-cards{grid-template-columns:1fr}
+ .v13 .pick-card.route-card{display:flex}
+}
+@media (max-width:600px){
+ .v13 .mobile-destinations .hotspot{position:relative}
+ .v13 .mobile-destinations .hotspot .route-cue{position:static;margin-left:auto;font-size:11px;padding:2px 6px}
+ .v13 .sup-est[data-route] .sup-row{grid-template-columns:4.9em minmax(0,1fr) 5em 4.6em;gap:5px}
+}
