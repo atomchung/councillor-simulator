@@ -94,7 +94,7 @@ ok(n>=30&&crowdWins>=n*.85,'main crowd majority wins at its place: '+crowdWins+'
 
 // Promises depend on the crowd: where bold-promise fans gather a guarantee beats candour; where they hate empty talk it loses.
 let fanWins=0,haterWins=0,fans=0,haters=0;
-for(let seed=1;seed<=60;seed++){const base=fresh(seed);for(const [att,count] of [['likes',1],['dislikes',-1]]){const v=G.venueView(base).find(v=>base.landscape.groups[v.main].promise===att);if(!v)continue;
+for(let seed=1;seed<=120;seed++){const base=fresh(seed);for(const [att,count] of [['likes',1],['dislikes',-1]]){const v=G.venueView(base).find(v=>base.landscape.groups[v.main].promise===att);if(!v)continue;
  const run=mode=>{const s=copy(base);return playerVotes(round(s,'canvass',{venue:v.id,teamTasks:['idle','idle']},mode));},g=run('guarantee'),h=run('honest');if(count>0){fans++;if(g>h)fanWins++;}else{haters++;if(h>g)haterWins++;}}}
 ok(fanWins>=fans*.8&&haterWins>=haters*.8,`guarantee helps with fans ${fanWins}/${fans}, hurts with haters ${haterWins}/${haters}`);
 
@@ -508,27 +508,50 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
  // Watched: 小馬 goes after a newcomer's guarantee from round 1 instead of waiting until they near the line.
  const attacks={watched:0,other:0,n:0};for(let seed=1;seed<=200;seed++){const s=fresh(seed,{background:'newcomer'}),v=G.venueView(s)[0].id;G.begin(s,'canvass',{venue:v});G.arrive(s);if(s.phase!=='question')continue;const g=G.question(s).options.find(o=>o.id==='guarantee'&&o.unlocked);if(!g)continue;G.answer(s,g.id);G.next(s);const hit=s.rivalPlan?.attack?.kind==='guarantee';if(G.originFor(seed,'newcomer').watched){attacks.watched+=hit;attacks.n++;}else attacks.other+=hit;}
  ok(attacks.n>=10&&attacks.watched>0&&attacks.other===0,'a watched newcomer is attacked early, others are not: '+JSON.stringify(attacks));}
-// Per-game goal, part 2: vote-bank routes. One per group, built from this game's group sizes and main crowds; the three targets add up to
-// the seat line, the route's home reaches more people, and the board and map read the staff estimate against each target.
-{const valid=G.POPULATION*G.PER_VOTER;let homes=0;
- for(let seed=1;seed<=40;seed++){const s=G.initial(seed),opts=G.routeOptions(s);eq(opts.map(r=>r.id),['elder','middle','young'],'one route per group');eq(G.routeOptions(G.initial(seed)),opts,'routes are fixed by the seed');
-  for(const r of opts){eq(r.targets.reduce((n,t)=>n+t.votes,0),G.LINE,r.title+': targets add up to the seat line');const order=[r.group,r.partner,3-r.group-r.partner],rel=r.targets.map((t,k)=>t.pct/(G.ROUTE.reachable[t.id]*G.ROUTE.tilt[order.indexOf(k)]));ok(Math.max(...rel)/Math.min(...rel)<1.04,r.title+': each target is the group\'s usual share, tilted by the route');eq(r.targets.map(t=>t.focus),[0,1,2].map(k=>k!==order[2]),'two groups to work on');ok(r.targets[r.partner].focus&&r.partner!==r.group,'with a partner group');
-   r.targets.forEach((t,k)=>ok(Math.abs(t.pct-t.votes/(valid*s.landscape.groups[k].share)*100)<.06,'target share of the group'));
-   eq(r.home,r.group===2?['online']:Object.keys(G.VENUES).filter(v=>s.landscape.main[v]===r.group),r.title+': home is where the group is the main crowd');ok(r.title.startsWith(G.GROUPS[r.group].title+'＋')&&r.perkText,'route name and perk');}
-  eq(G.chooseRoute(s,'nobody'),false,'unknown route refused');const pick=opts[seed%3].id;ok(G.chooseRoute(s,pick),'a route can be picked before the start');G.start(s);eq(s.route,pick,'the pick carries into the game');eq(G.chooseRoute(s,opts[(seed+1)%3].id),false,'locked after the start');eq(s.route,pick,'route unchanged');
-  const d=G.initial(seed);G.start(d);eq(d.route,d.landscape.groups[1].share>d.landscape.groups[0].share?'middle':'elder','without a pick, the larger daytime group');eq(G.defaultRoute(G.initial(seed)),d.route,'the default is known before the start');
-  // The home bonus shows in the reach preview and in who is actually met.
-  const r=G.routeView(s);for(const v of Object.keys(G.VENUES)){const x=copy(s),y=copy(s);y.route=G.GROUPS.find((g,k)=>k!==r.group&&k!==2).id;if(r.group===2)y.route='elder';const px=G.preview(x,'canvass',{venue:v}).expectedReach.max,py=G.preview(y,'canvass',{venue:v}).expectedReach.max,home=r.home.includes(v),otherHome=G.routeView(y).home.includes(v);
-   const want=(home?G.ROUTE.reach.place:1)/(otherHome?G.ROUTE.reach.place:1);ok(Math.abs(px/py-want)<.02,'home reach at '+v);if(home)homes++;}
-  if(r.group===2){const y=copy(s);y.route='elder';const a=G.preview(s,'online',{}).expectedReach.max,b=G.preview(y,'online',{}).expectedReach.max;ok(b>0&&Math.abs(a/b-G.ROUTE.reach.online)<.02,'the young route streams further');}
-  // Status follows the estimate the board shows; the map cues follow the main crowds.
-  const e=G.supportEstimate(s),cues=G.routeCues(s);r.targets.forEach((t,k)=>eq(t.status,e.groups[k].lo>=t.pct?'ahead':e.groups[k].hi<t.pct?'behind':'near','status reads the staff estimate'));
-  eq(Object.keys(cues).sort(),[...Object.keys(G.VENUES),'online'].sort(),'a cue for every place and the stream');for(const [v,c] of Object.entries(cues)){const k=v==='online'?2:s.landscape.main[v];eq([c.group,c.focus,c.main,c.status],[k,r.targets[k].focus,k===r.group,r.targets[k].status],'cue at '+v);}
-  eq(G.routeView(copy(s)),r,'a reload keeps the route');}
+// Per-game goal, part 2: the vote bank. It follows who you are (identity, then the drawn origin) and nothing is picked. One per group is
+// built from this game's group sizes and main crowds; the three targets add up to the seat line, the base's home reaches more people,
+// and the board and map read the staff estimate against each target.
+{const valid=G.POPULATION*G.PER_VOTER,ids=Object.keys(G.BACKGROUNDS),seen={};let homes=0;
+ const wantBase=(s,bg)=>G.originFor(s.seed,bg).base||(bg==='newcomer'?'young':bg==='incumbent'?'elder':G.GROUPS[s.landscape.main.market].id);
+ eq(typeof G.chooseRoute,'undefined','there is no route pick');eq(typeof G.defaultRoute,'undefined','and no default route to fall back on');
+ // The mapping: an incumbent's is the elders, a newcomer's the young, an heir's the crowd at the family's market; a preset can name its own.
+ eq(G.ORIGINS.newcomer.map(o=>[o.id,o.base||null]),[['exposer','young'],['aide',null],['parent','middle']],'newcomer presets that name a base');
+ eq(G.ORIGINS.heir.map(o=>o.base||null),[null,null,null],'heir presets leave it to the market');eq(G.ORIGINS.incumbent.map(o=>o.base||null),[null,null,null],'incumbent presets leave it to the elders');
+ for(let seed=1;seed<=40;seed++){const s0=G.initial(seed),opts=G.routeOptions(s0);eq(opts.map(r=>r.id),['elder','middle','young'],'one option per group');eq(G.routeOptions(G.initial(seed)),opts,'options are fixed by the seed');
+  for(const r of opts){eq(r.targets.reduce((n,t)=>n+t.votes,0),G.LINE,r.title+': targets add up to the seat line');const order=[r.group,r.partner,3-r.group-r.partner],rel=r.targets.map((t,k)=>t.pct/(G.ROUTE.reachable[t.id]*G.ROUTE.tilt[order.indexOf(k)]));ok(Math.max(...rel)/Math.min(...rel)<1.04,r.title+': each target is the group\'s usual share, tilted by the base');eq(r.targets.map(t=>t.focus),[0,1,2].map(k=>k!==order[2]),'two groups to work on');ok(r.targets[r.partner].focus&&r.partner!==r.group,'with a partner group');
+   r.targets.forEach((t,k)=>ok(Math.abs(t.pct-t.votes/(valid*s0.landscape.groups[k].share)*100)<.06,'target share of the group'));
+   eq(r.home,r.group===2?['online']:Object.keys(G.VENUES).filter(v=>s0.landscape.main[v]===r.group),r.title+': home is where the group is the main crowd');ok(r.title.startsWith(G.GROUPS[r.group].title+'・')&&r.perkText,'base name and perk');}
+  for(const bg of ids){const s=G.initial(seed,{background:bg}),o=G.originFor(seed,bg),want=wantBase(s,bg),v=G.baseView(s);const tag=bg+'/'+o.id+' seed '+seed;
+   eq(G.baseGroup(s),want,tag+': the base follows the identity and the origin');eq(v.id,want,tag+': the view names it');eq(v.title,opts.find(r=>r.id===want).title,tag+': group and home places');ok(v.perk&&v.perkText&&v.places.length>=1&&v.homeTitles.length===v.places.length,tag+': with its perk and places');
+   eq(G.baseView(copy(s)),v,tag+': a reload shows the same base');eq(G.baseView(G.initial(seed,{background:bg,affiliation:'kmt'})).id,want,tag+': the party does not move it');
+   seen[bg+':'+want]=(seen[bg+':'+want]||0)+1;
+   // Nothing to pick: the game starts on it, whatever an old unstarted save kept.
+   const old=copy(s);old.route=want==='young'?'elder':'young';G.start(old);eq(old.route,want,tag+': an unstarted save with a stale pick starts on the identity\'s base');
+   G.start(s);eq(s.route,want,tag+': the game starts on the base');eq(G.baseView(s).id,want,tag+': and shows the same one in play');eq(G.routeView(s).id,want,tag+': the board reads it');eq(G.routeView(copy(s)),G.routeView(s),tag+': a reload keeps it');
+   if(seed>16)continue;
+   // The home bonus shows in the reach preview and in who is actually met.
+   const r=G.routeView(s);for(const v of Object.keys(G.VENUES)){const x=copy(s),y=copy(s);y.route=G.GROUPS.find((g,k)=>k!==r.group&&k!==2).id;if(r.group===2)y.route='elder';const px=G.preview(x,'canvass',{venue:v}).expectedReach.max,py=G.preview(y,'canvass',{venue:v}).expectedReach.max,home=r.home.includes(v),otherHome=G.routeView(y).home.includes(v);
+    const w=(home?G.ROUTE.reach.place:1)/(otherHome?G.ROUTE.reach.place:1);ok(Math.abs(px/py-w)<.02,tag+': home reach at '+v);if(home)homes++;}
+   if(r.group===2){const y=copy(s);y.route='elder';const a=G.preview(s,'online',{}).expectedReach.max,b=G.preview(y,'online',{}).expectedReach.max;ok(b>0&&Math.abs(a/b-G.ROUTE.reach.online)<.02,tag+': the young base streams further');}
+   // Status follows the estimate the board shows; the map cues follow the main crowds.
+   const e=G.supportEstimate(s),cues=G.routeCues(s);r.targets.forEach((t,k)=>eq(t.status,e.groups[k].lo>=t.pct?'ahead':e.groups[k].hi<t.pct?'behind':'near','status reads the staff estimate'));
+   eq(Object.keys(cues).sort(),[...Object.keys(G.VENUES),'online'].sort(),'a cue for every place and the stream');for(const [v,c] of Object.entries(cues)){const k=v==='online'?2:s.landscape.main[v];eq([c.group,c.focus,c.main,c.status],[k,r.targets[k].focus,k===r.group,r.targets[k].status],'cue at '+v);}}}
  ok(homes>=40,'home places checked: '+homes);
+ // The mapping shows up across seeds: an incumbent is always the elders, a newcomer the young but for the 家長會長, an heir either the middle-aged or the elders by the market.
+ ok(!Object.keys(seen).some(k=>k.startsWith('incumbent:')&&k!=='incumbent:elder'),'every incumbent is the elders');
+ ok(Object.keys(seen).filter(k=>k.startsWith('heir:')).length===2,'an heir\'s is the middle-aged or the elders, as the market\'s crowd says: '+JSON.stringify(seen));
+ {const parent=Array.from({length:60},(_,i)=>i+1).find(x=>G.originFor(x,'newcomer').id==='parent'),exposer=Array.from({length:60},(_,i)=>i+1).find(x=>G.originFor(x,'newcomer').id==='exposer'),aide=Array.from({length:60},(_,i)=>i+1).find(x=>G.originFor(x,'newcomer').id==='aide');
+  eq(G.baseGroup(G.initial(parent,{background:'newcomer'})),'middle','社區家長會長: middle-aged families');eq(G.baseGroup(G.initial(exposer,{background:'newcomer'})),'young','政大揭弊網紅: the young');eq(G.baseGroup(G.initial(aide,{background:'newcomer'})),'young','前市府幕僚: the newcomer\'s young');
+  const heirSeed=x=>G.originFor(x,'heir'),mk=Array.from({length:80},(_,i)=>i+1),mid=mk.find(x=>G.initial(x).landscape.main.market===1),eld=mk.find(x=>G.initial(x).landscape.main.market===0);
+  eq(G.baseGroup(G.initial(mid,{background:'heir'})),'middle','market crowd middle-aged: the heir\'s base is the middle-aged');eq(G.baseGroup(G.initial(eld,{background:'heir'})),'elder','market crowd elders: the district says otherwise');
+  ok(G.baseView(G.initial(mid,{background:'heir'})).home.includes('market'),'an heir\'s home places include the family\'s market');}
+ // An old save that already has a route keeps it: a started game plays on the route it saved, whatever the identity would give now.
+ {const s=fresh(5,{background:'incumbent'}),saved=copy(s);saved.route='young';const back=copy(saved);eq(G.routeView(back).id,'young','a saved route is read as it was');eq(G.baseView(back).id,'elder','the identity\'s own base is still the elders');
+  const k=2,online=G.preview(back,'online',{}).expectedReach.max,plain=G.preview(copy(s),'online',{}).expectedReach.max;ok(Math.abs(online/plain-G.ROUTE.reach.online)<.02,'and its home bonus still applies');eq(G.homeReach(back,back.player,'online'),G.ROUTE.reach.online,'the stream bonus of a saved young route');
+  const none=copy(s);delete none.route;eq(G.routeView(none),null,'a started save from before routes has none');eq(G.homeReach(none,none.player,'canvass','market'),1,'and no home bonus');}
  // A reach bonus only: the rival and the assistants are untouched.
- const s=fresh(5),r=G.routeView(s),home=r.home.find(v=>v!=='online');if(home){eq(G.homeReach(s,s.rival,'canvass',home),1,'not for 小馬');eq(G.homeReach(s,s.player,'team-canvass',home),1,'not for assistants');eq(G.homeReach(s,s.player,'canvass',home),G.ROUTE.reach.place,'for you at home');}
+ const s=fresh(5,{background:'heir'}),r=G.routeView(s),home=r.home.find(v=>v!=='online');if(home){eq(G.homeReach(s,s.rival,'canvass',home),1,'not for 小馬');eq(G.homeReach(s,s.player,'team-canvass',home),1,'not for assistants');eq(G.homeReach(s,s.player,'canvass',home),G.ROUTE.reach.place,'for you at home');}
  // Status and cues move with support: a group far past its target reads 達標 on the board and at its places.
- {const x=fresh(9),r=G.routeView(x),k=r.group;for(const v of x.voters)if(v.g===k)v.support[0]=Math.min(.16,v.support[0]*6);const after=G.routeView(x);eq(after.targets[k].status,'ahead','far past the target');for(const [v,c] of Object.entries(G.routeCues(x)))if(c.group===k)eq(c.status,'ahead','its places say so: '+v);
+ {const x=fresh(9,{background:'heir'}),r=G.routeView(x),k=r.group;for(const v of x.voters)if(v.g===k)v.support[0]=Math.min(.16,v.support[0]*6);const after=G.routeView(x);eq(after.targets[k].status,'ahead','far past the target');for(const [v,c] of Object.entries(G.routeCues(x)))if(c.group===k)eq(c.status,'ahead','its places say so: '+v);
   for(const v of x.voters)if(v.g===k)v.support[0]=.001;eq(G.routeView(x).targets[k].status,'behind','far short of it');}}
 console.log(JSON.stringify({result:'passed',checks,scope:'v13.7 questions: no spoilers before research, contested sides drawn per game and read by research, faces, estimates and the rival, current events at places, on TV and at the debate as a concern on top of the local ones, and brokers that never ask for a stance you already hold.'}));
