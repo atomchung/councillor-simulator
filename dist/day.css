@@ -898,6 +898,132 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 .tug-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;margin:12px 0;color:#285d61}.tug-legend span:nth-child(2){color:#ad6048}.tug-legend small{color:#5d6b70}.v13 .tug-row{display:grid;grid-template-columns:44px 1fr;gap:8px;margin:14px 0}.v13 .tug-bar{height:12px;align-self:center;border-radius:8px;overflow:hidden;position:relative}.tug-bar:after{content:"";position:absolute;left:50%;top:0;height:100%;border-left:1px solid #fffdf7}.v13 .tug-you{background:#285d61}.v13 .tug-rival{background:#c88b72}.v13 .tug-num{grid-column:2;display:flex;justify-content:space-between;font-size:13px}.tug-gap{grid-column:2;font-size:12px;color:#5d6b70}.v13 .standing{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;flex:1}.v13 .standing>.pick-label{grid-column:1/-1}.v13 .stand-chip{display:flex;flex-direction:column;align-items:stretch;padding:12px;border-radius:12px;gap:6px;font-size:12px}.v13 .stand-bar{height:7px;width:100%;margin-top:4px}.v13 .speaker-row{display:block}
 @media(max-width:600px){.v13 .donor-cards,.v13 .tv-cards{grid-template-columns:1fr}.v13 .answer-option{padding:16px}.v13 .answer-line{font-size:16px}.v13 .standing{grid-template-columns:1fr}.v13 .research-row{padding:12px;grid-template-columns:repeat(2,minmax(0,1fr))}}
 
+/* Text cut (v13.8): fewer words, one place per fact.
+   Answers: a spoken line plus chips; votes, party-aid cost, flips and the trade-off sit in one preview line above the answers
+   (hover or keyboard focus; on touch screens a short version shows under each answer). The question panel is a cheat-sheet.
+   Deals read as one line from the person, 拿到 and 代價 side by side. The recap is one row of capsules that add up to the total,
+   each opening to say why. The speaker in a bubble has a face. Toggles share the research chips' selected look. */
+.v13 .q-head{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.v13 .q-ask{margin:0 0 12px;padding:10px 14px;border-radius:12px;background:#fff3d2;font-size:15px;font-weight:700;line-height:1.5;color:var(--ink)}.v13 .q-ask b{display:block;font-size:12px;color:#8a5a10;margin-bottom:2px}
+.v13 .q-status{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:700;background:#f1efe4;color:#5d6b70}
+.v13 .q-status.deep{background:#285d61;color:#fffdf7}.v13 .q-status.deep .info{color:#fffdf7}.v13 .q-status.ready{background:#e3efdf;color:#2f6a46}
+.v13 .q-status.risky{background:#f8e3dc;color:#9a3f2b}.v13 .q-status.warn{background:var(--rival-soft);color:#9a3f2b}
+.v13 .answer-list{grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;position:relative}
+.v13 .answer-option,.v13 .answer-option:hover:not([disabled]),.v13 .answer-option:focus-visible{transform:none}
+.v13 .answer-option{position:static;padding:12px 14px;min-height:0;border-radius:14px}
+.v13 .answer-copy{display:flex;flex-direction:column;gap:8px}
+.v13 .answer-line{font-size:16px;line-height:1.45;font-weight:700}
+.v13 .answer-line .answer-number{width:24px;height:24px;font-size:12px;margin-right:8px}
+.v13 .answer-chips{display:flex;flex-wrap:wrap;align-items:center;gap:4px}
+.v13 .answer-chips .face-row{display:contents}
+.v13 .a-chip{display:inline-flex;align-items:center;min-height:24px;padding:1px 8px;border-radius:999px;font-size:12px;font-weight:700;background:#f1efe4;color:#5d6b70}
+.v13 .a-chip.k-breach,.v13 .a-chip.k-flip,.v13 .a-chip.k-walkback,.v13 .a-chip.k-fatigue,.v13 .a-chip.k-unprepared{background:#f8e3dc;color:#9a3f2b}
+.v13 .a-chip.k-party{background:#e1ebf3;color:#2c4f7c}.v13 .a-chip.k-deal,.v13 .a-chip.k-previous{background:#e3efdf;color:#2f6a46}
+.v13 .a-chip.k-counter{background:var(--rival);color:#fffdf7}
+.v13 .a-chip.k-locked,.v13 .a-chip.k-unknown{background:transparent;border:1px dashed #c9cdbf}
+.v13 .answer-more{display:flex;flex-wrap:wrap;align-items:center;gap:2px 10px;font-size:12.5px;line-height:1.4;font-weight:600}
+.v13 .am-est{color:#285d61;font-weight:800}.v13 .am-warn{color:#9a3f2b}.v13 .am-detail{color:var(--muted);font-weight:500}
+@media (hover:hover) and (pointer:fine){
+ .v13 .answer-list{padding-top:54px}
+ .v13 .answer-list::before{content:attr(data-hint);position:absolute;top:0;left:0;right:0;height:44px;display:flex;align-items:center;padding:0 14px;border:1px dashed #cfd4c6;border-radius:10px;font-size:12.5px;color:var(--muted)}
+ .v13 .answer-more{position:absolute;top:0;left:0;right:0;height:44px;overflow:hidden;align-content:flex-start;align-content:safe center;padding:4px 14px;border-radius:10px;background:#263c48;color:#fffdf7;opacity:0;pointer-events:none;transition:opacity .12s;z-index:2}
+ .v13 .answer-option:hover .answer-more,.v13 .answer-option:focus-visible .answer-more{opacity:1}
+ .v13 .am-est{color:#ffe7a3}.v13 .am-warn{color:#ffc9b8}.v13 .am-detail{color:#dbe5e0}
+}
+@media (hover:none),(pointer:coarse){.v13 .answer-more .am-detail{display:none}.v13 .answer-more:not(:has(.am-est,.am-warn)){display:none}}
+/* The question panel's cheat-sheet: party line, deal and research, with answer numbers. */
+.v13 .cheat-sheet .issue-card-title span{font-size:11px;color:var(--muted)}
+.v13 .cheat-rows{display:grid;gap:10px;margin:12px 0 0}
+.v13 .cheat-row{display:grid;grid-template-columns:2.6em minmax(0,1fr);gap:8px;align-items:baseline;font-size:13px;line-height:1.5}
+.v13 .cheat-row dt{font-size:12px;font-weight:700;color:var(--muted)}.v13 .cheat-row dd{margin:0;color:var(--ink)}
+.v13 .cheat-none{color:var(--muted)}
+.v13 .ref-no{display:inline-grid;place-items:center;width:20px;height:20px;margin-right:5px;border-radius:50%;background:#e4eee6;color:#285d61;font-size:11px;font-style:normal;font-weight:800;vertical-align:1px}
+.v13 .cheat-row .insight-table{width:auto;min-width:70%}.v13 .cheat-row .insight-table th,.v13 .cheat-row .insight-table td{padding:2px 8px 2px 0;text-align:left;font-weight:500}
+.v13 .cheat-row .insight-table td.top{font-weight:800;color:#285d61}
+/* Deals: offer card and broker cards. */
+.v13 .deal-head{display:flex;align-items:center;gap:10px;width:100%}
+.v13 .deal-face{position:relative;flex:0 0 46px;width:46px;height:46px;border-radius:50%;overflow:hidden;background:#efe9d9;border:2px solid #d9c48d}
+.v13 .deal-face svg{position:absolute;width:69px;height:auto;left:-10px;top:-2px}
+.v13 .deal-face.deal-icon{display:grid;place-items:center;color:var(--green);background:#e4eee6;border-color:#c4d9bf}.v13 .deal-face.deal-icon .action-icon{width:24px;height:24px}.v13 .deal-face.deal-icon svg{position:static;width:22px;height:22px}
+.v13 .deal-who{display:flex;flex-direction:column;min-width:0;line-height:1.3}.v13 .deal-who b{font-size:16px;color:var(--ink)}.v13 .deal-who small,.v13 .donor-card .deal-who small{font-size:12px;line-height:1.3;color:var(--muted)}
+.v13 .deal-when{margin-left:auto;align-self:flex-start;padding:2px 8px;border-radius:999px;background:#f1efe4;font-size:11px;font-weight:700;color:var(--muted);white-space:nowrap}
+.v13 .deal-line{position:relative;display:block;margin:10px 0;padding:8px 12px;border-radius:12px;background:#fff3d2;font-size:15px;font-weight:700;line-height:1.5;color:var(--ink)}
+.v13 .deal-line::before{content:"";position:absolute;left:16px;top:-7px;border:7px solid transparent;border-top:0;border-bottom-color:#fff3d2}
+.v13 .panel-content .deal-line{font-size:15px;color:var(--ink)}
+.v13 .deal-cols{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%}
+.v13 .deal-col{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;font-size:13px;line-height:1.45;color:var(--ink);text-align:left}
+.v13 .deal-col>b{font-size:12px;font-weight:800}
+.v13 .deal-get{background:#e7f1e4}.v13 .deal-get>b{color:#2f6a46}.v13 .deal-cost{background:#f8e7e0}.v13 .deal-cost>b{color:#9a3f2b}
+.v13 .offer-card.deal-card{padding:14px}
+.v13 .offer-card .offer-actions{margin-top:10px}.v13 .offer-actions button small{display:block;font-size:11px;font-weight:600;color:var(--muted)}
+.v13 .donor-card.deal-card{display:flex;flex-direction:column;align-items:stretch;gap:0;padding:14px}
+.v13 .donor-card.deal-card .deal-cols{margin-top:auto}.v13 .donor-card.deal-card .deal-head+.deal-cols{margin-top:10px}
+.v13 .donor-card[aria-pressed="true"]{border-color:var(--green);background:#edf3e7;box-shadow:inset 0 0 0 2px var(--green)}
+/* Recap: one row of capsules that add up to the round total; a capsule opens below the row to say why. */
+.v13 .dock-recap{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:14px;align-items:center}
+.v13 .dock-recap>*{grid-column:1/-1}.v13 .dock-recap>.recap-total{grid-column:1;grid-row:1}.v13 .dock-recap>.recap-next{grid-column:2;grid-row:1;margin:0}
+@media (max-width:600px){.v13 .dock-recap>.recap-total,.v13 .dock-recap>.recap-next{grid-column:1/-1;grid-row:auto}.v13 .dock-recap>.recap-next{margin-top:14px;width:100%}}
+.v13 .cap-row{position:relative;display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.v13 .cap{position:static}
+.v13 .cap>summary{display:inline-flex;align-items:center;gap:6px;min-height:34px;padding:4px 12px;border:1px solid;border-radius:999px;font-size:13px;cursor:pointer;list-style:none;user-select:none}
+.v13 .cap>summary::-webkit-details-marker{display:none}
+.v13 .cap>summary b{font-weight:700}.v13 .cap-v{font-weight:800;font-variant-numeric:tabular-nums}
+.v13 .cap.up>summary{background:#e4f0e1;border-color:#b9d3b2;color:#2f6a46}
+.v13 .cap.down>summary{background:#f8e3dc;border-color:#e6bfb2;color:#9a3f2b}
+.v13 .cap.zero>summary{background:#f1efe4;border-color:var(--line);color:var(--muted)}
+.v13 .cap.note>summary{background:transparent;border-style:dashed;border-color:#c9cdbf;color:var(--muted)}.v13 .cap.note.warn>summary{border-color:#e6bfb2;color:#9a3f2b}
+.v13 .cap.main>summary{border-width:2px}
+.v13 .cap[open]>summary{box-shadow:0 0 0 2px #263c48}
+.v13 .cap-pop{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fffdf7;box-shadow:0 10px 26px #263c4826;font-size:13px;line-height:1.6;color:var(--ink)}
+.v13 .cap-pop .delta-row{display:flex;margin:6px 0 0}
+.v13 .recap-hindsight{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:#e7f1e4;font-size:13px;line-height:1.5;color:#2f6a46}
+.v13 .recap-hindsight.warn{background:#fbecd9;color:#8a4a1a}.v13 .recap-hindsight b{margin-right:8px}
+.v13 .journal-entry h3 small{margin-left:8px;font-size:12px;color:var(--muted)}.v13 .journal-entry{padding-bottom:12px}
+/* The speaker in the scene bubble: face in their group's colour, name, then their words. */
+.v13 .conversation-bubble .bubble-speaker{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:12px;color:var(--ink)}
+.v13 .bubble-face{position:relative;flex:0 0 30px;width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--g-soft,#e4eee6);border:2px solid var(--g,#285d61)}
+.v13 .bubble-face svg{position:absolute;width:45px;height:auto;left:-6px;top:-1px}
+.v13 .conversation-bubble .bubble-speaker small{display:inline;margin:0;font-size:11px;font-weight:600;color:var(--muted)}
+.v13 .conversation-bubble p{font-weight:700}
+@media (max-width:700px){.v13 .bubble-face{flex-basis:22px;width:22px;height:22px;border-width:1.5px}.v13 .bubble-face svg{width:33px;left:-4px}.v13 .conversation-bubble .bubble-speaker{font-size:10px;gap:4px;margin-bottom:2px}.v13 .conversation-bubble .bubble-speaker small{display:none}}
+/* Recruiting: the team as slots up to its cap, with the line after the last helper who still adds to your pull. */
+.v13 .team-meter{display:grid;grid-template-columns:auto auto 1fr;align-items:center;gap:6px 10px;margin-top:10px;flex-basis:100%}
+.v13 .tm-slots{display:flex;gap:4px}
+.v13 .tm-slots i{position:relative;width:16px;height:22px;border-radius:7px 7px 3px 3px;border:1.5px dashed #c9cdbf}
+.v13 .tm-slots i.on{background:var(--green);border:1.5px solid var(--green)}.v13 .tm-slots i.new{background:#f4d98b;border:1.5px solid #b98a1e}
+.v13 .tm-slots i.limit{margin-right:9px}.v13 .tm-slots i.limit::after{content:"";position:absolute;right:-8px;top:-4px;bottom:-4px;width:2px;border-radius:1px;background:#263c48}
+.v13 .tm-text{font-size:13px;color:var(--muted);white-space:nowrap}.v13 .tm-text b{font-size:16px;color:var(--ink)}
+.v13 .tm-note{grid-column:1/-1;font-size:12px;color:var(--muted)}
+.v13 .crew-dots{display:inline-flex;align-items:center;gap:3px;margin-left:8px;vertical-align:1px}
+.v13 .crew-dots i{width:8px;height:8px;border-radius:50%;border:1.5px solid var(--green)}.v13 .crew-dots i.on{background:var(--green)}
+.v13 .crew-dots em{font-style:normal;font-size:11px;font-weight:700;color:#9a3f2b;margin-left:2px}
+/* Selected toggles (加碼, 後勤) look like a selected research chip. */
+.v13 .addon-picks button[aria-pressed="true"],.v13 .team-picks button[aria-pressed="true"]{border-color:var(--green);background:var(--green);color:#fffdf7;box-shadow:none}
+.v13 .addon-picks button[aria-pressed="true"] small{color:#e4eee6}.v13 .addon-picks button[aria-pressed="true"] b::before{content:"✓ ";color:#fffdf7}
+.v13 .addon-picks button[aria-pressed="true"] .info{color:#fffdf7}
+.v13 .research-chip[aria-pressed="true"]:not(.none) b::before{color:#cfe3d6}
+/* Rules: one screen of cards in the game's style. */
+.v13 .rules-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.v13 .rule-card{min-width:0;padding:12px 14px;border:1px solid var(--line);border-radius:14px;background:#fffdf7}
+.v13 .rule-card h3{margin:0 0 6px;font-size:14px;color:var(--green)}
+.v13 .dialog .rule-card p{margin:0;font-size:13px;line-height:1.55;color:var(--ink)}
+.v13 .rule-card.rule-win{background:var(--mint);border-color:#c4d9bf}.v13 .rule-win b{font-size:17px}
+.v13 .rule-card.rule-rival{background:var(--rival-soft);border-color:#e6c4b8}.v13 .rule-rival h3{color:#9a3f2b}
+.v13 .rule-card.rule-wide{grid-column:1/-1}
+.v13 .rule-steps{display:grid;gap:4px;margin:0;padding:0;list-style:none;counter-reset:step;font-size:13px}
+.v13 .rule-steps li::before{counter-increment:step;content:counter(step);display:inline-grid;place-items:center;width:18px;height:18px;margin-right:6px;border-radius:50%;background:#e4eee6;color:#285d61;font-size:11px;font-weight:800}
+.v13 .dialog .rule-faces{display:flex;gap:12px;margin:0 0 6px}
+.v13 .rule-face{display:inline-flex;flex-direction:column;align-items:center;gap:2px}.v13 .rule-face .face-icon{width:26px;height:26px}.v13 .rule-face small{font-size:11px;color:var(--muted)}
+.v13 .rule-acts{display:flex;gap:8px;margin:0;padding:0;list-style:none}
+.v13 .rule-acts>li{flex:var(--n) 1 0;min-width:0;display:flex;flex-direction:column;gap:4px}
+.v13 .rule-days{display:flex;gap:3px}
+.v13 .rule-days i{flex:1;display:grid;place-items:center;height:26px;border-radius:7px;background:#eef0e6;font-size:12px;font-style:normal;font-weight:700;color:var(--muted)}
+.v13 .rule-days i.mark{background:#f4dfac;color:#684b1f}
+.v13 .rule-acts small{font-size:12px;color:var(--ink);text-align:center;border-top:2px solid var(--green);padding-top:3px}
+.v13 .dialog .rule-legend{display:flex;align-items:center;gap:6px;margin:8px 0 0;font-size:12px;color:var(--muted)}.v13 .rule-legend i{width:14px;height:14px;border-radius:4px;background:#f4dfac}
+@media (max-width:700px){.v13 .rules-grid{grid-template-columns:1fr 1fr;gap:8px}.v13 .rule-card{padding:10px 12px}.v13 .rule-acts{gap:4px}.v13 .rule-days i{height:22px;font-size:11px}.v13 .rule-acts small{font-size:11px}.v13 .dialog .rule-card p{font-size:12.5px;line-height:1.5}}
+@media (max-width:600px){.v13 .answer-line{font-size:15px}.v13 .answer-option{padding:12px}.v13 .tm-slots{gap:3px}.v13 .tm-slots i{width:13px;height:19px}}
+
 /* Grounded atlas figures: soles stay fixed while the walking frames change. */
 .toy-resident,.toy-helper{position:absolute;display:block;width:4.1%;aspect-ratio:100/140;transform:translate(-50%,-92.857%);pointer-events:none}.toy-helper{width:4.5%}.toy-resident svg,.toy-helper svg{display:block;width:100%;height:auto}.v13[data-art="matte-toy-v1"] .actor.rival{width:5.1%}.v13[data-art="matte-toy-v1"] .actor>svg{filter:none}.v13 .world-column{position:static}.v13[data-art="matte-toy-v1"] .world.performing .player>svg{animation:none}
 
