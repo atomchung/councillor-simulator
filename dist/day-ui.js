@@ -534,15 +534,17 @@
     });
   }
   function sceneView() {
+    // Matte-toy only: rounds at the campaign office show the candidate with the staff, one of them reporting back.
+    if (Art?.isToy?.() && state.phase === 'recap' && ['prepare', 'recruit', 'dig'].includes(state.recap?.player?.action)) { const r = state.recap.player, team = state.player.team?.members || [], first = String(r.result || '').split('。')[0]; return { kind: 'office', crowd: [], speaker: null, bubble: { who: r.action === 'recruit' ? (team.at(-1)?.name || '新夥伴') + '・新夥伴' : (team[0]?.name || '小葉') + '・幕僚', text: first ? first + '。' : '', stage: 'reaction' } }; }
     if(Art?.isToy?.() && state.phase === 'recap' && state.recap?.player?.action === 'fundraise') return {kind:'fundraise',crowd:[],speaker:null,bubble:{who:'街坊募款',text:state.recap.player.result || '這次募款已記入競選預算。',stage:'reaction'}};
     if (state.phase === 'question' && isPublic(state.pending?.id)) {
       const p = state.pending, q = G.question(state), kind = p.id === 'canvass' ? venueId(p.venue) : p.id;
-      return { kind, crowd: crowdOf(q?.crowd, kind), speaker: p.id === 'canvass' ? { group: q?.speakerGroup ?? 0, variant: 1 } : null, bubble: { who: q?.speaker || '', text: q?.text || '', stage: 'question' } };
+      return { kind, crowd: crowdOf(q?.crowd, kind), speaker: p.id === 'canvass' ? { group: q?.speakerGroup ?? 0, variant: 1, name: q?.speakerName } : null, bubble: { who: q?.speaker || '', text: q?.text || '', stage: 'question' } };
     }
     if (state.phase === 'recap' && ['canvass', 'tv', 'online', 'debate', 'rally'].includes(state.recap?.player?.action)) {
       const r = state.recap.player, kind = onSite(r.action) ? venueId(r.venue) : r.action, c = r.conversation;
       const line = c ? c.reaction.replace(/^[^「]*「/, '').replace(/」$/, '') : r.action === 'debate' ? '小馬：「' + (state.recap.rival.quote || state.recap.rival.result) + '」' : r.action === 'online' ? '本次觸及 ' + num(r.effects?.contacts) + ' 人。' : r.action === 'rally' ? '現場 ' + r.effects.contacts + ' 人聽完你的政見。' : '主持人：「謝謝' + state.player.name + '。」';
-      return { kind, mode: r.action === 'rally' ? 'rally' : null, crowd: withReactions(crowdOf(r.crowd, kind), r.effects?.groups), speaker: c ? { group: c.group ?? 0, variant: 1, tone: c.mood } : null, bubble: { who: c ? c.name + '・' + c.groupTitle : r.action === 'debate' ? '小馬・對手' : r.action === 'rally' ? '造勢活動' : r.action === 'online' ? '直播結束' : '主持人・小安', text: line, stage: 'reaction' } };
+      return { kind, mode: r.action === 'rally' ? 'rally' : null, crowd: withReactions(crowdOf(r.crowd, kind), r.effects?.groups), speaker: c ? { group: c.group ?? 0, variant: 1, tone: c.mood, name: c.name } : null, bubble: { who: c ? c.name + '・' + c.groupTitle : r.action === 'debate' ? '小馬・對手' : r.action === 'rally' ? '造勢活動' : r.action === 'online' ? '直播結束' : '主持人・小安', text: line, stage: 'reaction' } };
     }
     return null;
   }
@@ -551,8 +553,8 @@
     venue.hidden = !view; $('world').classList.toggle('in-venue', !!view);
     if (view) {
       const key = view.kind + ':' + state.day + ':' + state.phase;
-      if (venue.dataset.key !== key) { venue.innerHTML = Art?.interior ? Art.interior(view.kind, { crowd: view.crowd, speaker: view.speaker, board: (state.player.billboards || []).some(b => b.venue === view.kind) ? { party: myParty() } : null, mode: view.mode, topic: state.pending?.topic && G.TOPICS[state.pending.topic] ? G.TOPICS[state.pending.topic].title : null }) : ''; venue.dataset.key = key; venue.dataset.kind = view.kind; }
-      bubble.hidden = false; bubble.dataset.stage = view.bubble.stage; bubble.dataset.kind = view.kind;
+      if (venue.dataset.key !== key) { venue.innerHTML = Art?.interior ? Art.interior(view.kind, { crowd: view.crowd, speaker: view.speaker, board: (state.player.billboards || []).some(b => b.venue === view.kind) ? { party: myParty() } : null, mode: view.mode, stage: view.bubble.stage, rain: state.started && G.forecast(state).now?.id === 'rain', staff: (state.player.team?.members || []).length, topic: state.pending?.topic && G.TOPICS[state.pending.topic] ? G.TOPICS[state.pending.topic].title : null }) : ''; venue.dataset.key = key; venue.dataset.kind = view.kind; }
+      bubble.hidden = false; bubble.dataset.stage = view.bubble.stage; bubble.dataset.kind = view.kind; bubble.dataset.mode = view.mode || '';
       bubble.innerHTML = '<span class="bubble-speaker">' + esc(view.bubble.who) + '</span><p>' + esc(view.bubble.text) + '</p>';
     } else { bubble.hidden = true; venue.innerHTML = ''; venue.dataset.key = ''; }
     const destinations = view ? '' : hotspots();
@@ -566,10 +568,13 @@
   // While planning, 小馬 stands where the rumour says he is going.
   function placeRival() {
     const r = state.started && state.phase === 'plan' ? G.rumorView(state) : null, spot = r ? HOTSPOTS[r.action === 'canvass' ? r.venue : r.action] : null;
-    actorPosition($('rival'), spot ? { x: spot.x + 46, y: spot.y + 30 } : { x: 1030, y: 470 }); $('rival').classList.toggle('rumoured', !!spot);
+    const key = r ? (r.action === 'canvass' ? r.venue : r.action) : null;
+    if (Art?.isToy?.()) actorPosition($('rival'), Art.rivalSpot(spot ? key : null), true);
+    else actorPosition($('rival'), spot ? { x: spot.x + 46, y: spot.y + 30 } : { x: 1030, y: 470 });
+    $('rival').classList.toggle('rumoured', !!spot);
   }
   function boardsOnMap() {
-    return (state.player.billboards || []).map((b, i) => { const p = HOTSPOTS[b.venue] || anchors.start, x = p.x + 78 + (i % 2) * 34, y = p.y + 34; return '<span class="map-board" style="left:' + (x / 12).toFixed(2) + '%;top:' + (y / 6.5).toFixed(2) + '%;z-index:' + Math.round(y) + '" title="' + esc(venues[b.venue]?.title + '的看板') + '">' + (Art?.billboard ? Art.billboard(myParty()) : '') + '</span>'; }).join('');
+    return (state.player.billboards || []).map((b, i) => { const p = HOTSPOTS[b.venue] || anchors.start, toy = Art?.isToy?.() ? Art.boardSpot(b.venue, (state.player.billboards || []).slice(0, i).filter(o => o.venue === b.venue).length) : null, x = toy ? toy.x : p.x + 78 + (i % 2) * 34, y = toy ? toy.y : p.y + 34; return '<span class="map-board" style="left:' + (x / 12).toFixed(2) + '%;top:' + (y / 6.5).toFixed(2) + '%;z-index:' + Math.round(y) + '" title="' + esc(venues[b.venue]?.title + '的看板') + '">' + (Art?.billboard ? Art.billboard(myParty()) : '') + '</span>'; }).join('');
   }
 
   /* ---------- question ---------- */
@@ -737,6 +742,7 @@
     if (selectedAction === 'prepare' && selectedTopic && !G.availableTopics(state).some(t => t.id === selectedTopic)) selectedTopic = null;
     dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport(); renderEvents();
     document.body.dataset.art = Art?.getPack?.() || 'original';
+    document.body.dataset.map = Art?.isToy?.() ? Art.getMap?.() || '' : '';
     $('art-switch').textContent = Art?.isToy?.() ? '霧面玩具 ▾' : '原版方塊 ▾';
     $('art-switch').disabled = state.phase === 'travel' || counting?.status === 'inprogress';
     $('dock-body').innerHTML = !state.started ? dockIntro() : state.phase === 'plan' ? dockPlan() : state.phase === 'travel' ? dockTravel() : state.phase === 'question' ? dockQuestion() : state.phase === 'recap' ? dockRecap() : dockResult();
@@ -763,7 +769,7 @@
     if (!route.length || route.at(-1).x !== destination.x || route.at(-1).y !== destination.y) route.push({ ...destination });
     motion = { id, venue: state.pending.venue || 'market', destination: { ...destination }, stage: 'walk', route, index: 1, elapsed: 0 }; teamElapsed = 0;
     $('world').dataset.action = id;
-    $('destination-marker').hidden = false; actorPosition($('destination-marker'), destination);
+    $('destination-marker').hidden = false; actorPosition($('destination-marker'), Art?.isToy?.() ? Art.visualRoute(id, state.pending.venue).at(-1) : destination, !!Art?.isToy?.());
     $('route-line').innerHTML = '<svg viewBox="0 0 1200 650"><polyline points="' + (Art?.isToy?.() ? Art.visualRoute(id,state.pending.venue,Art.mapPoint(route[0])) : route).map(p => p.x + ',' + p.y).join(' ') + '"/></svg>';
     Art?.walkStep?.(0,true); $('player').classList.add('walking');
     render();
@@ -777,7 +783,7 @@
     $('route-line').innerHTML = ''; $('destination-marker').hidden = true;
     $('action-effect').innerHTML = effect(motion.id);
     actorPosition($('action-effect'),Art?.isToy?.()?Art.visualRoute(motion.id,motion.venue).at(-1):position,true);
-    if (motion.id === 'recruit') { $('new-teammate').hidden = false; actorPosition($('new-teammate'), { x: position.x + 72, y: position.y + 11 }); }
+    if (motion.id === 'recruit') { $('new-teammate').hidden = false; actorPosition($('new-teammate'), Art?.isToy?.() ? Art.slot('recruit', 1) : { x: position.x + 72, y: position.y + 11 }, !!Art?.isToy?.()); }
     render();
   }
   function clearMotion() {
@@ -985,6 +991,10 @@
   reduced.addEventListener?.('change', () => { if (reduced.matches && !modal) { if (motion) finishTravel(); if (counting?.status === 'inprogress') finishCounting(); } });
   document.addEventListener('error', event => {
     if (!event.target?.getAttribute?.('data-art-image') || !Art?.isToy?.()) return;
+    // A missing rain backdrop falls back to the dry one.
+    const dry = event.target.getAttribute('data-art-fallback'); if (dry) { event.target.removeAttribute('data-art-fallback'); event.target.setAttribute('href', dry); return; }
+    // A missing component-map piece falls back to the single-image map; anything else falls back to the original pack.
+    if (event.target.getAttribute('data-art-map') === 'kit' && Art.useDistrictMap?.()) { scene(); render(); return; }
     Art.setPack('original'); dressed=''; $('venue-scene').dataset.key=''; scene(); render();
     announce('部分美術素材無法載入，已切回原版外觀，遊戲進度保留。');
   }, true);

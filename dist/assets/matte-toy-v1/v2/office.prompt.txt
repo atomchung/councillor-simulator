@@ -1,8 +1,0 @@
-Tool: built-in image_gen
-Target: office.png
-Canvas: 1536 x 1024
-Transparent background: false
-Style sources: ../support.png, ../candidates.png (characters); ../market-square.png, ../street.png, ../scenes.png (environments).
-
-Pass 1
-Generate ONE single opaque background image, EXACT 1536x1024px landscape, NOT an atlas. Match reference market-square.png / street.png: matte clay miniature diorama, rounded crafted forms, clean softlylit model, muted soft hues, front-facing slightly elevated camera. Composition is mandatory: ALL building structure and tall objects restricted to TOP45% (y0..460); BELOW y460 have broad EMPTY flat paved floor continuing all way to bottom edge, for up to12 gamecharacters. No people or animals. No foreground obstacles or furniture across lower55%, no frame. Edges may be simple floor edges but don't obstruct. NO text letters numbers logos badges partyflags or signs with writing anywhere, no realpoliticians or recognizablemedia. Blank panels truly blank. SMALL CAMPAIGN WORKROOM for research and volunteer recruitment. Upper45%: short desk pushedagainstbackwall with neutral blank folders, paperstackswithNOmarks, telephone; large blank whiteboard rearcenter; a coat rack at rear right holding plain GREY and BEIGE volunteer vests with no letters; modest window and wood shelves. No partycolors, no blueor green garments, no flags. Warmcreamwall and softwood, feels smallandbusy through a few organizedobjects. Lower55% broad EMPTY beige tilefloor, allfurniture inbackhalf. Nopeople.

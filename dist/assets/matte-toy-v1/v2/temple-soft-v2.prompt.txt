@@ -1,9 +1,0 @@
-Tool: built-in image_gen
-Target: temple-soft-v2.png
-Canvas: 1536 x 1024
-Transparent background: false
-Reference: temple.png
-
-Prompt:
-Original game environment, ONE opaque image EXACT1536x1024, landscape3:2. Match reference matte clay miniature game material and slightlyelevated frontal camera, but make a CALMER LOWERDETAIL alternative: soft warmcream, desaturated sage, muted terracotta; broad simple forms, no leaf-by-leaf or tiny tile decoration, no glossy plastic, no photorealism. Background should support the separately added characters and much dialogue. All buildings/furniture/plants in UPPER40percent (y0..410). At least LOWER60percent entirely clear flat pale matte floor for12 separately inserted people. Restrained wide groundseams only, no noisy textures. NO humans, animals, silhouettes, UI, words, letters, numbers, logos, badges, political symbols or flags. Signs/panels blank. No foreground objects blocking movement. Soft diffuse consistent shadow and no dramaticlight. Same place and framing as temple reference, for DIRECT A/B comparison, preserve templecenter, redcolumns, one incense burner farleft and single restrained tree farright, but simplify roof to one recognizable swallowtail silhouette and large tilebands, fewer columns, zero golddecoration, reduce contrast. Entire roofvisible withsmallmarginabovetip. Blank creamplaque. Empty stone courtyard lightwarmgray. Minimal detail level.
-

@@ -990,3 +990,53 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 .v13 .expose-chip.solid{border-left-color:#2f7a4a}
 .v13 .expose-chip.risky{border-left-color:#c4573e}
 .v13 .expose-chip[aria-pressed="true"]{border-color:var(--green);background:var(--mint)}
+
+/* ===== Matte-toy pack: component map, grounded figures and venue scenes =====
+   The map is built from incoming/map-kit in day-art.js. Map parts, people and their markers share one stacking order by the
+   y of their feet, so a building or tree in front hides whoever walks behind it. */
+.v13[data-art="matte-toy-v1"] .scene,.v13[data-art="matte-toy-v1"] .team-actors{z-index:auto}
+body.v13[data-art="matte-toy-v1"] .world .scene,body.v13[data-art="matte-toy-v1"][data-act] .world .scene,.v13[data-art="matte-toy-v1"] .world.is-rainy .scene{filter:none}
+.kit-map{position:absolute;inset:0}
+.kit-flat{position:absolute;inset:0;display:block;width:100%;height:100%}
+.kit-part{position:absolute;display:block;height:auto;max-width:none;pointer-events:none;user-select:none;-webkit-user-drag:none}
+.kit-ground-rain{opacity:0;transition:opacity .6s}
+.world.is-rainy .kit-ground-rain{opacity:1}
+.world.is-rainy .kit-part,.world.is-rainy .toy-resident{filter:saturate(.8) brightness(.93)}
+body.v13[data-act="3"] .kit-part,body.v13[data-act="3"] .kit-flat{filter:sepia(.14) saturate(1.04)}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot{margin:0}
+/* People sized against the buildings: about one and a half doors tall, never smaller than a thumbnail on phones. */
+.v13[data-art="matte-toy-v1"] .actor{width:max(3.4%,16px)}
+.v13[data-art="matte-toy-v1"] .actor.rival{width:max(3.2%,15px)}
+.v13[data-art="matte-toy-v1"] .toy-helper,.v13[data-art="matte-toy-v1"] .new-teammate{width:max(3.1%,14px)}
+.v13[data-art="matte-toy-v1"] .toy-resident{width:max(2.9%,13px)}
+/* Who is who on the map: the candidate has a gold ring and a pin overhead; every staff member wears the orange team cap and
+   vest and stands on an orange ring; 小馬 has a muted red ring and his name. */
+.v13[data-art="matte-toy-v1"] .actor.player::after,.v13[data-art="matte-toy-v1"] .toy-helper::after,.v13[data-art="matte-toy-v1"] .new-teammate::after,.v13[data-art="matte-toy-v1"] .actor.rival::after{content:"";position:absolute;left:50%;top:92.857%;width:84%;aspect-ratio:3;transform:translate(-50%,-50%);border-radius:50%;z-index:-1;pointer-events:none;box-sizing:border-box}
+.v13[data-art="matte-toy-v1"] .actor.player::after{border:2px solid #e2ad2f;background:#f7d77a66}
+.v13[data-art="matte-toy-v1"] .toy-helper::after,.v13[data-art="matte-toy-v1"] .new-teammate::after{border:1.5px solid #dc7b45;background:#f0a06c40}
+.v13[data-art="matte-toy-v1"] .actor.rival::after{border:1.5px solid #b65a45;background:#c9705a26}
+.v13[data-art="matte-toy-v1"] .actor.player::before{content:"";position:absolute;left:50%;top:0;width:52%;aspect-ratio:24/30;transform:translate(-50%,-92%);pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 30'%3E%3Cpath d='M12 28.5S3.5 18.6 3.5 11.8a8.5 8.5 0 0 1 17 0C20.5 18.6 12 28.5 12 28.5Z' fill='%23e2ad2f' stroke='%23fffaf0' stroke-width='2'/%3E%3Cpath d='M12 6.3l1.6 3.3 3.6.5-2.6 2.5.6 3.6-3.2-1.7-3.2 1.7.6-3.6-2.6-2.5 3.6-.5z' fill='%23fffaf0'/%3E%3C/svg%3E") center/contain no-repeat;filter:drop-shadow(0 1px 1px #0003)}
+.v13[data-art="matte-toy-v1"] .actor.rival .actor-name{display:block;top:-2px;transform:translate(-50%,-100%);font-size:9px;line-height:1.3;padding:1px 5px;background:#fff6ef;color:#8a3f2d;border:1px solid #dba897;box-shadow:none}
+.v13[data-art="matte-toy-v1"] .toy-helper-count{background:#dc7b45;color:#fffaf0;right:-22%;top:-10%}
+/* Venue scenes: the speech bubble points at whoever speaks (see the staging in day-art.js). Phones keep the bubble on top
+   and only aim the tail. */
+.v13[data-art="matte-toy-v1"] #conversation-bubble::after{left:var(--tail,40%);transform:translateX(-50%)}
+@media(min-width:701px){
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind]{top:auto;left:35%;bottom:36%;width:36%;--tail:39%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="tv"]{left:44%;bottom:46%;width:36%;--tail:38%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="online"]{left:66%;bottom:42.5%;width:32%;--tail:50%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="fundraise"]{left:44%;bottom:39%;--tail:40%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="office"]{left:45%;bottom:38.5%;--tail:40%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="debate"]{left:25%;bottom:64.5%;width:50%;--tail:50%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="debate"][data-stage="reaction"]{left:48%;width:46%;--tail:65%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-mode="rally"]{left:20%;bottom:70%;width:34%;--tail:80%}
+}
+@media(max-width:700px){
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind]{top:2%;bottom:auto;left:3%;width:94%;--tail:49%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="tv"]{--tail:56%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="online"]{--tail:85%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="fundraise"],.v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="office"]{--tail:59%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="debate"]{--tail:50%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="debate"][data-stage="reaction"]{--tail:79%}
+ .v13[data-art="matte-toy-v1"] #conversation-bubble[data-mode="rally"]{--tail:47%}
+}
