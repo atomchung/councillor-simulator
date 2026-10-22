@@ -15,7 +15,7 @@
     "street.png",
     "river.png"
   ],
-  "coverage": "Candidate three-direction stills and three visit backgrounds. Supporting cast, action poses and media/night scenes pending.",
+  "coverage": "Component main map (map kit), simplified venue close-ups with rain twins, TV, stream, fundraising, office, debate, rally stage, billboard and count night; candidates, crowd of three age groups, rival, staff, host and pets.",
   "added_assets": {
     "support": {
       "generator": "OpenAI built-in imagegen",
@@ -32,5 +32,20 @@
       "prompt": "scenes.prompt.txt",
       "transparent": false
     }
+  },
+  "incoming": {
+    "generator": "OpenAI built-in imagegen (Codex), one .prompt.txt per image",
+    "requests": [
+      "incoming/REQUEST.md",
+      "incoming/REQUEST-2.md",
+      "incoming/REQUEST-3.md",
+      "incoming/REQUEST-4-map-kit.md"
+    ],
+    "map_kit": "incoming/map-kit/"
+  },
+  "runtime": {
+    "folder": "game/",
+    "format": "WebP, same pixel size as each source PNG; quality 84 opaque, 88-90 with alpha",
+    "edits": "support.png assistant cap and vest recoloured to one neutral orange team colour; no other pixel edits"
   }
 }

@@ -1,9 +1,0 @@
-Tool: built-in image_gen
-Target: plaza-soft-v2.png
-Canvas: 1536 x 1024
-Transparent background: false
-Reference: plaza.png
-
-Prompt:
-Original game environment, ONE opaque image EXACT1536x1024, landscape3:2. Match reference matte clay miniature game material and slightlyelevated frontal camera, but make a CALMER LOWERDETAIL alternative: soft warmcream, desaturated sage, muted terracotta; broad simple forms, no leaf-by-leaf or tiny tile decoration, no glossy plastic, no photorealism. Background should support the separately added characters and much dialogue. All buildings/furniture/plants in UPPER40percent (y0..410). At least LOWER60percent entirely clear flat pale matte floor for12 separately inserted people. Restrained wide groundseams only, no noisy textures. NO humans, animals, silhouettes, UI, words, letters, numbers, logos, badges, political symbols or flags. Signs/panels blank. No foreground objects blocking movement. Soft diffuse consistent shadow and no dramaticlight. Same COMMUNITY PLAZA as reference and matching arrangement for A/B. Creamactivitycenter rearcenter, mutedterra roof, blanknoticeboard rearright, one longbench rearleft, two simple rounded paper-like CLAY tree canopies, without individualleafballs. Add only a closedumbrella andonewaterbowl nearrearbench as quietdaily-life cues, bothabove y400. No animals bakedintoscene. Lightcream pavedfloor. Low-to-mediumdetail, a little lived-in but spacious.
-

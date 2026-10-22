@@ -5,6 +5,8 @@
 
   // All matte assets, crops and map positions live here; canonical game coordinates stay unchanged.
   const TOY_ROOT = 'assets/matte-toy-v1/';
+  // The game loads WebP copies from game/: same pixel size as the PNG sources in this folder and in incoming/, so every crop below fits both.
+  const FILES = {candidates:'game/candidates.webp',walk:'game/walk.webp',support:'game/support.webp',support2:'game/support-v2.webp',support3:'game/support-v3.webp',pets:'game/pets-v1.webp',stage:'game/rally-stage.webp',board:'game/billboard.webp',district:'game/district.webp'};
   const TOY_FRAMES = [
     [{x:223,y:22,w:199,h:356,sole:354},{x:247,y:382,w:173,h:321,sole:319},{x:250,y:708,w:154,h:298,sole:286}],
     [{x:676,y:24,w:213,h:349,sole:349},{x:691,y:384,w:170,h:319,sole:317},{x:703,y:708,w:148,h:300,sole:282}],
@@ -12,60 +14,184 @@
   ];
   const SUPPORT_FRAMES = [[{"x": 162, "y": 13, "w": 280, "h": 351, "sole": 351}, {"x": 656, "y": 18, "w": 209, "h": 346, "sole": 346}, {"x": 1088, "y": 16, "w": 285, "h": 347, "sole": 347}], [{"x": 164, "y": 370, "w": 249, "h": 334, "sole": 334}, {"x": 641, "y": 373, "w": 239, "h": 332, "sole": 332}, {"x": 1080, "y": 370, "w": 294, "h": 337, "sole": 337}], [{"x": 116, "y": 704, "w": 382, "h": 316, "sole": 316}, {"x": 639, "y": 710, "w": 236, "h": 311, "sole": 311}, {"x": 1130, "y": 711, "w": 224, "h": 311, "sole": 311}]];
   const WALK_FRAMES = [[{"x": 141, "y": 17, "w": 159, "h": 264, "sole": 264}, {"x": 434, "y": 18, "w": 165, "h": 263, "sole": 263}, {"x": 710, "y": 25, "w": 190, "h": 256, "sole": 256}], [{"x": 143, "y": 287, "w": 161, "h": 264, "sole": 264}, {"x": 442, "y": 289, "w": 152, "h": 262, "sole": 262}, {"x": 702, "y": 293, "w": 204, "h": 258, "sole": 258}], [{"x": 147, "y": 556, "w": 156, "h": 257, "sole": 257}, {"x": 446, "y": 556, "w": 153, "h": 257, "sole": 257}, {"x": 727, "y": 560, "w": 170, "h": 253, "sole": 253}], [{"x": 140, "y": 816, "w": 148, "h": 254, "sole": 254}, {"x": 438, "y": 816, "w": 150, "h": 255, "sole": 255}, {"x": 731, "y": 817, "w": 201, "h": 254, "sole": 254}], [{"x": 145, "y": 1071, "w": 140, "h": 236, "sole": 236}, {"x": 441, "y": 1071, "w": 140, "h": 235, "sole": 235}, {"x": 736, "y": 1072, "w": 185, "h": 234, "sole": 234}], [{"x": 149, "y": 1307, "w": 134, "h": 221, "sole": 221}, {"x": 438, "y": 1307, "w": 144, "h": 222, "sole": 222}, {"x": 738, "y": 1308, "w": 185, "h": 221, "sole": 221}]];
-  const TOY_SPOTS = {start:[600,345],market:[370,348],temple:[157,285],street:[552,424],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]};
-  // Waypoints follow the paved streets of district.png, so walkers never cross roofs, stalls or gardens.
-  const TOY_PATHS = {market:[[520,328],[440,330]],temple:[[520,328],[440,330],[320,336],[240,332]],street:[[680,345],[700,410],[705,482],[600,484],[575,452]],plaza:[[650,316]],river:[[680,345],[700,410],[705,482]],prepare:[[570,295]],recruit:[[570,295]],tv:[[680,345],[700,410],[800,445],[880,488],[985,468],[995,432]],online:[[680,345],[700,410],[800,445],[880,488],[985,468],[1030,455]],fundraise:[[680,345],[700,410],[705,482]],debate:[[650,316]]};
-  // Simplified v2 backdrops keep the lower half empty for the crowd; every venue now has one.
-  const TOY_VISITS = {market:'v2/market-soft-v2.png',street:'v2/street-residential-v2.png',river:'v2/riverside-soft-v2.png',temple:'v2/temple-soft-v2.png',plaza:'v2/plaza-soft-v2.png',debate:'v2/debate.png'};
-  const TOY_SCENES = {tv:'v2/tv.png',online:'v2/online.png',fundraise:'v2/fundraise.png',count:'v2/count-soft-v2.png'};
   const SUPPORT2_FRAMES = [[{x:114,y:128,w:239,h:352,sole:350},{x:654,y:120,w:273,h:359,sole:357},{x:1168,y:126,w:245,h:355,sole:353}],[{x:134,y:587,w:215,h:344,sole:342},{x:646,y:588,w:297,h:342,sole:340},{x:1196,y:584,w:231,h:351,sole:349}]];
-  let artPack = 'matte-toy-v1', toyFacing = {row:0,mirror:false};
+  const SUPPORT3_FRAMES = [[{x:186,y:74,w:253,h:418,sole:415},{x:650,y:72,w:296,h:422,sole:418},{x:1136,y:96,w:230,h:398,sole:394}],[{x:176,y:563,w:231,h:416,sole:413},{x:649,y:563,w:220,h:416,sole:413},{x:1107,y:566,w:359,h:411,sole:408}]];
+  const PET_FRAMES = [[{x:138,y:136,w:294,h:306,sole:303},{x:584,y:158,w:386,h:279,sole:276},{x:1111,y:221,w:317,h:221,sole:218}],[{x:131,y:608,w:294,h:295,sole:291},{x:597,y:627,w:371,h:275,sole:272},{x:1091,y:664,w:327,h:233,sole:229}]];
+  const SHEETS = {support:SUPPORT_FRAMES,support2:SUPPORT2_FRAMES,support3:SUPPORT3_FRAMES,pets:PET_FRAMES};
+  // Crowd looks [sheet,row,column,height]. Ages read at a glance: elders have grey hair and are a little shorter, the middle-aged
+  // black hair and grown-up clothes (no glasses, no bald head), the young are slim with hoodies, bags or a bike.
+  const LOOKS = {
+    'elder-hat':['support3',0,0,.94],'elder-cart':['support3',0,1,.94],'elder-track':['support3',0,2,.94],'elder-cane':['support',0,0,.94],'elder-bag':['support',0,1,.94],
+    'middle-office':['support2',0,0,1],'middle-polo':['support2',0,1,1],'middle-mom':['support2',0,2,1],'middle-apron':['support',0,2,1],
+    'young-hoodie':['support',1,1,.97],'young-courier':['support',1,2,.97],'young-student':['support2',1,0,.97],'young-pack':['support3',1,0,.97],'young-worker':['support3',1,1,.97],'young-bike':['support3',1,2,.97],
+    rival:['support2',1,1,1.04],'rival-walk':['support2',1,2,1.04],helper:['support',2,1,1],host:['support',2,2,1],
+    'pet-cat':['pets',0,0,.42],'pet-cat-walk':['pets',0,1,.36],'pet-cat-nap':['pets',0,2,.3],'pet-dog':['pets',1,0,.44],'pet-dog-walk':['pets',1,1,.4],'pet-dog-nap':['pets',1,2,.32]
+  };
+  const GROUP_LOOKS = [['elder-hat','elder-cart','elder-track','elder-cane','elder-bag'],['middle-office','middle-mom','middle-polo','middle-apron'],['young-hoodie','young-student','young-pack','young-bike','young-worker','young-courier']];
+  // Each named resident keeps one look, matching the name's gender and age, so the speaker in the bubble is the person on screen.
+  const SPEAKER_LOOKS = {'秀琴阿姨':'elder-track','林伯':'elder-hat','月娥阿嬤':'elder-cart','陳伯':'elder-cane','阿桃姨':'elder-bag','美姐':'middle-apron','阿仁':'middle-polo','許晴':'middle-mom','建志':'middle-office','淑芬':'middle-mom','小汀':'young-student','阿寧':'young-worker','佳穎':'young-hoodie','阿祺':'young-pack','小禾':'young-bike'};
+  // Older role names used by the rest of the game.
+  const ROLE_LOOKS = {elder:'elder-hat',elder2:'elder-cart',middle:'middle-office',middle2:'middle-mom',young:'young-hoodie',young2:'young-student',resident:'middle-apron',shop:'middle-apron',shop2:'middle-polo',helper:'helper',host:'host',rival:'rival'};
+  // Simplified venue backdrops keep the lower half empty for people; outdoor places have a rain twin for rainy rounds.
+  const TOY_VISITS = {market:'game/market-soft-v2.webp',street:'game/street-residential-v2.webp',river:'game/riverside-soft-v2.webp',temple:'game/temple-soft-v2.webp',plaza:'game/plaza-soft-v2.webp',debate:'game/debate.webp',office:'game/office.webp'};
+  const TOY_RAIN = {market:'game/market-rain.webp',street:'game/street-rain.webp',river:'game/riverside-rain.webp',temple:'game/temple-rain.webp',plaza:'game/plaza-rain.webp'};
+  const TOY_SCENES = {tv:'game/tv.webp',online:'game/online.webp',fundraise:'game/fundraise.webp',count:'game/count-soft-v2.webp'};
+  let artPack = 'matte-toy-v1', toyFacing = {row:0,mirror:false}, mapLayout = 'kit';
   // Browser preferences are separate from election saves. Missing storage is harmless.
-  try { if (window.location) { const q = new URLSearchParams(window.location.search).get('art'); const v = q || window.localStorage?.getItem('wenshan-ui-art-pack-v1'); if(v) artPack = v === 'matte-toy-v1' ? v : 'original'; } } catch (_) {}
+  try { if (window.location) { const params = new URLSearchParams(window.location.search), q = params.get('art'); const v = q || window.localStorage?.getItem('wenshan-ui-art-pack-v1'); if(v) artPack = v === 'matte-toy-v1' ? v : 'original'; if (params.get('map') === 'district') mapLayout = 'district'; } } catch (_) {}
   const isToy = () => artPack === 'matte-toy-v1';
   function setPack(id) { artPack = id === 'matte-toy-v1' ? id : 'original'; try { window.localStorage?.setItem('wenshan-ui-art-pack-v1',artPack); } catch (_) {} return artPack; }
-  function spot(id) { const p = TOY_SPOTS[id] || TOY_SPOTS.start; return {x:p[0],y:p[1]}; }
-  function toyKey(id, venue) { return ['canvass','rally'].includes(id) ? (TOY_SPOTS[venue] ? venue : 'market') : id === 'press' ? 'tv' : id === 'dig' ? 'prepare' : id; }
-  function visualRoute(id, venue, from) { const key=toyKey(id,venue); return [from || spot('start'),...(TOY_PATHS[key] || []).map(p=>({x:p[0],y:p[1]})),spot(key)]; }
+
+  /* ---------- Matte-toy map: the component map built from incoming/map-kit, with district.png as its fallback ---------- */
+  // Map pixels are 1536×1024, the same 3:2 box as the world; game units are 1200×650.
+  const MX = 1200/1536, MY = 650/1024, g = (x, y) => ({x:+(x*MX).toFixed(1), y:+(y*MY).toFixed(1)});
+  const KIT = {
+    // Building sprites: 1024² canvases, footprint centre at (512, 900); [file, centre x, base y, top of the drawn building in the canvas].
+    buildings: {houseA:['bld-house-a',150,392,541],temple:['bld-temple',345,392,711],park:['bld-park',545,392,611],office:['bld-office',740,392,641],recruit:['bld-recruit',935,392,681],plaza:['bld-plaza',1130,392,721],houseB:['bld-house-b',1330,392,511],
+      market:['bld-market',168,628,741,.68],fundraise:['bld-fundraise',430,628,686,.66],mrt:['bld-mrt',635,628,731,.66],tv:['bld-tv',905,628,676,.68],online:['bld-online',1105,628,706,.68],campus:['bld-campus',1372,628,726,.68]},
+    // The back street is a little smaller than the front one, as seen from above and in front.
+    scale: .62,
+    // Streets [x0, x1, centre y, width], vertical links [centre x, y0, y1, width]; the crossroads tile marks 保儀路口.
+    roads: [[52,1484,430,62],[60,1490,665,64],[84,1452,768,44]],
+    links: [[300,461,633,60],[768,461,633,60],[1236,461,633,60],[768,697,744,60],[1035,697,750,52]],
+    cross: [768,665],
+    // Trees stand between the slots along the front street, so none hides a person waiting at a door.
+    trees: [['tree-a',300,736,.42],['tree-b',560,738,.42],['tree-a',1238,738,.42],['tree-b',1474,790,.44],['tree-b',52,470,.44],['tree-a',40,786,.4]],
+    // Walkable graph on the street centre lines. Chains are ordered along their street.
+    // Walkers keep to the lower lane of each street; people waiting at doors stand on the upper lane.
+    nodes: {s1w:[110,446],s1a:[300,446],s1b:[768,446],s1c:[1236,446],start:[1330,446],s1e:[1440,446],s2w:[90,680],s2a:[300,680],s2b:[768,680],s2x:[1035,680],s2c:[1236,680],s2e:[1460,680],pw:[110,778],p0:[768,778],p1:[1035,778],pe:[1430,778]},
+    // The south arm of the crossroads is where people stop for 保儀路口; walkers reach the river by the link at the bridge.
+    chains: [['s1w','s1a','s1b','s1c','start','s1e'],['s2w','s2a','s2b','s2x','s2c','s2e'],['s1a','s2a'],['s1b','s2b'],['s1c','s2c'],['s2x','p1'],['pw','p0','p1','pe']],
+    // Where people stop: on the street, in front of each door. Labels sit on the roof line of their building.
+    stands: {start:[1330,412],prepare:[712,412],recruit:[935,412],temple:[345,412],plaza:[1130,412],market:[168,646],fundraise:[430,646],street:[768,714],tv:[905,646],online:[1088,646],debate:[1382,646],river:[540,756]},
+    labels: {start:[1330,262],prepare:[740,250],recruit:[935,290],temple:[345,300],plaza:[1130,300],market:[168,546],fundraise:[430,520],street:[768,650],tv:[905,520],online:[1105,535],debate:[1370,540],river:[540,818]},
+    // Residents stand where no route passes, mostly in pairs facing each other.
+    residents: [['elder-hat',150,444,false],['elder-cart',196,446,true],['middle-mom',902,720,false],['young-student',940,724,true],['elder-cane',228,780,false],['young-pack',330,786,false],['middle-polo',368,790,true],['elder-track',272,782,false],['young-bike',1460,446,true]],
+    rivalIdle: [1300,760]
+  };
+  // The old single-image map, kept as the fallback when a kit image fails to load. Units here are game units.
+  const DISTRICT = {
+    spots: {start:[600,345],market:[370,348],temple:[157,285],street:[552,424],plaza:[725,285],river:[685,517],prepare:[510,233],recruit:[552,225],tv:[961,402],online:[1040,432],fundraise:[606,472],debate:[776,268]},
+    paths: {market:[[520,328],[440,330]],temple:[[520,328],[440,330],[320,336],[240,332]],street:[[680,345],[700,410],[705,482],[600,484],[575,452]],plaza:[[650,316]],river:[[680,345],[700,410],[705,482]],prepare:[[570,295]],recruit:[[570,295]],tv:[[680,345],[700,410],[800,445],[880,488],[985,468],[995,432]],online:[[680,345],[700,410],[800,445],[880,488],[985,468],[1030,455]],fundraise:[[680,345],[700,410],[705,482]],debate:[[650,316]]},
+    residents: [[330,336,'elder-hat'],[262,332,'middle-mom'],[760,298,'young-hoodie'],[656,501,'elder-cart'],[915,500,'young-student'],[540,261,'middle-office']]
+  };
+  const kit = () => mapLayout === 'kit';
+  // Switch to the single-image map when a kit image is missing; returns true when the switch happened.
+  function useDistrictMap() { if (!kit()) return false; mapLayout = 'district'; return true; }
+  function kitPoint(key, table) { const p = KIT[table][key] || KIT[table].start; return g(p[0], p[1]); }
+  function spot(id) { if (!kit()) { const p = DISTRICT.spots[id] || DISTRICT.spots.start; return {x:p[0],y:p[1]}; } return kitPoint(id, 'labels'); }
+  function stand(id) { if (!kit()) return spot(id); return kitPoint(KIT.stands[id] ? id : 'start', 'stands'); }
+  // Other people at a place take the next slot along the street, so nobody stands inside anybody else.
+  const SLOT_OFFSETS = [[0,0],[-54,0],[54,0],[-106,0],[106,0]], STREET_SLOTS_OFFSETS = [[0,0],[-52,6],[52,6],[-100,16],[100,16]];
+  function slot(id, n = 0) { const s = stand(id), o = (kit() && id === 'street' ? STREET_SLOTS_OFFSETS : SLOT_OFFSETS)[Math.max(0, Math.min(n, SLOT_OFFSETS.length - 1))]; return kit() ? {x:+(s.x+o[0]*MX).toFixed(1), y:+(s.y+o[1]*MY).toFixed(1)} : {x:s.x+o[0]*.6, y:s.y+o[1]*.6}; }
+  function toyKey(id, venue) { return ['canvass','rally'].includes(id) ? (KIT.stands[venue] ? venue : 'market') : id === 'press' ? 'tv' : id === 'dig' ? 'prepare' : id; }
+  // Shortest walk on the street graph from one place to another, ending at the second place's door (map pixels).
+  function kitWalk(fromKey, toKey) {
+    const edges = {}, link = (a, b) => { const d = Math.hypot(KIT.nodes[a][0]-KIT.nodes[b][0], KIT.nodes[a][1]-KIT.nodes[b][1]); (edges[a] ??= []).push([b,d]); (edges[b] ??= []).push([a,d]); };
+    for (const c of KIT.chains) for (let i = 1; i < c.length; i++) link(c[i-1], c[i]);
+    // The point on a street in front of a place, and the two graph nodes either side of it.
+    const foot = key => { const s = KIT.stands[key] || KIT.stands.start; let best = null; for (const c of KIT.chains) for (let i = 1; i < c.length; i++) { const a = KIT.nodes[c[i-1]], b = KIT.nodes[c[i]], vx = b[0]-a[0], vy = b[1]-a[1], t = Math.max(0, Math.min(1, ((s[0]-a[0])*vx+(s[1]-a[1])*vy)/(vx*vx+vy*vy))), p = [a[0]+vx*t, a[1]+vy*t], d = Math.hypot(p[0]-s[0], p[1]-s[1]); if (!best || d < best.d) best = {d, p, a:c[i-1], b:c[i]}; } return best; };
+    const A = foot(fromKey), B = foot(toKey), dist = {}, prev = {}, todo = new Set(Object.keys(KIT.nodes));
+    for (const k of todo) dist[k] = Infinity;
+    for (const k of [A.a, A.b]) { dist[k] = Math.hypot(KIT.nodes[k][0]-A.p[0], KIT.nodes[k][1]-A.p[1]); prev[k] = null; }
+    while (todo.size) { let u = null; for (const k of todo) if (u === null || dist[k] < dist[u]) u = k; todo.delete(u); for (const [v, d] of edges[u] || []) if (dist[u] + d < dist[v]) { dist[v] = dist[u] + d; prev[v] = u; } }
+    const sameEdge = (A.a === B.a && A.b === B.b);
+    const end = [B.a, B.b].map(k => ({k, d: dist[k] + Math.hypot(KIT.nodes[k][0]-B.p[0], KIT.nodes[k][1]-B.p[1])})).sort((x, y) => x.d - y.d)[0];
+    const chain = []; if (!sameEdge) for (let k = end.k; k; k = prev[k]) chain.unshift(KIT.nodes[k]);
+    const s = KIT.stands[toKey] || KIT.stands.start;
+    return [A.p, ...chain, B.p, s].filter((p, i, all) => i === 0 || Math.hypot(p[0]-all[i-1][0], p[1]-all[i-1][1]) > .5);
+  }
+  function visualRoute(id, venue, from) {
+    const key = toyKey(id, venue);
+    if (!kit()) return [from || spot('start'), ...(DISTRICT.paths[key] || []).map(p => ({x:p[0],y:p[1]})), spot(key)];
+    const walk = kitWalk('start', key).map(p => g(p[0], p[1]));
+    walk[walk.length - 1] = stand(key);
+    return [from || stand('start'), ...walk.slice(1)];
+  }
   function mapPoint(p) {
     if(!isToy()) return {...p};
     const pairs = Object.entries(anchors).map(([key,a])=>({key:key==='canvass'?'market':key,a}));
     pairs.push({key:'street',a:{x:609,y:384}},{key:'river',a:{x:551,y:474}},{key:'plaza',a:{x:713,y:243}},{key:'temple',a:{x:158.2,y:285.8}},{key:'debate',a:{x:935,y:175}});
-    const n=pairs.filter(v=>TOY_SPOTS[v.key]).sort((a,b)=>Math.hypot(a.a.x-p.x,a.a.y-p.y)-Math.hypot(b.a.x-p.x,b.a.y-p.y))[0];
-    const v=spot(n.key); return {x:v.x+(p.x-n.a.x)*.4,y:v.y+(p.y-n.a.y)*.4};
+    const n=pairs.filter(v=>KIT.stands[v.key]).sort((a,b)=>Math.hypot(a.a.x-p.x,a.a.y-p.y)-Math.hypot(b.a.x-p.x,b.a.y-p.y))[0];
+    const v=stand(n.key); return kit() ? v : {x:v.x+(p.x-n.a.x)*.4,y:v.y+(p.y-n.a.y)*.4};
   }
-  function alongVisual(points, t) { const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)); let d=lengths.reduce((a,b)=>a+b,0)*Math.max(0,Math.min(1,t)); for(let i=0;i<lengths.length;i++){if(d<=lengths[i]&&lengths[i])return {x:points[i].x+(points[i+1].x-points[i].x)*d/lengths[i],y:points[i].y+(points[i+1].y-points[i].y)*d/lengths[i]};d-=lengths[i];} return points.at(-1); }
-  function travelPoint(route,index,p,id,venue) { if(!isToy())return p; const lengths=route.slice(1).map((a,i)=>Math.hypot(a.x-route[i].x,a.y-route[i].y)); const total=lengths.reduce((a,b)=>a+b,0); const prev=route[Math.min(index-1,route.length-1)]; const done=lengths.slice(0,index-1).reduce((a,b)=>a+b,0)+Math.hypot(p.x-prev.x,p.y-prev.y); return alongVisual(visualRoute(id,venue,mapPoint(route[0])),total?done/total:1); }
+  function alongVisual(points, t) { const lengths=points.slice(1).map((p,i)=>Math.hypot(p.x-points[i].x,p.y-points[i].y)); let d=lengths.reduce((a,b)=>a+b,0)*Math.max(0,Math.min(1,t)); for(let i=0;i<lengths.length;i++){if(d<=lengths[i]&&lengths[i])return {x:points[i].x+(points[i+1].x-points[i].x)*d/lengths[i],y:points[i].y+(points[i+1].y-points[i].y)*d/lengths[i]};d-=lengths[i];} return {...points.at(-1)}; }
+  function travelPoint(route,index,p,id,venue) { if(!isToy())return p; const lengths=route.slice(1).map((a,i)=>Math.hypot(a.x-route[i].x,a.y-route[i].y)); const total=lengths.reduce((a,b)=>a+b,0); const prev=route[Math.min(index-1,route.length-1)]; const done=lengths.slice(0,index-1).reduce((a,b)=>a+b,0)+Math.hypot(p.x-prev.x,p.y-prev.y); return alongVisual(visualRoute(id,venue,kit()?stand('start'):mapPoint(route[0])),total?done/total:1); }
   function facing(dx,dy) { const next=Math.abs(dy)>Math.abs(dx)*1.15?{row:dy<0?2:0,mirror:false}:{row:1,mirror:dx<0}; const changed=next.row!==toyFacing.row||next.mirror!==toyFacing.mirror; toyFacing=next; return changed; }
+  const pct = (v, total) => +(v / total * 100).toFixed(3) + '%';
+  function kitImage(file, x, y, w, h, attrs = '') { return '<image data-art-image="map" data-art-map="kit" href="' + TOY_ROOT + 'game/map-' + file + '.webp" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '" ' + attrs + '/>'; }
+  // A standing part of the map (building or tree) as its own layer, stacked by its base so people behind it are hidden by it.
+  function kitPart(file, cx, base, canvas, anchorY, k, cls) {
+    const size = canvas * k, left = cx - canvas / 2 * k, top = base - anchorY * k;
+    return '<img class="kit-part ' + cls + '" data-art-image="map" data-art-map="kit" alt="" draggable="false" src="' + TOY_ROOT + 'game/map-' + file + '.webp" style="left:' + pct(left, 1536) + ';top:' + pct(top, 1024) + ';width:' + pct(size, 1536) + ';z-index:' + Math.round(base * MY) + '">';
+  }
+  function kitScene() {
+    const k = KIT.scale;
+    let flat = '<svg class="kit-flat" viewBox="0 0 1536 1024" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><clipPath id="kit-plate"><rect x="40" y="36" width="1456" height="892" rx="110"/></clipPath></defs>';
+    flat += kitImage('ground', 0, 0, 1536, 1024, 'class="kit-ground"') + kitImage('ground-rain', 0, 0, 1536, 1024, 'class="kit-ground-rain"');
+    flat += kitImage('hills-back', 0, -26, 1536, 360);
+    flat += '<g clip-path="url(#kit-plate)">' + [-4, 835].map(x => '<svg x="' + x + '" y="774" width="841" height="220" viewBox="2 0 841 220" preserveAspectRatio="none">' + kitImage('river', 0, 0, 845, 220) + '</svg>').join('');
+    // Paving: the road texture repeats along each street; links are the same texture turned a quarter.
+    for (const [x0, x1, cy, w] of KIT.roads) { const t = 512 * w / 140; flat += '<svg x="' + x0 + '" y="' + (cy - w / 2) + '" width="' + (x1 - x0) + '" height="' + w + '" overflow="hidden">'; for (let x = 0; x < x1 - x0; x += t - 1) flat += kitImage('road-straight', x, -186 * t / 512, t, t); flat += '</svg>'; }
+    for (const [cx, y0, y1, w] of KIT.links) { const t = 512 * w / 140; flat += '<svg x="' + (cx - w / 2) + '" y="' + y0 + '" width="' + w + '" height="' + (y1 - y0) + '" overflow="hidden"><g transform="translate(' + w + ' 0) rotate(90)">'; for (let y = 0; y < y1 - y0; y += t - 1) flat += kitImage('road-straight', y, -186 * t / 512, t, t); flat += '</g></svg>'; }
+    flat += '</g>';
+    { const [cx, cy] = KIT.cross, t = 512 * 62 / 140; flat += '<svg x="' + (cx - 64) + '" y="' + (cy - 64) + '" width="128" height="128" overflow="hidden">' + kitImage('road-cross', 64 - t / 2, 64 - t / 2, t, t) + '</svg>'; }
+    // The bridge spans the river from the riverside path to the front edge of the board.
+    flat += kitImage('bridge', 1035 - 256 * .42, 752 - 36 * .42, 512 * .42, 512 * .42);
+    flat += '</svg>';
+    let parts = '';
+    for (const [file, cx, base, , bk] of Object.values(KIT.buildings)) parts += kitPart(file, cx, base, 1024, 900, bk || k, 'kit-building');
+    for (const [file, cx, base, tk] of KIT.trees) parts += kitPart(file, cx, base, 256, 232, tk, 'kit-tree');
+    return '<div class="kit-map" data-map="kit">' + flat + parts + toyResidents() + '</div>';
+  }
   function toySprite(column=0,row=0,mirror=false,party=candidates.player.party) {
     const f=TOY_FRAMES[column][row], k=124/f.sole, w=f.w*k, h=f.h*k;
     // Nested SVG clips each sprite without global clip IDs; every sole is exactly y=130.
-    return '<g class="toy-figure" data-column="'+column+'"><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/>'+ (mirror?'<g transform="translate(100,0) scale(-1,1)">':'<g>')+'<svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="candidate" href="'+TOY_ROOT+'candidates.png" width="1536" height="1024"/></svg></g>'+toySash(party)+'</g>';
+    return '<g class="toy-figure" data-column="'+column+'">'+toyShadow()+(mirror?'<g transform="translate(100,0) scale(-1,1)">':'<g>')+'<svg x="'+(50-w/2)+'" y="'+(130-124)+'" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="candidate" href="'+TOY_ROOT+FILES.candidates+'" width="1536" height="1024"/></svg></g>'+toySash(party)+'</g>';
   }
   let toyWalk = { active: false, time: 0, frame: 0 };
   function walkStep(dt, active) { const old = toyWalk.frame, was = toyWalk.active; toyWalk.active = active; toyWalk.time = active ? toyWalk.time + dt : 0; toyWalk.frame = Math.floor(toyWalk.time / .19) % 2; return old !== toyWalk.frame || was !== active; }
-  function atlasFigure(file, f, width, height, attrs = '') {
-    const k = 124/f.sole, w=f.w*k, h=f.h*k;
-    return '<g class="toy-figure" '+attrs+'><ellipse cx="50" cy="130" rx="18" ry="4" fill="#263c48" opacity=".18"/><svg x="'+(50-w/2)+'" y="6" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="'+file+'" href="'+TOY_ROOT+file+'" width="'+width+'" height="'+height+'"/></svg></g>';
+  // A soft two-step contact shadow keeps feet on the ground instead of floating like a sticker.
+  const toyShadow = () => '<ellipse cx="51" cy="130.5" rx="21" ry="5.2" fill="#3b3226" opacity=".16"/><ellipse cx="50" cy="130" rx="13" ry="3.2" fill="#2b241b" opacity=".2"/>';
+  function atlasFigure(file, f, width, height, attrs = '', mirror = false, size = 1) {
+    const k = 124*size/f.sole, w=f.w*k, h=f.h*k;
+    const body = '<svg x="'+(50-w/2)+'" y="'+(130-f.sole*k)+'" width="'+w+'" height="'+h+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-art-image="'+file+'" href="'+TOY_ROOT+file+'" width="'+width+'" height="'+height+'"/></svg>';
+    return '<g class="toy-figure" '+attrs+'>'+toyShadow()+(mirror?'<g transform="translate(100,0) scale(-1,1)">'+body+'</g>':body)+'</g>';
+  }
+  function lookFigure(look, attrs = '', mirror = false) {
+    const L = LOOKS[look] || LOOKS['middle-office'], f = SHEETS[L[0]][L[1]][L[2]];
+    return atlasFigure(FILES[L[0]], f, 1536, 1024, 'data-look="'+look+'" '+attrs, mirror, L[3]);
   }
   function toyWalker() {
-    const row=toyFacing.row*2+toyWalk.frame, column=toyColumn(), content=atlasFigure('walk.png',WALK_FRAMES[row][column],1024,1536,'data-walk-frame="'+row+'"');
+    const row=toyFacing.row*2+toyWalk.frame, column=toyColumn(), content=atlasFigure(FILES.walk,WALK_FRAMES[row][column],1024,1536,'data-walk-frame="'+row+'"');
     return (toyFacing.mirror ? '<g transform="translate(100,0) scale(-1,1)">'+content+'</g>' : content)+toySash(candidates.player.party);
   }
-  // v1 cell 3 (bald, glasses) reads as an elder and as the incumbent, so middle-aged men and the party-neutral rival come from support-v2.
-  const SUPPORT_ROLES = {elder:0,elder2:1,middle2:2,young:4,young2:5,resident:2,shop:2,helper:7,host:8};
-  const SUPPORT2_ROLES = {middle:[0,0],shop2:[0,1],rival:[1,1]};
-  function supportFigure(role) { const v2=SUPPORT2_ROLES[role],n=SUPPORT_ROLES[role]??7,body=v2?atlasFigure('v2/support-v2.png',SUPPORT2_FRAMES[v2[0]][v2[1]],1536,1024,'data-support-role="'+role+'"'):atlasFigure('support.png',SUPPORT_FRAMES[Math.floor(n/3)][n%3],1536,1024,'data-support-role="'+role+'"');return role==='rival'?body+toySash(candidates.rival.party):body; }
+  function supportFigure(role, mirror = false) { const body = lookFigure(ROLE_LOOKS[role] || role, 'data-support-role="'+role+'"', mirror); return role==='rival'?body+toySash(candidates.rival.party):body; }
   // The party sash drawn over a matte figure; the sprites themselves carry no party colour.
   function toySash(party) { const c=PARTY_COLORS[party]; return c?'<g class="toy-sash" data-party="'+party+'"><path d="M37 58L43 55L66 91L60 95Z" fill="'+c+'" stroke="#ffffff" stroke-width="1.2"/><circle cx="53" cy="76" r="4" fill="#ffffff"/><circle cx="53" cy="76" r="2.4" fill="'+c+'"/></g>':''; }
   function sceneAtlas(kind) { const file=TOY_SCENES[kind]; return file?'<image data-art-image="scene" href="'+TOY_ROOT+file+'" width="1200" height="650" preserveAspectRatio="xMidYMid slice"/>':''; }
-  // Assistants headed to the same place walk as one figure with a head count, so identical sprites never trail the candidate as clones.
+  // Assistants headed to the same place walk as one figure with a head count. They leave the team room one after another and
+  // stop in their own slot at the destination, so they never stand inside the candidate or each other.
   function toyTeam(assignments,elapsed,id,venue,reduced) {
-    const groups=[];for(const a of assignments.filter(a=>a.task!=='release')){const dest=a.task==='research'?'prepare':a.task==='stream'?'online':a.task==='booth'?'fundraise':a.task==='idle'?'recruit':id,target=toyKey(dest,venue),g=groups.find(x=>x.target===target);if(g)g.n++;else groups.push({target,n:1});}
-    return groups.map((g,i)=>{const p=alongVisual([spot('recruit'),spot('start'),...visualRoute(g.target).slice(1)],reduced?1:Math.min(1,elapsed/2.5));p.x+=-34+i*22;p.y+=20+i%2*10;return '<span class="toy-helper" data-helper-target="'+g.target+'" style="left:'+p.x/12+'%;top:'+p.y/6.5+'%;z-index:'+Math.round(p.y)+'">'+avatar('helper')+(g.n>1?'<b class="toy-helper-count">×'+g.n+'</b>':'')+'</span>';}).join('');
+    const groups=[], mine=toyKey(id,venue);
+    for(const a of assignments.filter(a=>a.task!=='release')){const dest=a.task==='research'?'prepare':a.task==='stream'?'online':a.task==='booth'?'fundraise':a.task==='idle'?'recruit':id,target=toyKey(dest,venue),grp=groups.find(x=>x.target===target);if(grp)grp.n++;else groups.push({target,n:1});}
+    return groups.map((grp,i)=>{
+      const end=slot(grp.target,grp.target===mine?(mine==="recruit"?2:1):0);
+      let path;
+      if(kit()){const walk=kitWalk('recruit',grp.target).map(p=>g(p[0],p[1]));walk[walk.length-1]=end;path=[stand('recruit'),...walk.slice(1)];}
+      else path=[stand('recruit'),stand('start'),...visualRoute(grp.target).slice(1,-1),end];
+      const p=alongVisual(path,reduced||elapsed>=3?1:Math.max(0,Math.min(1,(elapsed-.45*i)/2.2)));
+      return '<span class="toy-helper" data-helper-target="'+grp.target+'" style="left:'+pct(p.x,1200)+';top:'+pct(p.y,650)+';z-index:'+Math.round(p.y)+'">'+avatar('helper')+(grp.n>1?'<b class="toy-helper-count">×'+grp.n+'</b>':'')+'</span>';
+    }).join('');
   }
-
-  function toyResidents() { return [[330,336,'elder'],[262,332,'middle2'],[760,298,'young'],[656,501,'elder2'],[915,500,'young2'],[540,261,'middle']].map(([x,y,role])=>'<span class="toy-resident" style="left:'+x/12+'%;top:'+y/6.5+'%">'+avatar(role)+'</span>').join(''); }
+  function toyResidents() {
+    const list = kit() ? KIT.residents.map(([look,x,y,m]) => [look, g(x,y), m]) : DISTRICT.residents.map(([x,y,look],i) => [look, {x,y}, i%2===1]);
+    return list.map(([look,p,m])=>'<span class="toy-resident" data-look="'+look+'" style="left:'+pct(p.x,1200)+';top:'+pct(p.y,650)+';z-index:'+Math.round(p.y)+'"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 140" aria-hidden="true" focusable="false" class="day-avatar-svg">'+lookFigure(look,'',m)+'</svg></span>').join('');
+  }
+  // Where 小馬 waits: next to the place the rumour names, otherwise at the east end of the back street.
+  function rivalSpot(key) { if (key && KIT.stands[key]) return slot(key, 4); return kit() ? g(...KIT.rivalIdle) : {x:1030,y:470}; }
+  // A billboard bought for a place stands beside its door, off the walking line.
+  function boardSpot(key, i = 0) { const s = stand(KIT.stands[key] ? key : 'market'); return kit() ? {x:+(s.x+(70+i*34)*MX).toFixed(1), y:+(s.y-6*MY).toFixed(1)} : {x:s.x+60+i*28, y:s.y+20}; }
   function toyColumn(look=candidates.player) {return look.identity==='heir'||look.outfit==='suit'?1:look.identity==='incumbent'||look.outfit==='vest'?2:0;}
 
   const C = {
@@ -209,7 +335,7 @@
       rect(-58, -122, 116, 66, '#fffaf0', 'stroke="#55635b" stroke-width="3" rx="3"') + rect(-58, -122, 116, 17, band, 'rx="3"') +
       label(0, -109, '市議員候選人', 11, '#ffffff', 'text-anchor="middle"') + label(0, -71, candidates.player.name || '小沈', 30, '#24443c', 'text-anchor="middle"') + '</g>';
   }
-  function billboard(party) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-62 -126 124 130" aria-hidden="true" focusable="false" class="board-svg">' + boardMarkup(0, 0, 1, party) + '</svg>'; }
+  function billboard(party) { if (isToy()) return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="100 170 1054 940" aria-hidden="true" focusable="false" class="board-svg">' + boardProp(627, 1087, 1054, party) + '</svg>'; return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-62 -126 124 130" aria-hidden="true" focusable="false" class="board-svg">' + boardMarkup(0, 0, 1, party) + '</svg>'; }
 
   function person(x, feetY, role, scale = .62, pose = null) {
     return '<g class="day-resident" data-role="' + role + '" transform="translate(' + (x - 50 * scale) + ' ' + (feetY - 130 * scale) + ') scale(' + scale + ')">' +
@@ -571,7 +697,7 @@
   function route(id) { return (paths[id] || [anchors.start]).map(p=>({x:p.x,y:p.y})); }
 
   function scene() {
-    if (isToy()) return '<img data-art-image="world" class="toy-world" src="'+TOY_ROOT+'district.png" alt="文山木柵意象街區：市場、社區、茶山、纜車及河岸；非實際道路地圖">'+toyResidents();
+    if (isToy()) return kit() ? kitScene() : '<img data-art-image="world" data-art-map="district" class="toy-world" src="'+TOY_ROOT+FILES.district+'" alt="文山木柵意象街區：市場、社區、茶山、纜車及河岸；非實際道路地圖">'+toyResidents();
     let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" role="img" aria-label="木柵意象縮景：木柵市場上方的圖書館、文山行政中心與公車站、YouBike、景美溪道南河濱、貓空茶山與原創廟前廣場。行動場地以步道相連，居民皆為原創方塊人。非實際地圖。" class="day-art-svg">';
     s+='<title>木柵意象縮景｜非實際地圖</title><desc>原創 2.5D 木柵街區，以可辨識的地景元素組成非實際比例的意象縮景。左方木柵市場上層為木柵圖書館，遠方有文山行政中心、公車站與 YouBike；景美溪彎過道南河濱綠色自行車道，後方為層層貓空茶山。社區工作室、市場、訪談小棚、座談廣場等行動目的地均由步道相連；新增廟前廣場是虛構的公共空間與無障礙動線交流場地，不指涉特定廟宇，也不代表宗教群體的政治立場，所有角色皆為人類。地標只是場景背景，不代表任何機關支持或背書。</desc>';
     s+=rect(0,0,1200,650,'#f5f0df');
@@ -689,18 +815,138 @@
   const STREET_SLOTS = [[600, 470, .86], [697, 466, .86], [794, 471, .86], [891, 466, .86], [988, 470, .86], [1085, 466, .86], [652, 560, 1], [772, 564, 1], [892, 560, 1], [1012, 564, 1]];
   const TV_SLOTS = [[884, 532, .4], [944, 532, .4], [1004, 532, .4], [1064, 532, .4], [1124, 532, .4], [884, 612, .4], [944, 612, .4], [1004, 612, .4], [1064, 612, .4], [1124, 612, .4]];
   const DEBATE_SLOTS = [[70, 700, .8], [188, 704, .8], [306, 700, .8], [424, 704, .8], [542, 700, .8], [660, 704, .8], [778, 700, .8], [896, 704, .8], [1014, 700, .8], [1132, 704, .8]];
-  // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, variant, tone} or null.
-  function toyInterior(kind, options) {
-    let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" class="venue-art" data-kind="'+kind+'">'+sceneAtlas(kind);
-    if(kind!=='fundraise')s+=label(600,108,kind==='tv'?'中立新聞台':(candidates.player.name||'小沈')+'的選戰直播',42,'#fffdf7','text-anchor="middle"')+label(600,150,options.topic||'選區議題・即時回應',24,'#e8f0df','text-anchor="middle"');
-    s+=figure(330,570,'player',1.8,'speak')+figure(600,570,kind==='tv'?'host':'helper',1.55);
-    const crowd=(options.crowd||[]).slice(0,10);
-    if(crowd.length){s+=rect(800,355,380,280,'#fffdf7','rx="20"')+label(990,390,kind==='tv'?'觀眾反應':'網友反應',20,'#345761','text-anchor="middle"');for(let i=0;i<crowd.length;i++){const c=crowd[i],x=840+(i%5)*72,y=490+Math.floor(i/5)*120;s+=figure(x,y,GROUP_ROLES[c.group]?.[c.variant?1:0]||'young',.56);if(c.tone)s+=face(x,y-89,c.tone,13);}}
-    if(kind==='fundraise')s+=label(600,100,'街坊募款',35,'#345761','text-anchor="middle"');
-    return s+'</svg>';
+  /* ---------- Matte-toy venue scenes ----------
+     Each scene is staged around one conversation: the candidate (gold ring) turns to whoever speaks (green ring and a talk
+     mark), and everybody else stands around them turned toward the pair. Sizes follow the floor's perspective and every
+     figure keeps a contact shadow, so people stand in the place instead of floating on the picture. */
+  const RINGS = {you:['#e2ad2f','#f7d77a70'],staff:['#dc7b45','#f0a06c45'],speaker:['#4f8a64','#fffdf5a6'],rival:['#b65a45','#c9705a30']};
+  const ringMark = kind => { const r = RINGS[kind]; return r ? '<ellipse class="ring-' + kind + '" cx="50" cy="130" rx="32" ry="8.5" fill="' + r[1] + '" stroke="' + r[0] + '" stroke-width="2.6"/>' : ''; };
+  const TALK = '<g class="talk-mark"><rect x="-14" y="-11" width="28" height="19" rx="8" fill="#fffdf5" stroke="#4f8a64" stroke-width="2.4"/><path d="M-7 7.5L-10 15L0 7.5" fill="#fffdf5" stroke="#4f8a64" stroke-width="2.4" stroke-linejoin="round"/><circle cx="-6.5" cy="-1.5" r="2.2" fill="#4f8a64"/><circle cx="0" cy="-1.5" r="2.2" fill="#4f8a64"/><circle cx="6.5" cy="-1.5" r="2.2" fill="#4f8a64"/></g>';
+  // One person with the feet at (x, y); size 1 is 124 scene units tall. look: a crowd look, 'player', 'rival', 'helper' or 'host'.
+  function stagePerson(look, x, y, size, o = {}) {
+    const body = look === 'player' ? toySprite(toyColumn(), 0, !!o.mirror) : look === 'rival' ? supportFigure('rival', !!o.mirror) : lookFigure(look, '', !!o.mirror);
+    return '<g class="stage-person" data-who="' + (o.who || look) + '" transform="translate(' + (x - 50 * size).toFixed(1) + ' ' + (y - 130 * size).toFixed(1) + ') scale(' + size.toFixed(3) + ')">' + ringMark(o.ring) + body + (o.talk ? '<g transform="translate(' + (o.mirror ? 16 : 84) + ' 2)">' + TALK + '</g>' : '') + '</g>';
+  }
+  const headTop = (y, size) => y - 124 * size;
+  // Camera on a 1536×1024 backdrop: zoom z about the source point (cx, cy), which lands in the middle of the 1200×650 scene.
+  const camera = (z = 1, cx = 768, cy = 512) => { const s = .78125 * z; return {s, x: 600 - cx * s, y: 325 - cy * s}; };
+  const backdropImage = (file, c, attrs = '') => '<image data-art-image="venue" href="' + TOY_ROOT + file + '" x="' + c.x.toFixed(1) + '" y="' + c.y.toFixed(1) + '" width="' + (1536 * c.s).toFixed(1) + '" height="' + (1024 * c.s).toFixed(1) + '" preserveAspectRatio="none" ' + attrs + '/>';
+  // Looks for a crowd: each group cycles through its own looks, starting at a different look per place, and never repeats the speaker.
+  const speakerLook = sp => sp && (SPEAKER_LOOKS[sp.name] || (GROUP_LOOKS[sp.group] || GROUP_LOOKS[1])[1]);
+  function crowdLooks(crowd, avoid, salt = 0) { const seen = [0, 0, 0]; return crowd.map(c => { const list = (GROUP_LOOKS[c.group] || GROUP_LOOKS[1]).filter(l => l !== avoid); return list[(seen[c.group] = (seen[c.group] || 0) + 1, seen[c.group] - 1 + salt) % list.length]; }); }
+  // The speaker is one of the people counted at the place, so the head count on screen matches the crowd line.
+  function takeSpeaker(crowd, speaker) { if (!speaker) return crowd; const i = crowd.findIndex(c => c.group === speaker.group); return i < 0 ? crowd : crowd.filter((_, j) => j !== i); }
+  const reaction = (x, y, size, tone) => tone ? face(x, headTop(y, size) - 17 - 6 * size, tone, 12 + 6 * size) : '';
+  // Figures take a little of the backdrop's softness; on rainy rounds they also lose some light.
+  const grade = (id, rain) => '<filter id="' + id + '" color-interpolation-filters="sRGB"><feColorMatrix type="saturate" values="' + (rain ? .72 : .9) + '"/>' + (rain ? '<feComponentTransfer><feFuncR type="linear" slope=".86"/><feFuncG type="linear" slope=".9"/><feFuncB type="linear" slope=".98"/></feComponentTransfer>' : '') + '</filter>';
+  // Billboard prop (incoming/billboard.png) with the name and a band in the party colour on its blank face; (x, ground) is where the posts stand.
+  function boardProp(x, ground, width, party) {
+    const k = width / 1054, left = x - 627 * k, top = ground - 1087 * k, band = PARTY_COLORS[party] || '#9a7b4f', px = left + 178 * k, py = top + 265 * k, pw = 897 * k, ph = 386 * k;
+    return '<g class="campaign-board" data-board="matte"><image data-art-image="board" href="' + TOY_ROOT + FILES.board + '" x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + (1254 * k).toFixed(1) + '" height="' + (1254 * k).toFixed(1) + '"/>' +
+      rect(px.toFixed(1), py.toFixed(1), pw.toFixed(1), (ph * .26).toFixed(1), band) + label((px + pw / 2).toFixed(1), (py + ph * .19).toFixed(1), '市議員候選人', +(ph * .15).toFixed(1), '#ffffff', 'text-anchor="middle"') +
+      label((px + pw / 2).toFixed(1), (py + ph * .78).toFixed(1), candidates.player.name || '小沈', +(ph * .42).toFixed(1), '#24443c', 'text-anchor="middle"') + '</g>';
+  }
+  const CANVASS = {
+    you: [350, 606], speaker: [588, 548],
+    crowd: [[166, 476], [256, 448], [346, 428], [892, 432], [984, 456], [1074, 486], [766, 566], [868, 598], [980, 626], [1112, 590]],
+    pets: {market: ['pet-cat', 1150, 452], temple: ['pet-cat-nap', 88, 560], plaza: ['pet-dog', 62, 566], river: ['pet-dog-walk', 1146, 452], street: ['pet-cat-walk', 74, 566]}
+  };
+  const canvassSize = y => .8 + (y - 410) * .0013;
+  function canvassScene(kind, o) {
+    const rainy = !!o.rain && TOY_RAIN[kind], file = rainy ? TOY_RAIN[kind] : TOY_VISITS[kind], fx = (CANVASS.you[0] + CANVASS.speaker[0]) / 2;
+    let s = '<defs>' + grade('grade-' + kind, rainy) + '</defs>' + backdropImage(file, camera(), rainy ? 'data-art-fallback="' + TOY_ROOT + TOY_VISITS[kind] + '"' : '');
+    const sp = o.speaker && o.mode !== 'rally' ? o.speaker : null, crowd = takeSpeaker((o.crowd || []).slice(0, 10), sp), looks = crowdLooks(crowd, speakerLook(sp), Object.keys(TOY_VISITS).indexOf(kind));
+    const people = [];
+    if (o.mode === 'rally') return s + rallyScene(kind, o, crowd, looks);
+    crowd.forEach((c, i) => { const [x, y] = CANVASS.crowd[i] || CANVASS.crowd[i % 10]; people.push({y, m: stagePerson(looks[i], x, y, canvassSize(y), {mirror: x > fx}), f: reaction(x, y, canvassSize(y), c.tone)}); });
+    if (sp) { const [x, y] = CANVASS.speaker, k = canvassSize(y) * 1.04; people.push({y, m: stagePerson(speakerLook(sp), x, y, k, {mirror: true, ring: 'speaker', talk: true, who: 'speaker'}), f: reaction(x, y, k, sp.tone)}); }
+    { const [x, y] = CANVASS.you, k = canvassSize(y) * 1.08; people.push({y, m: stagePerson('player', x, y, k, {ring: 'you', who: 'you'}), f: ''}); }
+    const pet = CANVASS.pets[kind]; if (pet) people.push({y: pet[2], m: stagePerson(pet[0], pet[1], pet[2], canvassSize(pet[2]), {mirror: pet[1] > fx}), f: ''});
+    if (o.board) s += boardProp(1122, 404, 150, o.board.party);
+    s += '<g filter="url(#grade-' + kind + ')">' + people.sort((a, b) => a.y - b.y).map(p => p.m).join('') + '</g>';
+    return s + people.map(p => p.f).join('');
+  }
+  // A rally: the stage prop (incoming/rally-stage.png) on the place, its blank banners in the party colour, the crowd on both sides facing it.
+  function rallyScene(kind, o, crowd, looks) {
+    const k = .74, left = 600 - 768 * k, top = 420 - 660 * k, X = px => left + px * k, Y = py => top + py * k, flag = PARTY_COLORS[candidates.player.party] || '#c9a847', name = candidates.player.name || '小沈';
+    let s = '<image data-art-image="stage" href="' + TOY_ROOT + FILES.stage + '" x="' + left.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + (1536 * k).toFixed(1) + '" height="' + (1024 * k).toFixed(1) + '"/>';
+    for (const [x0, x1] of [[461, 580], [965, 1075]]) s += rect(X(x0 + 6).toFixed(1), Y(404).toFixed(1), ((x1 - x0 - 12) * k).toFixed(1), (34 * k).toFixed(1), flag) + rect(X(x0 + 6).toFixed(1), Y(590).toFixed(1), ((x1 - x0 - 12) * k).toFixed(1), (22 * k).toFixed(1), flag);
+    Array.from(name).slice(0, 3).forEach((ch, i) => { s += label(X(520).toFixed(1), (Y(470) + i * 36).toFixed(1), ch, 30, '#24443c', 'text-anchor="middle"'); });
+    Array.from('凍蒜').forEach((ch, i) => { s += label(X(1020).toFixed(1), (Y(478) + i * 42).toFixed(1), ch, 34, '#24443c', 'text-anchor="middle"'); });
+    s += rect(476, 214, 248, 38, '#fffaf0', 'rx="6" stroke="' + flag + '" stroke-width="3"') + label(600, 241, name + ' 選前之夜', 22, '#24443c', 'text-anchor="middle"');
+    const spots = [[70, 476], [160, 512], [236, 470], [104, 600], [222, 622], [964, 474], [1046, 508], [1130, 474], [984, 606], [1104, 624]], people = [];
+    crowd.forEach((c, i) => { const [x, y] = spots[i] || spots[i % 10], kk = canvassSize(y); people.push({y, m: stagePerson(looks[i], x, y, kk, {mirror: x > 600}), f: reaction(x, y, kk, c.tone)}); });
+    people.push({y: 424, m: stagePerson('player', 552, 424, 1.08, {ring: 'you', who: 'you'}), f: ''});
+    people.push({y: 428, m: stagePerson('helper', 836, 428, .94, {mirror: true, ring: 'staff', who: 'staff'}), f: ''});
+    return s + '<g filter="url(#grade-' + kind + ')">' + people.sort((a, b) => a.y - b.y).map(p => p.m).join('') + '</g>' + people.map(p => p.f).join('');
+  }
+  // TV: a closer camera on the studio desk; the host and the candidate face each other across it, viewers at home react in the inset.
+  function tvScene(o) {
+    const c = camera(1.25, 690, 330), sx = px => 600 + (px - 690) * c.s, sy = py => 325 + (py - 330) * c.s, asking = o.stage !== 'reaction';
+    let s = backdropImage(TOY_SCENES.tv, c) + label(sx(768).toFixed(1), sy(172).toFixed(1), '中立新聞台', 32, '#fffdf7', 'text-anchor="middle"') + label(sx(768).toFixed(1), sy(212).toFixed(1), o.topic || '選區議題・即時回應', 20, '#e8f0df', 'text-anchor="middle"');
+    s += stagePerson('helper', 132, 452, .96, {ring: 'staff', who: 'staff'});
+    s += stagePerson('player', 410, 560, 1.32, {ring: 'you', who: 'you'}) + stagePerson('host', 676, 548, 1.28, {mirror: true, ring: 'speaker', talk: asking, who: 'host'});
+    return s + viewerPanel(o.crowd, '電視機前・觀眾反應');
+  }
+  // The reaction inset used by TV and the stream: ten small people, each facing the screen they watch.
+  function viewerPanel(list, title) {
+    const crowd = (list || []).slice(0, 10); if (!crowd.length) return '';
+    const looks = crowdLooks(crowd, null, 2);
+    let s = rect(806, 372, 374, 262, '#fffdf7f0', 'rx="20" stroke="#d9dccd" stroke-width="2"') + label(993, 404, title, 19, '#345761', 'text-anchor="middle"');
+    crowd.forEach((c, i) => { const x = 846 + (i % 5) * 73, y = 512 + Math.floor(i / 5) * 106; s += stagePerson(looks[i], x, y, .56, {mirror: i % 5 > 2}) + reaction(x, y, .56, c.tone); });
+    return s;
+  }
+  // The stream: the candidate talks to the phone on the ring light; a staff member watches the comments.
+  function onlineScene(o) {
+    const c = camera(1.6, 486, 380);
+    let s = backdropImage(TOY_SCENES.online, c) + label(940, 58, (candidates.player.name || '小沈') + '的選戰直播', 30, '#fffdf7', 'text-anchor="middle"') + label(940, 104, o.topic || '網友留言・即時回應', 19, '#e8f0df', 'text-anchor="middle"');
+    s += stagePerson('helper', 236, 470, 1.08, {ring: 'staff', who: 'staff'}) + stagePerson('player', 640, 572, 1.42, {mirror: true, ring: 'you', who: 'you'});
+    return s + viewerPanel(o.crowd, '網友反應');
+  }
+  // Fundraising: the candidate thanks neighbours at the stall while a staff member keeps the box and reports the total.
+  function fundraiseScene(o) {
+    const c = camera(1.12, 820, 470);
+    let s = backdropImage(TOY_SCENES.fundraise, c);
+    const people = [['player', 450, 584, 1.3, {ring: 'you', who: 'you'}], ['helper', 700, 566, 1.24, {mirror: true, ring: 'speaker', talk: true, who: 'staff'}], ['elder-cart', 900, 528, 1.08, {mirror: true}], ['middle-office', 1030, 576, 1.18, {mirror: true}], ['young-student', 238, 520, 1.06, {}]];
+    return s + people.sort((a, b) => a[2] - b[2]).map(p => stagePerson(...p)).join('');
+  }
+  // The campaign office: the candidate with the staff around the desk; one of them reports back.
+  function officeScene(o) {
+    const c = camera(1.3, 800, 380), n = Math.max(1, Math.min(3, o.staff || 2));
+    let s = backdropImage(TOY_VISITS.office, c);
+    const people = [['player', 450, 590, 1.34, {ring: 'you', who: 'you'}], ['helper', 708, 572, 1.28, {mirror: true, ring: 'speaker', talk: true, who: 'staff'}]];
+    if (n > 1) people.push(['helper', 905, 616, 1.34, {mirror: true, ring: 'staff', who: 'staff'}]);
+    if (n > 2) people.push(['helper', 232, 540, 1.2, {ring: 'staff', who: 'staff'}]);
+    return s + people.sort((a, b) => a[2] - b[2]).map(p => stagePerson(...p)).join('');
+  }
+  // The debate: a closer camera on the stage. The two candidates stand at the front edge, the host between them; the audience
+  // on both sides of the hall turns toward the stage.
+  function debateScene(o) {
+    const c = camera(1.3, 768, 330), sy = py => 325 + (py - 330) * c.s, asking = o.stage !== 'reaction';
+    let s = backdropImage(TOY_VISITS.debate, c) + label(600, sy(78).toFixed(1), '公辦政見發表會', 34, '#5f4630', 'text-anchor="middle"') + label(600, (sy(78) + 40).toFixed(1), '臺北市大安文山區・市議員', 17, '#7a6248', 'text-anchor="middle" letter-spacing="2"');
+    const stageY = sy(372), crowd = (o.crowd || []).slice(0, 10), looks = crowdLooks(crowd, null, 1), people = [];
+    people.push({y: stageY, m: stagePerson('player', 270, stageY, 1.06, {ring: 'you', who: 'you'})});
+    people.push({y: stageY - 6, m: stagePerson('host', 600, stageY - 6, .98, {mirror: asking, ring: asking ? 'speaker' : null, talk: asking, who: 'host'})});
+    people.push({y: stageY, m: stagePerson('rival', 930, stageY, 1.06, {mirror: true, ring: asking ? 'rival' : 'speaker', talk: !asking, who: 'rival'})});
+    for (const [x, who] of [[270, candidates.player.name || '小沈'], [930, '小馬']]) people.push({y: stageY + 1, m: rect(x - 46, stageY + 8, 92, 26, '#f2e3bf', 'rx="6"') + label(x, stageY + 27, who, 17, '#5f4630', 'text-anchor="middle"')});
+    const seats = [[64, 596], [170, 628], [278, 610], [118, 682], [232, 690], [922, 610], [1030, 628], [1136, 596], [968, 690], [1082, 682]];
+    crowd.forEach((p, i) => { const [x, y] = seats[i], k = 1.02 + (y - 600) * .002; people.push({y, m: stagePerson(looks[i], x, y, k, {mirror: x > 600}), f: reaction(x, y, k, p.tone)}); });
+    return s + people.sort((a, b) => a.y - b.y).map(p => p.m).join('') + people.map(p => p.f || '').join('');
+  }
+  // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, name, tone} or null.
+  function toyInterior(kind, options = {}) {
+    const o = options;
+    let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '" data-stage="' + (o.stage || 'question') + '"' + (o.rain ? ' data-rain="1"' : '') + '>';
+    if (kind === 'tv') s += tvScene(o);
+    else if (kind === 'online') s += onlineScene(o);
+    else if (kind === 'fundraise') s += fundraiseScene(o);
+    else if (kind === 'office') s += officeScene(o);
+    else if (kind === 'debate') s += debateScene(o);
+    else s += canvassScene(TOY_VISITS[kind] ? kind : 'market', o);
+    return s + '</svg>';
   }
   function interior(kind, options = {}) {
-    if(isToy() && ['tv','online','fundraise'].includes(kind))return toyInterior(kind,options);
+    if (isToy()) return toyInterior(kind, options);
     const crowd = Array.isArray(options.crowd) ? options.crowd : [], roleOf = c => GROUP_ROLES[c.group]?.[c.variant ? 1 : 0] || 'resident';
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '">' + backdrop(kind);
     const slots = ['tv','online'].includes(kind) ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
@@ -735,6 +981,7 @@
   // Election night at the campaign office: a big screen for the count, the candidate on a small stage and supporters around. stage is
   // 'count' while votes are read out, then 'elected', 'refunded' or 'forfeited'. Motion is CSS only, so a still frame shows the end state.
   const NIGHT_CROWD = [[70, 608, .92, 'elder'], [168, 642, 1, 'young'], [262, 602, .9, 'middle2'], [130, 560, .76, 'young2'], [222, 548, .72, 'elder2'], [938, 602, .9, 'middle'], [1032, 642, 1, 'elder2'], [1130, 608, .92, 'young'], [978, 548, .72, 'young2'], [1070, 560, .76, 'middle2']];
+  const NIGHT_LOOKS = ['elder-hat', 'young-pack', 'middle-mom', 'young-student', 'elder-cart', 'middle-office', 'elder-track', 'young-hoodie', 'young-bike', 'middle-polo'];
   const TALLY = [['小沈 一票！', 'you', 150, 452], ['5 號 一票！', 'other', 1050, 452], ['小沈 一票！', 'you', 205, 382], ['無效票', 'void', 1000, 382], ['9 號 一票！', 'other', 1090, 492], ['小沈 一票！', 'you', 110, 492]];
   // A speech bubble centred on x whose tail points down at tail (default: the centre).
   const bubbleAt = (x, y, text, color, cls = '', style = '', tail = x) => { const w = 26 + Array.from(text).length * 21; return '<g class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + poly([[tail - 9, y + 12], [tail + 7, y + 12], [tail - 6, y + 28]], color) + rect(x - w / 2, y - 26, w, 40, '#fffaf0', 'rx="12" stroke="' + color + '" stroke-width="3"') + poly([[tail - 7, y + 12], [tail + 5, y + 12], [tail - 5, y + 23]], '#fffaf0') + label(x, y + 2, text, 19, color, 'text-anchor="middle"') + '</g>'; };
@@ -778,9 +1025,11 @@
     const crew = won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null;
     // The placard stands left of the helpers so neither art pack hides its text.
     if (refunded) s += rect(301, 418, 5, 78, '#6d6a5c') + rect(250, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(304, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
-    s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
+    // Matte-toy: the staff in their orange vests flank the candidate (gold ring); supporters on both sides turn toward the stage.
+    if (isToy()) s += stagePerson('helper', 470, 505, 1.02, {mirror: false, ring: 'staff', who: 'staff'}) + stagePerson('helper', 730, 505, 1.02, {mirror: true, ring: 'staff', who: 'staff'}) + stagePerson('player', 600, 507, 1.2, {ring: 'you', who: 'you'});
+    else s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
     // Supporters on the floor; each bobs on its own beat once the result is in.
-    NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null) + '</g>'; });
+    NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + (isToy() ? stagePerson(NIGHT_LOOKS[i], x, y, k, {mirror: x > 600}) : figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null)) + '</g>'; });
     if (stage === 'count' && !still) TALLY.forEach(([text, who, x, y], i) => { s += bubbleAt(x, y, who === 'you' ? name + ' 一票！' : text, who === 'you' ? '#2f7a4a' : who === 'rival' ? '#b0563d' : '#7d847a', 'tally', 'animation-delay:' + (.6 + i * .38 - at).toFixed(2) + 's'); });
     if (won) {
       const colors = [party, '#f2c14e', '#e3765b', '#7fc98f', '#fffaf0', '#6fa8dc'];
@@ -798,5 +1047,5 @@
     return s + '</svg>';
   }
 
-  window.DayArt = Object.freeze({getPack:()=>artPack,setPack,walkStep,toyTeam,supportFrames:SUPPORT_FRAMES,walkFrames:WALK_FRAMES,isToy,spot,visualRoute,mapPoint,travelPoint,facing,assetFrames:TOY_FRAMES,scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
+  window.DayArt = Object.freeze({getPack:()=>artPack,setPack,getMap:()=>mapLayout,kitLayout:KIT,useDistrictMap,stand,slot,rivalSpot,boardSpot,looks:LOOKS,groupLooks:GROUP_LOOKS,speakerLooks:SPEAKER_LOOKS,sheets:SHEETS,files:FILES,visits:TOY_VISITS,rain:TOY_RAIN,toyScenes:TOY_SCENES,kitWalk,walkStep,toyTeam,supportFrames:SUPPORT_FRAMES,walkFrames:WALK_FRAMES,isToy,spot,visualRoute,mapPoint,travelPoint,facing,assetFrames:TOY_FRAMES,scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
 })();

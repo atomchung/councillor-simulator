@@ -1,8 +1,0 @@
-Tool: built-in image_gen
-Target: count.png
-Canvas: 1536 x 1024
-Transparent background: false
-Style sources: ../support.png, ../candidates.png (characters); ../market-square.png, ../street.png, ../scenes.png (environments).
-
-Pass 1
-ONE opaque standalone 1536x1024 PNG, landscape3:2, matching the indicated panel of reference scenes.png but as fullresolution single scene, no montage. Same matte rounded miniature-model rendering and slightlyelevated frontal view. Strictfloor layout: allfurniture and mainstructures in upper45%, y0..460; lower55% broad EMPTY unobstructed tilefloor for separate gamecharacters. Softmutedcolors, clean diffuselight. No people, characters or animals; no words letters digits logos emblems or realmedia branding anywhere. Screens entirely blank, no text or shapes representing text. No political flags or politicalcolors on apparel. No bakedshadows of missingpeople. Expand ONLY BOTTOMRIGHT PANEL: NEUTRAL election countnight hall usable for BOTH WIN and LOSS, modest warm lamps, charcoal/creamrearwall, large EMPTY black countscreen, a shallow centered platform in upper45%, small stools at rear sides and mutedplants. No cheering or sadmood, no confetti balloons ribbons bunting flags, no numbers or vote bars; interface addsallresults. Bare spacious graytilefloor lower55%. Calmprofessional neutralatmosphere.
