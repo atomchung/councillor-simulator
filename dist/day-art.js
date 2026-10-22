@@ -724,7 +724,7 @@
   // Election night at the campaign office: a big screen for the count, the candidate on a small stage and supporters around. stage is
   // 'count' while votes are read out, then 'elected', 'refunded' or 'forfeited'. Motion is CSS only, so a still frame shows the end state.
   const NIGHT_CROWD = [[70, 608, .92, 'elder'], [168, 642, 1, 'young'], [262, 602, .9, 'middle2'], [130, 560, .76, 'young2'], [222, 548, .72, 'elder2'], [938, 602, .9, 'middle'], [1032, 642, 1, 'elder2'], [1130, 608, .92, 'young'], [978, 548, .72, 'young2'], [1070, 560, .76, 'middle2']];
-  const TALLY = [['小沈 一票！', 'you', 150, 452], ['小馬 一票！', 'rival', 1050, 452], ['小沈 一票！', 'you', 205, 382], ['無效票', 'void', 1000, 382], ['小馬 一票！', 'rival', 1090, 492], ['小沈 一票！', 'you', 110, 492]];
+  const TALLY = [['小沈 一票！', 'you', 150, 452], ['5 號 一票！', 'other', 1050, 452], ['小沈 一票！', 'you', 205, 382], ['無效票', 'void', 1000, 382], ['9 號 一票！', 'other', 1090, 492], ['小沈 一票！', 'you', 110, 492]];
   // A speech bubble centred on x whose tail points down at tail (default: the centre).
   const bubbleAt = (x, y, text, color, cls = '', style = '', tail = x) => { const w = 26 + Array.from(text).length * 21; return '<g class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + poly([[tail - 9, y + 12], [tail + 7, y + 12], [tail - 6, y + 28]], color) + rect(x - w / 2, y - 26, w, 40, '#fffaf0', 'rx="12" stroke="' + color + '" stroke-width="3"') + poly([[tail - 7, y + 12], [tail + 5, y + 12], [tail - 5, y + 23]], '#fffaf0') + label(x, y + 2, text, 19, color, 'text-anchor="middle"') + '</g>'; };
   // The candidate's line, with the tail just inside the bubble's left end, over the candidate's head.
@@ -750,10 +750,11 @@
     s += rect(250, 24, 700, 286, '#101917', 'rx="12"') + rect(262, 36, 676, 262, '#0b1412', 'rx="6"');
     for (let x = 300; x < 938; x += 56) s += path('M' + x + ' 36V298', '#14211e', 1);
     if (options.tally) {
-      const t = options.tally, top = Math.max(t.you, t.rival, t.line) * 1.12 || 1, w = v => 470 * Math.min(1, v / top), lx = 380 + w(t.line);
+      // Your bar against the last seat, and your place among all candidates.
+      const t = options.tally, top = Math.max(t.you, t.line) * 1.12 || 1, w = v => 470 * Math.min(1, v / top), lx = 380 + w(t.line);
       s += label(600, 84, '開票結果', 30, '#e8f1df', 'text-anchor="middle"');
-      for (const [y, who, v, c] of [[120, name, t.you, '#7fc98f'], [200, '小馬', t.rival, '#e39a7f']]) s += label(300, y + 38, who, 26, '#e8f1df') + rect(380, y + 12, w(v), 36, c, 'rx="5"') + label(910, y + 40, Math.round(v).toLocaleString('zh-TW'), 26, '#fffaf0', 'text-anchor="end"');
-      s += path('M' + lx.toFixed(1) + ' 118V268', '#fff1b8', 3, 'stroke-dasharray="8 6"') + label(lx, 288, '當選線 ' + Math.round(t.line).toLocaleString('zh-TW'), 18, '#fff1b8', 'text-anchor="middle"');
+      s += label(300, 178, name, 26, '#e8f1df') + rect(380, 152, w(t.you), 40, '#7fc98f', 'rx="5"') + label(910, 182, Math.round(t.you).toLocaleString('zh-TW'), 26, '#fffaf0', 'text-anchor="end"') + (t.rank ? label(600, 238, '第 ' + t.rank + ' 名' + (t.seats ? '・前 ' + t.seats + ' 名當選' : ''), 24, '#e8f1df', 'text-anchor="middle"') : '');
+      s += path('M' + lx.toFixed(1) + ' 136V206', '#fff1b8', 3, 'stroke-dasharray="8 6"') + label(lx, 128, '當選線 ' + Math.round(t.line).toLocaleString('zh-TW'), 18, '#fff1b8', 'text-anchor="middle"');
     }
     // The stage, the candidate and two assistants.
     s += block(316, 516, 568, 48, 46, '#8c6a4e', '#a98260', '#6f523c') + rect(316, 558, 568, 8, '#6f523c') + rect(316, 516, 568, 6, party);

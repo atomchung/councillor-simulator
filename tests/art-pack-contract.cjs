@@ -29,8 +29,10 @@ assert.equal(c.elements['event-feedback'].hidden,false);
 assert.ok(c.elements['event-feedback'].innerHTML.includes('公開道歉切割'));
 const settled=JSON.stringify(c.state());c.click({action:'crisis',choice:'apologize'},true);assert.equal(JSON.stringify(c.state()),settled);
 assert.equal((c.elements['event-timeline'].innerHTML.match(new RegExp('data-event-key="crisis-day-'+day+'"','g'))||[]).length,1);
-c.click({action:'dismiss-event'},true);assert.equal(c.elements['event-feedback'].hidden,true);
-const reloaded=harness(c.snapshot());assert.equal(reloaded.elements['event-feedback'].hidden,true);assert.ok(reloaded.elements['event-timeline'].innerHTML.includes('公開道歉切割'));
+// Collapsing the news flash leaves a chip on the map; it opens again and stays collapsed across a reload.
+c.click({action:'dismiss-event'},true);assert.equal(c.elements['event-feedback'].hidden,false);assert.ok(c.elements['event-feedback'].innerHTML.includes('data-action="expand-event"'));
+const reloaded=harness(c.snapshot());assert.ok(reloaded.elements['event-feedback'].innerHTML.includes('data-action="expand-event"'));assert.ok(reloaded.elements['event-timeline'].innerHTML.includes('公開道歉切割'));
+c.click({action:'expand-event'},true);assert.ok(c.elements['event-feedback'].innerHTML.includes('收起'));c.click({action:'dismiss-event'},true);
 c.run('fundraise');c.next();assert.ok(c.elements['event-timeline'].innerHTML.includes('crisis-day-'+day));
 c.click({action:'restart'});assert.equal(c.elements['event-timeline'].hidden,true);assert.equal(c.elements['event-feedback'].hidden,true);assert.ok(!c.elements['event-timeline'].innerHTML.includes('crisis-day-'+day));checks+=13;
 const mobile=harness({}, {width:375,reduced:true});mobile.click({action:'start'});assert.equal(mobile.elements['mobile-destinations'].innerHTML,mobile.map());mobile.go('online');mobile.commit();assert.equal(mobile.state().phase,'question');assert.equal(mobile.elements['mobile-destinations'].innerHTML,'');assert.ok(mobile.scene().includes('scenes.png'));const mq=G.question(mobile.state());mobile.answer(mq.options.find(o=>o.unlocked).id);assert.ok(mobile.scene().includes('data-kind="online"'));checks+=5;
