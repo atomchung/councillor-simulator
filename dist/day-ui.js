@@ -157,13 +157,14 @@
     for (const c of state.challenges || []) entries.push({ key: c.id, day: c.issuedDay, title: '小馬提出質疑', text: c.quote, tone: c.status === 'open' && !c.mitigatedDay ? 'pending' : 'settled' });
     const c = state.crisis;
     if (c && !entries.some(e => e.key === 'crisis-day-' + c.round)) entries.push({ key: 'crisis-day-' + c.round, day: c.round, title: c.status === 'resolved' ? crisisChoice(c) : '突發危機・等待處理', text: c.text, votes: c.effect?.votes, tone: c.status === 'pending' ? 'pending' : c.effect?.votes < 0 ? 'loss' : 'settled' });
+    for (const n of G.pollNews(state)) entries.push({ key: 'poll-' + n.day, day: n.day, title: '第 ' + n.day + ' 回合民調出爐', text: pollNewsText(n), tone: 'settled', poll: true });
     return entries.sort((a, b) => b.day - a.day);
   }
   function renderEvents() {
     const timeline = $('event-timeline'), card = $('event-feedback'), entries = timelineEntries();
     timeline.hidden = !state.started;
     const row = e => '<li data-event-key="' + esc(e.key) + '" data-tone="' + e.tone + '"><span class="event-round">R' + Number(e.day) + '</span><div><strong>' + esc(e.title) + '</strong><p>' + esc(e.text) + '</p></div>' + (Number.isFinite(e.votes) ? '<span class="event-votes">' + signedVotes(e.votes) + ' 票</span>' : '') + '</li>';
-    const now = state.phase === 'recap' && state.recap ? state.recap : null, older = now ? entries.filter(e => e.day !== now.day) : entries;
+    const now = state.phase === 'recap' && state.recap ? state.recap : null, older = now ? entries.filter(e => e.day !== now.day || e.poll) : entries;
     timeline.innerHTML = '<div class="timeline-heading"><h2>選戰動態</h2><span>' + entries.length + ' 則紀錄</span></div>' + (now ? causeLines(now) + learnedLine(now) : '') + (older.length ? '<ol>' + older.slice(0, 3).map(row).join('') + '</ol>' + (older.length > 3 ? '<details><summary>查看較早 ' + (older.length - 3) + ' 則</summary><ol>' + older.slice(3).map(row).join('') + '</ol></details>' : '') : now ? '' : '<p class="timeline-empty">還沒有紀錄。</p>');
     const c = state.crisis;
     // The news flash sits on the map's top-right corner; collapsing it leaves a one-line chip there.
@@ -271,34 +272,30 @@
   // Assistants research only on a preparation round; each free one takes one picked issue.
   function researchTopic() { return selectedAction === 'prepare' || onSite(selectedAction) || behind(selectedAction) ? researchPick.slice(0, helpers()) : null; }
   const planConfig = () => ({ donor: selectedAction === 'fundraise' ? donor : null, venue: plannedVenue(), ...(selectedAction === 'prepare' && selectedTopic ? { topic: selectedTopic } : {}), gifts: gifts && onSite(selectedAction), billboard: billboard && onSite(selectedAction), research: researchTopic(), deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief: selectedAction === 'tv' ? brief : null, respond: selectedAction === 'tv' && respondOn });
-  // The candidates around the last seat: the 25 others at last election's totals, you and 小馬 at today's estimates.
+  // Four candidates tell where you stand: first place, the last seat, you and 小馬; the 25 others are at last election's totals, you and 小馬 at today's estimates.
   function ladderMarkup() {
-    const rows = G.ladderView(state).filter(r => (r.rank >= 11 && r.rank <= 14) || r.id <= 1);
+    const rows = G.ladderView(state).filter(r => r.rank === 1 || r.rank === SEATS || r.id <= 1);
     let html = '', last = 0;
-    for (const r of rows) { if (last && r.rank > last + 1) html += '<li class="lad-gap" aria-hidden="true">⋯</li>'; html += '<li class="' + [r.id === 0 ? 'lad-me' : '', r.elected ? 'lad-in' : '', r.rank === G.ELECTION.seats ? 'lad-last' : ''].filter(Boolean).join(' ') + '"><span>' + r.rank + '</span><b>' + esc(r.id === 0 ? '你' : r.name) + (r.id === 1 ? partyDot(state.rival.party) : '') + '</b><strong>' + num(r.votes) + '</strong></li>'; last = r.rank; }
-    return '<ol class="ladder" aria-label="當選線附近的排名">' + html + '</ol>';
+    for (const r of rows) { if (last && r.rank > last + 1) html += '<li class="lad-gap" aria-hidden="true">⋯</li>'; html += '<li class="' + [r.id === 0 ? 'lad-me' : '', r.elected ? 'lad-in' : '', r.rank === G.ELECTION.seats ? 'lad-last' : ''].filter(Boolean).join(' ') + '"><span>' + r.rank + '</span><b>' + esc(r.id === 0 ? '你' : r.name) + '</b><strong>' + num(r.votes) + '</strong></li>'; last = r.rank; }
+    return '<ol class="ladder" aria-label="第一名、當選線、你和小馬的名次">' + html + '</ol>';
   }
-  // You against 小馬 in each group as a tug of war: the green part is your share of the two of you.
-  // Your support in each group from the latest poll, against the share a seat needs; votes add up to your poll total.
+  // The share of every group a seat needs if all three gave you the same.
   const validVotes = () => G.ELECTION.registered * G.ELECTION.turnout * (1 - G.ELECTION.invalid), linePct = () => G.LINE / validVotes() * 100;
-  function tugBars(r, before) {
-    const need = linePct(), max = Math.max(need * 1.6, ...r.groups.map(g => g.youPct || 0)) || 1;
-    return '<div class="tug" aria-label="三群支持度">' + r.groups.map((g, k) => { const d = before?.groups?.[k] ? g.you - before.groups[k].you : null; return '<div class="tug-row g-' + GROUP_KEYS[k] + '"><span class="tug-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="tug-bar support"><i class="tug-you" style="width:' + Math.min(100, (g.youPct || 0) / max * 100).toFixed(1) + '%"></i><i class="need-mark" style="left:' + (need / max * 100).toFixed(1) + '%"></i></span><span class="tug-num"><b>' + (g.youPct ?? 0) + '%</b><em>' + num(g.you) + ' 票</em>' + (d == null ? '' : '<small class="' + (d >= 0 ? 'up' : 'down') + '">' + signedVotes(d) + '</small>') + '</span></div>'; }).join('') + '</div><p class="tug-legend"><span>● 你在這群的支持度</span><small>｜線：當選約需 ' + need.toFixed(1) + '%</small></p>';
-  }
-  // Your place against the line, the candidates around it and, from the latest poll, the three groups; the totals live in the header.
+  // Your place against the line, the four candidates that matter and the staff's estimate for the three groups; the totals live in the header.
   function raceBoard(compact = false, before = null, ladder = false) {
     if (!state.started) return '';
     const r = G.raceView(state), gap = r.you - r.line, moved = before?.you == null ? '' : '<small class="' + (r.you - before.you >= 0 ? 'up' : 'down') + '">本回合 ' + signedVotes(r.you - before.you) + '</small>';
     const bloc = !compact && (r.bloc.you || r.bloc.rival) ? '<p class="race-bloc">組織票：你 ' + num(r.bloc.you) + '｜小馬 ' + num(r.bloc.rival) + '</p>' : '';
-    return '<section class="race-board" aria-label="選情"><div class="race-head"><b>選情</b><span>當選線（估）：上一屆第 ' + SEATS + ' 名 ' + num(r.line) + ' 票</span></div>' + '<p class="race-gap ' + (gap >= 0 ? 'ahead' : 'behind') + '">現在開票：第 ' + r.rank + ' 名，' + (gap >= 0 ? '過線約 ' + num(gap) + ' 票' : '還差約 ' + num(-gap) + ' 票') + moved + '</p>' + (ladder ? ladderMarkup() : '') + (compact ? '' : pollBars()) + bloc + '</section>';
+    return '<section class="race-board" aria-label="選情"><div class="race-head"><b>選情</b><span>當選線（估）：上一屆第 ' + SEATS + ' 名 ' + num(r.line) + ' 票</span></div>' + '<p class="race-gap ' + (gap >= 0 ? 'ahead' : 'behind') + '">現在開票：第 ' + r.rank + ' 名，' + (gap >= 0 ? '過線約 ' + num(gap) + ' 票' : '還差約 ' + num(-gap) + ' 票') + moved + '</p>' + (ladder ? ladderMarkup() : '') + (compact ? '' : estimateBars()) + bloc + '</section>';
   }
-  // The three groups as of the latest poll, the gap turned into points of each group, and where the weakest group gathers.
-  function pollBars() {
-    const pv = G.pollView(state), p = pv.latest;
-    if (!p) return '<p class="poll-wait">三群支持度：' + (pv.next ? '第 ' + pv.next + ' 回合有第一份民調' : '這局沒有民調') + '</p>';
-    const k = p.groups.findIndex(g => g.id === p.focus), focus = p.groups[k], places = G.venueView(state).filter(v => v.main === k).map(v => esc(v.title));
-    return '<p class="poll-head">第 ' + p.day + ' 回合民調' + (pv.next ? '（下一份第 ' + pv.next + ' 回合）' : '（最後一份）') + '</p><p class="poll-sum">支持度 <b>' + (p.you / validVotes() * 100).toFixed(1) + '%</b>，約第 ' + p.rank + ' 名' + (p.need ? '，還差約 ' + num(p.need) + ' 票' : '，在當選線上') + '</p>' + tugBars({ groups: p.groups }, null)
-      + (p.need && focus ? '<p class="poll-tip">你在' + esc(focus.title) + '最弱（' + focus.youPct + '%）' + (places.length ? '，' + places.join('、') + '這群人最多' : '') + '。</p>' : '');
+  // Staff's guess at your support in each group as a range, against the share a seat needs; a poll round's range is narrow and says 民調.
+  const rangeText = g => { const f = n => Number(n).toLocaleString('zh-TW', { maximumFractionDigits: 1 }); return (f(g.lo) === f(g.hi) ? f(g.lo) : f(g.lo) + '–' + f(g.hi)) + '%'; };
+  function estimateBars() {
+    const e = G.supportEstimate(state), need = linePct(), max = Math.max(need * 1.6, ...e.groups.map(g => g.hi)) || 1, at = v => Math.min(100, v / max * 100);
+    const weak = (e.poll && e.groups.find(g => g.id === G.pollView(state).latest?.focus)) || e.groups.reduce((a, g) => g.lo + g.hi < a.lo + a.hi ? g : a), places = G.venueView(state).filter(v => v.main === e.groups.indexOf(weak)).map(v => esc(v.title));
+    return '<div class="sup-est" role="group" aria-label="幕僚估計"><div class="sup-head"><b>幕僚估計</b>' + (e.poll ? '<span class="sup-tag">民調</span>' : '') + info('幕僚按你的行程估各群挺你的比例。離上次民調越久，範圍越寬；民調當回合最準。黑線是當選約需的比例。') + '<span>當選約需 ' + need.toFixed(1) + '%</span></div>'
+      + e.groups.map((g, k) => '<div class="sup-row g-' + GROUP_KEYS[k] + ' ' + (g.lo >= need ? 'ahead' : g.hi < need ? 'behind' : 'near') + '"><span class="sup-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="sup-bar"><i class="sup-range" style="left:' + at(g.lo).toFixed(1) + '%;width:' + Math.max(1.5, at(g.hi) - at(g.lo)).toFixed(1) + '%"></i><i class="need-mark" style="left:' + at(need).toFixed(1) + '%"></i></span><b class="sup-num">' + rangeText(g) + '</b></div>').join('')
+      + (weak.lo < need || e.next ? '<div class="sup-foot">' + (weak.lo < need ? '<span>最缺' + esc(weak.title) + (places.length ? '，多在' + places.join('、') : '') + '</span>' : '') + (e.next ? '<span>下次民調：第 ' + e.next + ' 回合</span>' : '') + '</div>' : '') + '</div>';
   }
   // The district, its three groups of voters, who you are and your party's three issues; the rules behind them show up where they bite.
   function profileCard() {
@@ -327,8 +324,6 @@
   // Everything here is visible information the player can act on this round; nothing reads hidden voter state.
   function situationMarkup() {
     const f = G.forecast(state), lv = G.landscapeView(state), rumor = G.rumorView(state), due = G.pendingChallenges(state), rows = [], soon = G.upcomingOffer(state), tip = G.eventView(state).tip, act = G.actOf(state.day);
-    const pollToday = G.pollView(state).latest;
-    if (pollToday?.day === state.day) { const f = pollToday.groups.find(g => g.id === pollToday.focus); rows.push(['民調', '新民調：你第 ' + pollToday.rank + ' 名，' + (pollToday.need ? '還差約 ' + num(pollToday.need) + ' 票；' + f.title + '最弱。' : '已經過線。'), '']); }
     const aidToday = (state.partyAid || []).find(x => x.day === state.day);
     if (aidToday) rows.push(['黨部', aidToday.kind === 'subsidy' ? (aidToday.money ? '撥款 ' + wan(aidToday.money) : '你違反黨的立場太多題，這筆補助沒了') : (aidToday.votes ? '開始動員同黨選民，約 ' + num(aidToday.votes) + ' 票' : '你違反黨的立場太多題，黨部不幫你動員'), aidToday.breaks ? 'warn' : '']);
     if (act.from === state.day) rows.push(['新階段', act.title + '：' + ['', '摸清三群、找第一桶金。', '議題升溫；第 5 回合起可能爆出黑料，第 5–6 回合還有頭人來談。', '第 8 回合政見會，第 9–10 回合可以選前催票。'][act.id], '']);
@@ -350,13 +345,21 @@
     if (f.now.id === 'rain') rows.push(['天氣', '下雨：街上的人少四分之一，電視不受影響。', '']);
     return rows.length ? '<section class="situation" aria-label="本回合局勢">' + rows.map(([k, t, cls, extra]) => '<p class="situation-row ' + (cls || '') + '"><b>' + k + '</b><span>' + esc(t) + (extra ? '<br>' + extra : '') + '</span></p>').join('') + '</section>' : '';
   }
+  // The poll as news: your rank, and the group that moved most since the poll before (the first poll names the weakest group).
+  function pollNewsText(n) {
+    return '你第 ' + n.rank + ' 名' + (n.rankBefore != null && n.rankBefore !== n.rank ? '（上次第 ' + n.rankBefore + ' 名）' : '') + '・' + (n.moved ? n.moved.title + '變動最大（' + pct(n.moved.from) + ' → ' + pct(n.moved.to) + '）' : n.weakest.title + '最弱（' + pct(n.weakest.pct) + '）');
+  }
+  function pollNewsRow() {
+    const n = G.pollNews(state).find(x => x.day === state.day);
+    return n ? '<div class="poll-news" role="status"><b>第 ' + n.day + ' 回合民調出爐</b><span>' + esc(pollNewsText(n)) + '</span></div>' : '';
+  }
   function carryRow() {
     const known = state.player.known.filter(t => t !== 'tip');
     return '<section class="carry"><b>查過的議題</b>' + (known.length ? known.map(id => '<button class="text-button" data-action="dossier" data-topic="' + esc(id) + '">' + esc(short(id)) + (state.player.insight?.[id]?.level === 'precise' ? '・深入' : '・方向') + '</button>').join('') : '<span>還沒有</span>') + '</section>';
   }
   function planPanel() {
     const offer = G.offerView(state);
-    return panel('第 ' + state.day + '／' + G.DAYS + ' 回合', '還沒出發', profileCard() + (state.crisis?.status === 'pending' ? crisisCard(state.crisis) : '') + (offer ? offerCard(offer) : '') + situationMarkup() + raceBoard(false, null, true) + carryRow());
+    return panel('第 ' + state.day + '／' + G.DAYS + ' 回合', '還沒出發', pollNewsRow() + profileCard() + (state.crisis?.status === 'pending' ? crisisCard(state.crisis) : '') + (offer ? offerCard(offer) : '') + situationMarkup() + raceBoard(false, null, true) + carryRow());
   }
   // Destinations as buttons on the map, and as a list under it.
   function destinations() {
@@ -636,7 +639,7 @@
     return '<article class="report-card"><header class="report-head"><div><span class="report-who">' + esc(state.player.name) + '｜' + esc(bg.title) + '・' + partyBadge(state.settings.affiliation) + esc(party.title) + '</span><h2 class="report-verdict ' + (ok ? 'win' : 'lose') + '">' + verdict + '</h2></div></header><figure class="report-scene" aria-label="' + esc(verdict + '的開票夜') + '">' + (Art?.countNight ? Art.countNight(r.outcome, { still: true, name: state.player.name, tally: { you: r.playerVotes, line: r.lastSeat, rank: r.rank, seats: r.seats } }) : '') + '</figure><div class="report-grid"><section class="report-main"><div class="report-numbers"><div><span>你的得票</span><strong>' + num(r.playerVotes) + '</strong><small>第 ' + r.rank + ' 名（前 ' + r.seats + ' 名當選）</small></div><div><span>當選線</span><strong>' + num(r.lastSeat) + '</strong><small>' + (ok ? '多 ' : '還差 ') + num(r.gap) + ' 票</small></div><div><span>得票率</span><strong>' + (r.valid ? (r.playerVotes / r.valid * 100).toFixed(1) + '%' : '—') + '</strong><small>有效票 ' + num(r.valid) + '</small></div></div>' + trendChart() + '<div class="report-groups">' + groups + '</div></section><section class="report-rounds"><h3>每回合做了什麼</h3><ol>' + rounds + '</ol></section></div></article>';
   }
   function dockResult() { return '<div class="dock-result"><p>投票結束，正在開票。</p><button class="primary-button" data-action="skip-count">略過演出 →</button></div>'; }
-  function resultPanel() { return panel('開票', '計票中', '<p class="lead">票已經算好了，演出只是揭曉。</p>'); }
+  function resultPanel() { return panel('開票', '計票中', ''); }
   function renderReport() {
     const show = state.phase === 'result' && counting?.status !== 'inprogress';
     $('report').hidden = !show;
@@ -833,7 +836,7 @@
       + '<h3>議題與三群人</h3><ul class="rules-list"><li>每回合沒接觸到的那群，挺你的人會冷掉一點：街訪和造勢看現場是哪群人，上電視主要接觸長輩和中年，直播主要接觸青年；募款、準備、招募的回合誰都沒接觸到。</li><li>表情只有三種：喜歡、沒感覺、不喜歡。喜歡到什麼程度，要深入研究後看票數範圍。</li><li>題庫有 16 題，每局抽 12 題；長輩最在意的健保、中年最在意的育兒、青年最在意的居住每局都有。</li><li>各群挺哪個做法有固定邏輯，只有強弱每局不同；每個做法至少有一群人支持。</li><li>白天街上以長輩和中年為主，青年大約一成；電視觀眾偏年長，青年要靠直播接觸。</li></ul>'
       + '<h3>研究與回答</h3><ul class="rules-list"><li>沒研究的題：哪個做法都可以說，但你不知道三群會怎麼反應。</li><li>研究過：看得到三群喜不喜歡。深入研究（兩人查同一題，或你親自準備）：再多一個大概的票數範圍，不會是精確數字。</li><li>答中在意這題的人想要的做法會加分，答反扣一樣多。</li><li>「先不答應」和「打包票」都一樣：前兩次沒事，第 3 次起每多說一次，三群的反應都更差。</li><li>助手研究的結果下回合起才用得到，當天到場還是不知道三群怎麼想；花錢買專訪題綱例外，節目開錄前就查好。</li><li>陪你出門的助手：2 人是基本陣容，3–4 人你自己拉票更有效，少於 2 人打折。留人研究或擺攤，陪你的人就少。</li><li>空頭保證：吃承諾的那群加分、討厭空話的那群扣分；被小馬拆穿又沒更正，開票前相信的人會轉走。</li><li>黨的立場：每黨三題。照著說同黨選民加分，違反流失約兩倍。</li></ul>'
       + '<h3>政黨</h3><ul class="rules-list"><li>國民黨、民進黨：開局黨部補助 ' + wan(G.PARTIES.kmt.subsidy) + '、募款 ×' + G.PARTIES.kmt.fundraise + '；第 ' + G.PARTY_AID.subsidyDay + ' 回合黨部再撥 ' + wan(G.PARTY_AID.subsidy) + '，第 ' + G.PARTY_AID.mobilizeDay + ' 回合起動員同黨選民（國民黨約 ' + num(G.PARTY_AID.mobilize.kmt) + ' 票、民進黨約 ' + num(G.PARTY_AID.mobilize.dpp) + ' 票，這區藍多綠少）。</li><li>這兩筆看你守不守黨的立場：全守拿全額，違反 1 題打五折，2 題以上沒有。改回黨的立場就算守住。</li><li>無黨籍沒有這些，但沒有黨的立場要顧，沒有政黨傾向的選民比較願意聽你說。</li></ul>'
-      + '<h3>民調</h3><ul class="rules-list"><li>國民黨、民進黨候選人有 ' + G.POLL_DAYS.party.length + ' 份民調（第 ' + G.POLL_DAYS.party.join('、') + ' 回合），無黨籍只有 ' + G.POLL_DAYS.independent.length + ' 份（第 ' + G.POLL_DAYS.independent.join('、') + ' 回合）。</li><li>民調告訴你三群各有幾成挺你、還差多少票，以及這些票換成每群要多拉幾成。兩份民調之間，三群的數字停在上一份。</li></ul>'
+      + '<h3>民調</h3><ul class="rules-list"><li>國民黨、民進黨候選人有 ' + G.POLL_DAYS.party.length + ' 份民調（第 ' + G.POLL_DAYS.party.join('、') + ' 回合），無黨籍只有 ' + G.POLL_DAYS.independent.length + ' 份（第 ' + G.POLL_DAYS.independent.join('、') + ' 回合）。</li><li>民調告訴你三群各有幾成挺你、還差多少票，以及這些票換成每群要多拉幾成。每回合選情都有幕僚估計的範圍；離上次民調越久範圍越寬，民調當回合最準。</li></ul>'
       + '<h3>里長與頭人</h3><ul class="rules-list"><li>木柵市場、廟前廣場、社區廣場各有里長。里長還不熟你時，那裡的人先保留；里長點頭後帶來組織票，那裡的人也不會因為你常來而膩。</li><li>六位頭人：建商、宮廟、里長聯誼會、商圈協會、派系（有黨籍才有）、政論製作人。募款時可以去拜訪其中一位，或會在第 2–3、5–6 回合主動來談；他們給錢、組織票或免費上節目，換你公開支持他們要的做法。之後改口，他們會撤回支持。</li><li>拿建商的錢，比較容易爆出黑料。</li></ul>'
       + '<h3>直播</h3><ul class="rules-list"><li>用 1–2 位助手開直播，不花錢，主要接觸青年；網友從青年最在意的三題挑一題問你。觸及人數不穩定，可能爆紅，也可能沒人看。</li></ul>'
       + '<h3>小馬</h3><ul class="rules-list"><li>他攻擊你時，只有相關的兩個地點和電視會問這件事；可以去回應、花 ' + wan(G.COSTS.clarify) + ' 發澄清文宣，或不理他（逾期會再掉票）。</li><li>你可以點名反擊他，也可以加碼查他的經費（每次 ' + wan(G.COSTS.tipCheck) + '，不占回合）再開記者會；沒查證就指控，可能當場被識破。</li><li>第 8 回合政見發表會，不去的話他獨占舞台；深入查過題目，台上能壓制他。</li></ul>'
@@ -916,7 +919,7 @@
     if (!G.next(state)) return;
     selectedAction = null; selectedTopic = null; selectedVenue = null; resetToggles();
     if (state.phase === 'plan') { position = { ...anchors.start }; setPosition(); } else if (state.phase === 'result') { counting = { status: reduced.matches ? 'seen' : 'inprogress', elapsed: reduced.matches ? COUNT.end : 0 }; saveLast(); }
-    save(); render(); focusDock(); announce(state.phase === 'result' ? '開票。' : '第 ' + state.day + ' 回合開始。');
+    save(); render(); focusDock(); announce(state.phase === 'result' ? '開票。' : '第 ' + state.day + ' 回合開始。' + (G.pollNews(state).some(n => n.day === state.day) ? '民調出爐。' : ''));
   }
   document.addEventListener('click', event => { const el = event.target.closest('[data-action],[data-answer]'); if (el && !el.disabled && !(el.dataset.action === 'restart' && event.detail > 1)) dispatch(el.dataset); });
   $('dialog-overlay').addEventListener('click', event => { if (event.target === $('dialog-overlay')) closeDialog(); });
