@@ -169,7 +169,7 @@ const BACKGROUNDS={
 const LEGACY_BACKGROUNDS={citizen:'newcomer',researcher:'newcomer',organizer:'incumbent'};
 const identity=s=>BACKGROUNDS[s.settings?.background]||BACKGROUNDS.newcomer;
 // The player's name for each identity and party.
-const CANDIDATE_NAMES={'newcomer:independent':'小黃','newcomer:kmt':'小蔣','newcomer:dpp':'小沈','heir:independent':'小陳','heir:kmt':'小廣','heir:dpp':'小柯','incumbent:independent':'老黃','incumbent:kmt':'老傅','incumbent:dpp':'老柯'};
+const CANDIDATE_NAMES={'newcomer:independent':'小黃','newcomer:kmt':'小蔣','newcomer:dpp':'小沈','heir:independent':'小成','heir:kmt':'小廣','heir:dpp':'小柯','incumbent:independent':'老黃','incumbent:kmt':'老傅','incumbent:dpp':'老柯'};
 const candidateName=(settings={})=>{const n=normalizeSettings(settings);return CANDIDATE_NAMES[n.background+':'+n.affiliation]||'小沈';};
 const PARTIES={
  independent:{id:'independent',title:'無黨籍',short:'無黨',offerKinds:null,color:'#9a7b4f',fundraise:1,subsidy:0,description:'沒有黨徽，也沒有黨部資源和黨的立場要顧；沒有政黨傾向的選民比較願意聽你說。'},
