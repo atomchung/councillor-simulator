@@ -197,7 +197,7 @@
     const band = PARTY_COLORS[party] || '#9a7b4f';
     return '<g class="campaign-board" transform="translate(' + x + ' ' + y + ') scale(' + k + ')">' + rect(-38, -62, 7, 62, '#6d6a5c') + rect(31, -62, 7, 62, '#6d6a5c') +
       rect(-58, -122, 116, 66, '#fffaf0', 'stroke="#55635b" stroke-width="3" rx="3"') + rect(-58, -122, 116, 17, band, 'rx="3"') +
-      label(0, -109, '市議員候選人', 11, '#ffffff', 'text-anchor="middle"') + label(0, -71, '小沈', 30, '#24443c', 'text-anchor="middle"') + '</g>';
+      label(0, -109, '市議員候選人', 11, '#ffffff', 'text-anchor="middle"') + label(0, -71, candidates.player.name || '小沈', 30, '#24443c', 'text-anchor="middle"') + '</g>';
   }
   function billboard(party) { return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-62 -126 124 130" aria-hidden="true" focusable="false" class="board-svg">' + boardMarkup(0, 0, 1, party) + '</svg>'; }
 
@@ -625,7 +625,7 @@
     s += '<ellipse cx="600" cy="580" rx="510" ry="56" fill="#667f7b" opacity=".13"/>';
     for (const x of [55, 1100]) s += rect(x, 30, 28, 350, '#a9bfb9', 'rx="14"');
     s += rect(220, 45, 760, 270, '#345761', 'rx="32"') + rect(236, 61, 728, 238, live ? '#315f56' : '#325b71', 'rx="23"');
-    s += label(600, 147, live ? '小沈的選戰直播' : '中立新聞台', 46, '#fffdf7', 'text-anchor="middle"') + label(600, 212, live ? '網友留言・即時回應' : '議題直擊', 28, '#dce8e2', 'text-anchor="middle"');
+    s += label(600, 147, live ? (candidates.player.name || '小沈') + '的選戰直播' : '中立新聞台', 46, '#fffdf7', 'text-anchor="middle"') + label(600, 212, live ? '網友留言・即時回應' : '議題直擊', 28, '#dce8e2', 'text-anchor="middle"');
     s += rect(796, 82, 134, 40, '#b6533b', 'rx="20"') + label(863, 109, '● LIVE', 21, '#fffdf7', 'text-anchor="middle"');
     for (const x of [90, 1080]) s += path('M'+x+' 625V415', '#526c71', 10) + rect(x-38, 365, 76, 72, '#345761', 'rx="16"') + '<circle cx="'+x+'" cy="400" r="22" fill="#dfe7df"/>' + path('M'+x+' 555l-48 70M'+x+' 555l48 70', '#526c71', 8);
     if (live) s += rect(735, 366, 415, 249, '#fffdf7', 'rx="24"') + label(940, 404, '正在收看', 22, '#345761', 'text-anchor="middle"');
@@ -682,7 +682,7 @@
   // crowd: [{group, variant, tone}] where tone is null before an answer; speaker: {group, variant, tone} or null.
   function toyInterior(kind, options) {
     let s='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" class="venue-art" data-kind="'+kind+'">'+sceneAtlas(kind);
-    if(kind!=='fundraise')s+=label(600,175,kind==='tv'?'中立新聞台':'小沈的選戰直播',42,'#fffdf7','text-anchor="middle"')+label(600,225,options.topic||'選區議題・即時回應',24,'#e8f0df','text-anchor="middle"');
+    if(kind!=='fundraise')s+=label(600,175,kind==='tv'?'中立新聞台':(candidates.player.name||'小沈')+'的選戰直播',42,'#fffdf7','text-anchor="middle"')+label(600,225,options.topic||'選區議題・即時回應',24,'#e8f0df','text-anchor="middle"');
     s+=figure(330,570,'player',1.8,'speak')+figure(600,570,kind==='tv'?'host':'helper',1.55);
     const crowd=(options.crowd||[]).slice(0,10);
     if(crowd.length){s+=rect(800,355,380,280,'#fffdf7','rx="20"')+label(990,390,kind==='tv'?'觀眾反應':'網友反應',20,'#345761','text-anchor="middle"');for(let i=0;i<crowd.length;i++){const c=crowd[i],x=840+(i%5)*72,y=490+Math.floor(i/5)*120;s+=figure(x,y,GROUP_ROLES[c.group]?.[c.variant?1:0]||'young',.56);if(c.tone)s+=face(x,y-89,c.tone,13);}}
@@ -700,7 +700,7 @@
     if (options.board && !['tv', 'debate'].includes(kind)) s += boardMarkup(110, 420, 1.35, options.board.party);
     if (kind === 'debate') {
       s += figure(600, 352, 'middle', .74) + figure(300, 340, 'player', 1.05) + figure(900, 340, 'rival', 1.05);
-      for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? '小沈' : '小馬', 18, '#5f4630', 'text-anchor="middle"');
+      for (const x of [300, 900]) s += block(x - 70, 300, 140, 96, 10, '#8c6a4e', '#a98260', '#6f523c') + rect(x - 50, 322, 100, 26, '#f2e3bf') + label(x, 342, x < 600 ? (candidates.player.name || '小沈') : '小馬', 18, '#5f4630', 'text-anchor="middle"');
     }
     for (const p of [...people].sort((a, b) => a.y - b.y)) s += figure(p.x, p.y, roleOf(p.c), p.k);
     if (kind === 'online') { s += figure(350,560,'player',1.7) + figure(600,560,'helper',1.05) + rect(200,528,440,44,'#446f61','rx="20"') + rect(525,420,56,90,'#263c48','rx="12"') + path('M553 510V548','#263c48',7); }
@@ -712,7 +712,7 @@
       const flag = PARTY_COLORS[candidates.player.party] || '#c9a847';
       s += block(70, 520, 420, 70, 10, '#a57f57', '#c49a6a', '#87653f') + rect(70, 586, 420, 10, '#7a5a38');
       for (const x of [92, 468]) s += rect(x, 330, 7, 200, '#6d6a5c') + poly([[x + 7, 334], [x + 82, 350], [x + 7, 382]], flag) + path(`M${x + 9} 346H${x + 52}`, '#ffffff', 2, 'opacity=".6"');
-      s += rect(160, 296, 240, 42, '#fffaf0', 'stroke="#55635b" stroke-width="3" rx="4"') + rect(160, 296, 240, 12, flag, 'rx="4"') + label(280, 330, '小沈 選前之夜', 22, '#24443c', 'text-anchor="middle"');
+      s += rect(160, 296, 240, 42, '#fffaf0', 'stroke="#55635b" stroke-width="3" rx="4"') + rect(160, 296, 240, 12, flag, 'rx="4"') + label(280, 330, (candidates.player.name || '小沈') + ' 選前之夜', 22, '#24443c', 'text-anchor="middle"');
       s += block(250, 478, 60, 50, 6, '#8c6a4e', '#a98260', '#6f523c') + figure(240, 530, 'player', 1.25);
     }
     else if (kind !== 'debate') { if (options.speaker) s += figure(455, 602, roleOf(options.speaker), 1.18); s += figure(235, 614, 'player', 1.3); }
@@ -730,7 +730,7 @@
   // The candidate's line, with the tail just inside the bubble's left end, over the candidate's head.
   const say = (text, color) => bubbleAt(628 - 30 + (26 + Array.from(text).length * 21) / 2, 338, text, color, 'speech', '', 628);
   function countNight(stage = 'count', options = {}) {
-    const still = !!options.still, at = Number(options.elapsed) || 0, party = PARTY_COLORS[candidates.player.party] || '#c9a847', name = options.name || '小沈';
+    const still = !!options.still, at = Number(options.elapsed) || 0, party = PARTY_COLORS[candidates.player.party] || '#c9a847', name = options.name || candidates.player.name || '小沈';
     const won = stage === 'elected', lost = stage === 'forfeited', refunded = stage === 'refunded', done = won || lost || refunded;
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="count-art' + (still ? ' still' : '') + '" data-stage="' + stage + '">';
     s += rect(0, 0, 1200, 650, '#22312d') + rect(0, 0, 1200, 452, '#2c423c') + rect(0, 448, 1200, 8, '#3b5650');
@@ -764,7 +764,7 @@
     s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
     // Supporters on the floor; each bobs on its own beat once the result is in.
     NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null) + '</g>'; });
-    if (stage === 'count' && !still) TALLY.forEach(([text, who, x, y], i) => { s += bubbleAt(x, y, text, who === 'you' ? '#2f7a4a' : who === 'rival' ? '#b0563d' : '#7d847a', 'tally', 'animation-delay:' + (.6 + i * .38 - at).toFixed(2) + 's'); });
+    if (stage === 'count' && !still) TALLY.forEach(([text, who, x, y], i) => { s += bubbleAt(x, y, who === 'you' ? name + ' 一票！' : text, who === 'you' ? '#2f7a4a' : who === 'rival' ? '#b0563d' : '#7d847a', 'tally', 'animation-delay:' + (.6 + i * .38 - at).toFixed(2) + 's'); });
     if (won) {
       const colors = [party, '#f2c14e', '#e3765b', '#7fc98f', '#fffaf0', '#6fa8dc'];
       for (let i = 0; i < 56; i++) { const x = (i * 97 + 31) % 1200, y = still ? 60 + (i * 53) % 520 : -40 - (i * 41) % 320; s += rect(x, y, 10, 16, colors[i % colors.length], 'class="confetto" transform="rotate(' + (i * 37 % 180) + ' ' + (x + 5) + ' ' + (y + 8) + ')"' + (still ? '' : ' style="animation-delay:-' + ((i % 9) * .31).toFixed(2) + 's;animation-duration:' + (2.1 + (i % 5) * .34).toFixed(2) + 's"')); }

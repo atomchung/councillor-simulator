@@ -338,3 +338,6 @@ console.log(JSON.stringify({result:'passed',checks,scope:'v13.5 engine: symmetri
 {const s=fresh(9),t=s.landscape.active[0],rank={up:2,flat:1,down:0},first=G.answerFaces(s,t,'guarantee');for(let k=0;k<6;k++)s.player.actions.push({day:1,action:'canvass',topic:t,answer:'guarantee'});const later=G.answerFaces(s,t,'guarantee');
  ok(later.every((f,g)=>rank[f]<=rank[first[g]])&&later.some((f,g)=>rank[f]<rank[first[g]]),'guarantees sour after many: '+first+' -> '+later);}
 
+// Names follow identity and party, including after changing either on the intro screen.
+{let n=0;for(const b of Object.keys(G.BACKGROUNDS))for(const a of Object.keys(G.PARTIES)){const s=G.initial(7,{background:b,affiliation:a});eq(s.player.name,G.CANDIDATE_NAMES[b+':'+a],'name for '+b+' '+a);n++;}eq(n,9,'nine identity and party pairs');eq(new Set(Object.values(G.CANDIDATE_NAMES)).size,9,'every pair has its own name');
+ const s=G.initial(7);G.configure(s,{background:'heir',affiliation:'kmt'});eq(s.player.name,'小廣','configure renames the candidate');}
