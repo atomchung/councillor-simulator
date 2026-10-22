@@ -10,6 +10,7 @@
   const num = n => Math.round(Number(n || 0)).toLocaleString('zh-TW');
   const signedVotes = n => { const v = Math.round(Number(n || 0)); return (v > 0 ? '+' : v < 0 ? '−' : '±') + Math.abs(v).toLocaleString('zh-TW'); };
   const GROUP_KEYS = ['elder', 'middle', 'young'];
+  const fixed1 = n => Number(n || 0).toFixed(1);
   // One wording for how a seat is won, used everywhere the seat line appears.
   const SEATS = G.ELECTION?.seats || 13, RULE_LINE = '票數前 ' + SEATS + ' 名當選，第 ' + SEATS + ' 名的票數就是當選線；你要贏過第 ' + (SEATS + 1) + ' 名（第一個落選的人）。';
   const groupTitle = g => G.GROUPS?.[g]?.title || ['長輩', '中年', '青年'][g];
@@ -268,9 +269,20 @@
   const meter = (label, value, max, text) => '<span class="pick-meter"><i>' + esc(label) + '</i><span class="pick-bar"><b style="width:' + Math.round(Math.max(0, Math.min(1, value / max)) * 100) + '%"></b></span><em>' + esc(text) + '</em></span>';
   const IDENTITY_LINE = { newcomer: '最懂議題、街訪最強，有人就愛新面孔。', heir: '家族錢多、里長熟，怕的是上台失言。', incumbent: '有團隊、有人脈，舊立場常被翻出來。' };
   const CHIEF_TIES = { newcomer: [1, '生'], heir: [2, '半熟'], incumbent: [3, '都熟'] };
+  // This game's origin preset on each identity card: a name, one strength and one weakness; the details sit in the card's tooltip.
+  const originTip = id => { const o = G.originView?.(state, id); return o ? ['本局出身：' + o.title, o.info] : []; };
+  const originMarkup = o => o ? '<span class="origin-tag"><i>本局出身</i><b>' + esc(o.title) + '</b></span><span class="origin-line"><em class="og">＋' + esc(o.good) + '</em><em class="ob">－' + esc(o.bad) + '</em></span>' : '';
+  // The vote-bank route: one group to win the district with; its three targets add up to the seat line. Before a pick the engine
+  // starts on the larger of the two groups that fill places, so that card shows as chosen.
+  const routeChoice = () => state.route || G.defaultRoute?.(state) || null;
+  function routeCards() {
+    const options = G.routeOptions?.(state) || [], value = routeChoice();
+    if (!options.length) return '';
+    return '<fieldset class="pick-group"><legend><span class="step">3</span>票倉路線' + info('選一群人當主力。三群的目標票加起來就是當選線；在主場拉票，接觸的人更多。') + '</legend><div class="route-cards">' + options.map(r => '<button type="button" class="route-card pick-card g-' + GROUP_KEYS[r.group] + '" data-action="route" data-value="' + esc(r.id) + '" aria-pressed="' + (value === r.id) + '" title="' + esc(r.perk + '：' + r.perkText + '。主場：' + r.homeTitles.join('、')) + '">' + pickMark(value === r.id) + '<b>' + esc(r.title) + '</b><span class="route-targets">' + [r.group, r.partner, 3 - r.group - r.partner].map(k => r.targets[k]).map(t => '<em class="g-' + esc(t.id) + (t.focus ? ' focus' : '') + '">' + esc(t.title) + ' ' + fixed1(t.pct) + '%</em>').join('') + '</span><span class="route-perk">＋' + esc(r.perkText) + '</span></button>').join('') + '</div></fieldset>';
+  }
   function identityCards() {
     const value = state.settings?.background, all = Object.values(G.BACKGROUNDS), money = Object.fromEntries(all.map(b => { const t = G.initial(state.seed, { background: b.id, affiliation: state.settings?.affiliation }); G.start(t); return [b.id, t.budget.available]; })), cash = Math.max(...Object.values(money)), base = Math.max(...all.map(b => b.supportBoost));
-    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + all.map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '" title="' + esc(b.strengths.map(x => '＋ ' + x).concat(b.weaknesses.map(x => '－ ' + x)).join('\n')) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ identity:b.id, outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good pick-line">' + esc(IDENTITY_LINE[b.id] || b.strengths[0]) + '</span><span class="identity-bad pick-meters">' + meter('資金', money[b.id], cash, wan(money[b.id])) + meter('基本盤', b.supportBoost, base, b.supportBoost >= base ? '高' : b.supportBoost >= base * .85 ? '中' : '低') + meter('里長', CHIEF_TIES[b.id]?.[0] || 1, 3, CHIEF_TIES[b.id]?.[1] || '') + meter('助手', b.helpers, 3, b.helpers + ' 人') + '</span></button>').join('') + '</div></fieldset>';
+    return '<fieldset class="pick-group"><legend><span class="step">1</span>你是誰</legend><div class="identity-cards">' + all.map(b => '<button type="button" class="identity-card pick-card" data-action="setting" data-setting="background" data-value="' + esc(b.id) + '" aria-pressed="' + (value === b.id) + '" title="' + esc(b.strengths.map(x => '＋ ' + x).concat(b.weaknesses.map(x => '－ ' + x)).concat(originTip(b.id)).join('\n')) + '">' + pickMark(value === b.id) + '<span class="portrait">' + (Art?.portrait ? Art.portrait({ identity:b.id, outfit: b.outfit, party: myParty() }) : '') + '</span><b>' + esc(b.title) + ' <span class="difficulty d-' + esc(b.id) + '">' + esc(b.difficulty || '') + '</span></b><span class="identity-good pick-line">' + esc(IDENTITY_LINE[b.id] || b.strengths[0]) + '</span>' + originMarkup(G.originView?.(state, b.id)) + '<span class="identity-bad pick-meters">' + meter('資金', money[b.id], cash, wan(money[b.id])) + meter('基本盤', b.supportBoost, base, b.supportBoost >= base ? '高' : b.supportBoost >= base * .85 ? '中' : '低') + meter('里長', CHIEF_TIES[b.id]?.[0] || 1, 3, CHIEF_TIES[b.id]?.[1] || '') + meter('助手', b.helpers, 3, b.helpers + ' 人') + '</span></button>').join('') + '</div></fieldset>';
   }
   const PARTY_LINE = { independent: '沒包袱，中間選民比較願意聽你說。', kmt: '票倉最大，但同黨候選人多、票分得薄；要守黨的立場。', dpp: '票倉較小，但同黨選民最死忠；要守黨的立場。' };
   function partyCards() {
@@ -282,11 +294,16 @@
     const E = G.ELECTION, r = G.raceView(preview), bg = G.BACKGROUNDS[preview.settings.background], party = G.PARTIES[preview.settings.affiliation], his = G.PARTIES[preview.rival.party], lines = id => Object.entries(G.PARTY_LINES[id] || {}).map(([t, plan]) => short(t) + '「' + G.TOPICS[t].plans.find(x => x.id === plan).text + '」').join('、');
     const side = (who, look, role, title, sub, votes, extra) => '<div class="mu-side mu-' + role + '"><span class="portrait">' + (Art?.portrait ? Art.portrait(look, role === 'rival' ? 'rival' : 'player') : '') + '</span><b>' + who + '</b><small>' + esc(title) + '</small>' + (sub ? '<small>' + esc(sub) + '</small>' : '') + '<strong>' + num(votes) + ' 票</strong>' + (extra ? '<small>' + extra + '</small>' : '') + '</div>';
     const matchup = '<section class="matchup-card"><div class="card-head"><b>開局估票</b><span>主要對手：小馬（' + esc(his.title) + '）</span></div><div class="matchup">' + side(esc(G.candidateName(preview.settings)) + '・你', { outfit: bg.outfit, party: myParty() }, 'you', party.title + '・' + bg.title, '', r.you, '可用 ' + wan(preview.budget.available)) + '<span class="vs">→</span><div class="mu-side mu-line"><b>當選線</b><small>上屆第 ' + E.seats + ' 名</small><strong>' + num(E.reference.lastSeat) + ' 票</strong><small>還差 ' + num(Math.max(0, E.reference.lastSeat - r.you)) + ' 票</small></div></div></section>';
-    return panel('新的一局', '30 天 · 10 回合', '<h2 class="intro-title">從公館商圈到貓空茶園，搶下大安文山區一席。</h2><p class="intro-goal">票數前 ' + SEATS + ' 名當選。去對的地方、說對的話，票就是你的。</p>' + matchup + '<ul class="intro-reading"><li><b>點地圖出發</b>：每個地點的人群不同，他們會直接講要什麼。</li><li><b>看臉色回答</b>：答案旁有長輩、中年、青年三張臉。</li></ul>');
+    return panel('新的一局', '30 天 · 10 回合', '<h2 class="intro-title">從公館商圈到貓空茶園，搶下大安文山區一席。</h2><p class="intro-goal">票數前 ' + SEATS + ' 名當選。去對的地方、說對的話，票就是你的。</p>' + matchup + routePlan(preview) + '<ul class="intro-reading"><li><b>點地圖出發</b>：每個地點的人群不同，他們會直接講要什麼。</li><li><b>看臉色回答</b>：答案旁有長輩、中年、青年三張臉。</li></ul>');
+  }
+  // The chosen route as three vote targets that add up to the seat line.
+  function routePlan(s) {
+    const r = G.routeView?.(s);
+    return r ? '<section class="route-plan"><div class="card-head"><b>票倉目標</b><span>' + esc(r.title) + '</span></div><p class="route-goals">' + [r.group, r.partner, 3 - r.group - r.partner].map(k => { const t = r.targets[k]; return '<span class="g-' + GROUP_KEYS[k] + (t.focus ? ' focus' : '') + '"><i class="dot"></i>' + esc(t.title) + (k === r.group ? '★' : '') + ' <b>' + num(t.votes) + '</b></span>'; }).join('') + '</p><p class="route-sum">加起來 ' + num(r.targets.reduce((n, t) => n + t.votes, 0)) + ' 票＝當選線</p></section>' : '';
   }
   function dockIntro() {
     const bg = G.BACKGROUNDS[state.settings.background], party = G.PARTIES[state.settings.affiliation];
-    return '<div class="dock-intro">' + identityCards() + partyCards() + '<div class="start-row"><span class="step">3</span><p>你是<b>' + esc(G.candidateName(state.settings)) + '</b>（' + esc(party.title) + '・' + esc(bg.title) + '）。開始後不能再換。</p><button class="primary-button" data-action="start">開始競選 →</button></div></div>';
+    return '<div class="dock-intro">' + identityCards() + partyCards() + routeCards() + '<div class="start-row"><span class="step">' + (G.routeOptions ? 4 : 3) + '</span><p>你是<b>' + esc(G.candidateName(state.settings)) + '</b>（' + esc(party.title) + '・' + esc(bg.title) + '）。開始後不能再換。</p><button class="primary-button" data-action="start">開始競選 →</button></div></div>';
   }
 
   /* ---------- planning ---------- */
@@ -318,18 +335,27 @@
   // Staff's guess at your support in each group as a range, against the share a seat needs; a poll round's range is narrow and says 民調.
   const rangeText = g => { const f = n => Number(n).toLocaleString('zh-TW', { maximumFractionDigits: 1 }); return (f(g.lo) === f(g.hi) ? f(g.lo) : f(g.lo) + '–' + f(g.hi)) + '%'; };
   function estimateBars() {
-    const e = G.supportEstimate(state), need = linePct(), max = Math.max(need * 1.6, ...e.groups.map(g => g.hi)) || 1, at = v => Math.min(100, v / max * 100);
-    const weak = (e.poll && e.groups.find(g => g.id === G.pollView(state).latest?.focus)) || e.groups.reduce((a, g) => g.lo + g.hi < a.lo + a.hi ? g : a), places = G.venueView(state).filter(v => v.main === e.groups.indexOf(weak)).map(v => esc(v.title));
-    return '<div class="sup-est" role="group" aria-label="幕僚估計"><div class="sup-head"><b>幕僚估計</b>' + (e.poll ? '<span class="sup-tag">民調</span>' : '') + info('幕僚按你的行程估各群挺你的比例。離上次民調越久，範圍越寬；民調當回合最準。黑線是當選約需的比例。') + '<span>當選約需 ' + need.toFixed(1) + '%</span></div>'
-      + e.groups.map((g, k) => '<div class="sup-row g-' + GROUP_KEYS[k] + ' ' + (g.lo >= need ? 'ahead' : g.hi < need ? 'behind' : 'near') + '"><span class="sup-name"><span class="dot"></span>' + esc(g.title) + '</span><span class="sup-bar"><i class="sup-range" style="left:' + at(g.lo).toFixed(1) + '%;width:' + Math.max(1.5, at(g.hi) - at(g.lo)).toFixed(1) + '%"></i><i class="need-mark" style="left:' + at(need).toFixed(1) + '%"></i></span><b class="sup-num">' + rangeText(g) + '</b></div>').join('')
-      + (weak.lo < need || e.next ? '<div class="sup-foot">' + (weak.lo < need ? '<span>最缺' + esc(weak.title) + (places.length ? '，多在' + places.join('、') : '') + '</span>' : '') + (e.next ? '<span>下次民調：第 ' + e.next + ' 回合</span>' : '') + '</div>' : '') + '</div>';
+    // With a vote-bank route each group is measured against its own target, and the shortfall points at that group's home places.
+    const e = G.supportEstimate(state), r = G.routeView?.(state), need = linePct(), goal = k => r ? r.targets[k].pct : need, max = Math.max(...e.groups.map((g, k) => goal(k) * 1.4), ...e.groups.map(g => g.hi)) || 1, at = v => Math.min(100, v / max * 100);
+    const gap = (g, k) => (goal(k) - (g.lo + g.hi) / 2) / goal(k), short = r ? e.groups.map((g, k) => ({ g, k })).filter(x => r.targets[x.k].focus && r.targets[x.k].status !== 'ahead').sort((a, b) => gap(b.g, b.k) - gap(a.g, a.k))[0] : null;
+    const weak = r ? short?.g || null : (e.poll && e.groups.find(g => g.id === G.pollView(state).latest?.focus)) || e.groups.reduce((a, g) => g.lo + g.hi < a.lo + a.hi ? g : a), wk = weak ? e.groups.indexOf(weak) : -1;
+    const places = wk < 0 ? [] : wk === 2 && r ? ['直播間'] : G.venueView(state).filter(v => v.main === wk).map(v => v.title), behind = weak && weak.lo < goal(wk);
+    const tip = r ? '幕僚按你的行程估各群挺你的比例，離上次民調越久範圍越寬。黑線是「' + r.title + '」給各群的目標，三群都到就剛好過當選線。在' + r.homeTitles.join('、') + '拉票，接觸的人更多。' : '幕僚按你的行程估各群挺你的比例。離上次民調越久，範圍越寬；民調當回合最準。黑線是當選約需的比例。';
+    return '<div class="sup-est"' + (r ? ' data-route="' + esc(r.id) + '"' : '') + ' role="group" aria-label="幕僚估計"><div class="sup-head"><b>幕僚估計</b>' + (e.poll ? '<span class="sup-tag">民調</span>' : '') + info(tip) + '<span>' + (r ? '票倉：' + esc(r.title) : '當選約需 ' + need.toFixed(1) + '%') + '</span></div>'
+      + e.groups.map((g, k) => { const status = r ? r.targets[k].status : g.lo >= need ? 'ahead' : g.hi < need ? 'behind' : 'near'; return '<div class="sup-row g-' + GROUP_KEYS[k] + ' ' + status + (r && r.group === k ? ' main' : '') + (r && !r.targets[k].focus ? ' minor' : '') + '"><span class="sup-name"><span class="dot"></span>' + esc(g.title) + (r && r.group === k ? '<i class="sup-star" aria-label="主力">★</i>' : '') + '</span><span class="sup-bar"><i class="sup-range" style="left:' + at(g.lo).toFixed(1) + '%;width:' + Math.max(1.5, at(g.hi) - at(g.lo)).toFixed(1) + '%"></i><i class="need-mark" style="left:' + at(goal(k)).toFixed(1) + '%"></i></span><b class="sup-num">' + rangeText(g) + '</b>' + (r ? '<span class="sup-goal">目標 ' + fixed1(goal(k)) + '%</span>' : '') + '</div>'; }).join('')
+      + (behind || e.next ? '<div class="sup-foot">' + (behind ? '<span>最缺' + esc(weak.title) + (places.length ? (r ? '，去' : '，多在') + places.map(esc).join('、') : '') + '</span>' : '') + (e.next ? '<span>下次民調：第 ' + e.next + ' 回合</span>' : '') + '</div>' : '') + '</div>';
   }
   // The district, its three groups of voters, who you are and your party's three issues; the rules behind them show up where they bite.
+  // The origin in play, under the candidate's name.
+  function profileOrigin() {
+    const o = G.originView?.(state);
+    return o ? '<p class="profile-origin"><b>出身</b><span>' + esc(o.title) + '</span><em class="og">＋' + esc(o.good) + '</em><em class="ob">－' + esc(o.bad) + '</em>' + info(o.info) + '</p>' : '';
+  }
   function profileCard() {
     const E = G.ELECTION, bg = G.BACKGROUNDS[state.settings.background], p = G.partyView(state), [, place, areas] = /^(.+?)（(.+)）$/.exec(E.district) || [, E.district, ''];
     const groups = G.groupView(state).map((g, k) => '<div class="group-row g-' + GROUP_KEYS[k] + '"><span class="group-name"><span class="dot"></span>' + esc(g.title) + ' <small>' + Math.round(g.share * 100) + '%</small></span><span class="group-top">' + (g.top ? '最在意：' + esc(short(g.top)) : '') + '</span><span class="group-trait">打包票：' + esc(g.promiseTitle) + '</span>' + (g.rule ? '<span class="group-rule">' + esc(g.rule === 'fresh' ? '想要新面孔，好感 ×' + g.lift : '覺得你靠家族，好感 ×' + g.lift) + '</span>' : '') + '</div>').join('');
     const line = p.line.length ? '<p class="party-chips"><span>黨的立場</span>' + p.line.map(x => '<b title="' + esc(x.text) + '">' + esc(x.short) + '</b>').join('') + '</p>' : '';
-    return '<section class="profile-card" style="--party:' + esc(p.color) + '" aria-label="選區與你"><div class="card-head"><b>' + esc(place) + '</b><span>' + esc([areas, E.seats + ' 席', '選民 ' + Math.round(E.registered / 10000) + ' 萬'].filter(Boolean).join('・')) + '</span></div><p class="profile-me">' + partyBadge(p.party) + '<b>' + esc(state.player.name) + '</b><span>' + esc(bg.title) + '・團隊 ' + ((state.player.team?.members?.length || 0) + 1) + ' 人</span></p>' + groups + line + '</section>';
+    return '<section class="profile-card" style="--party:' + esc(p.color) + '" aria-label="選區與你"><div class="card-head"><b>' + esc(place) + '</b><span>' + esc([areas, E.seats + ' 席', '選民 ' + Math.round(E.registered / 10000) + ' 萬'].filter(Boolean).join('・')) + '</span></div><p class="profile-me">' + partyBadge(p.party) + '<b>' + esc(state.player.name) + '</b><span>' + esc(bg.title) + '・團隊 ' + ((state.player.team?.members?.length || 0) + 1) + ' 人</span></p>' + profileOrigin() + groups + line + '</section>';
   }
   // Breaking the party line also cuts party aid still to come; said on the answer that breaks it and in the recap.
   function aidAtStake(breaks) {
@@ -412,12 +438,15 @@
     const sub = f.ready ? f.ready + ' 份可以爆' : held ? held + ' 份待查證' : f.dig.allowed ? '挖小馬的料' : '第 ' + f.dig.from + ' 回合起可挖';
     return '<button class="hotspot building file-spot' + (f.ready ? ' ready' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="file" aria-label="' + esc('黑料檔案：' + sub) + '"><span class="pin">' + icon('file') + '</span><span class="hotspot-label"><b>黑料檔案</b><small>' + esc(sub) + '</small></span>' + (f.ready ? '<span class="badge warn">可爆</span>' : '') + '</button>';
   }
+  // On the map: whether the main crowd at a place (the young, on the stream) is one the route counts on, and how far along it is.
+  const CUE_TEXT = { ahead: '達標', near: '接近', behind: '落後' };
+  const routeCue = c => c?.focus && c.status ? '<span class="route-cue ' + c.status + (c.main ? ' main' : '') + '" title="' + esc('票倉' + (c.main ? '主力' : '') + '：' + c.title + '目標 ' + fixed1(c.pct) + '%，幕僚估計' + CUE_TEXT[c.status]) + '"><i aria-hidden="true">' + (c.main ? '★' : '◆') + '</i>' + esc(c.title + CUE_TEXT[c.status]) + '</span>' : '';
   function hotspots() {
     if (!state.started || state.phase !== 'plan') return '';
-    const rumor = G.rumorView(state), due = G.pendingChallenges(state), rumorSpot = rumor ? (rumor.action === 'canvass' ? rumor.venue : rumor.action === 'tv' ? 'tv' : rumor.action === 'debate' ? 'debate' : null) : null;
+    const cues = G.routeCues?.(state) || {}, rumor = G.rumorView(state), due = G.pendingChallenges(state), rumorSpot = rumor ? (rumor.action === 'canvass' ? rumor.venue : rumor.action === 'tv' ? 'tv' : rumor.action === 'debate' ? 'debate' : null) : null;
     return destinations().map(d => {
       const key = d.venue || d.kind, p = Art?.isToy?.() ? Art.spot(key) : HOTSPOTS[key] || anchors.start, selected = isSelected(d), canAnswer = d.kind === 'tv' ? due.length > 0 : d.kind === 'canvass' && due.some(c => c.venues.includes(d.venue));
-      return '<button class="hotspot' + (d.kind === 'canvass' ? ' venue g-' + GROUP_KEYS[d.group] : ' building') + (selected ? ' selected' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="select-action" data-kind="' + d.kind + '"' + (d.venue ? ' data-venue="' + d.venue + '"' : '') + ' aria-pressed="' + selected + '"' + (d.disabled ? ' disabled aria-disabled="true"' : '') + ' aria-label="' + esc(d.title + '：' + d.sub) + '"><span class="pin">' + icon(d.kind) + '</span><span class="hotspot-label"><b>' + esc(d.title) + '</b><small>' + esc(d.sub) + '</small></span>' + (canAnswer ? '<span class="badge warn">回應</span>' : '') + (rumorSpot === key ? '<span class="badge rival">小馬?</span>' : '') + (d.boards ? '<span class="badge board">看板 ' + d.boards + '</span>' : '') + (d.chief ? '<span class="badge chief' + (d.chief.broken ? ' won' : '') + '" title="' + esc(d.chief.name + (d.chief.broken ? '挺你' : '：去了 ' + d.chief.visits + '／' + d.chief.need + ' 次')) + '">' + (d.chief.broken ? '里長挺你' : '里長 ' + d.chief.visits + '/' + d.chief.need) + '</span>' : '') + '</button>';
+      return '<button class="hotspot' + (d.kind === 'canvass' ? ' venue g-' + GROUP_KEYS[d.group] : ' building') + (selected ? ' selected' : '') + '" style="left:' + (p.x / 12).toFixed(2) + '%;top:' + (p.y / 6.5).toFixed(2) + '%" data-action="select-action" data-kind="' + d.kind + '"' + (d.venue ? ' data-venue="' + d.venue + '"' : '') + ' aria-pressed="' + selected + '"' + (d.disabled ? ' disabled aria-disabled="true"' : '') + ' aria-label="' + esc(d.title + '：' + d.sub + (cues[key]?.focus && cues[key].status ? '；票倉' + cues[key].title + CUE_TEXT[cues[key].status] : '')) + '"><span class="pin">' + icon(d.kind) + '</span><span class="hotspot-label"><b>' + esc(d.title) + '</b><small>' + esc(d.sub) + '</small></span>' + (canAnswer ? '<span class="badge warn">回應</span>' : '') + (rumorSpot === key ? '<span class="badge rival">小馬?</span>' : '') + routeCue(cues[key]) + (d.boards ? '<span class="badge board">看板 ' + d.boards + '</span>' : '') + (d.chief ? '<span class="badge chief' + (d.chief.broken ? ' won' : '') + '" title="' + esc(d.chief.name + (d.chief.broken ? '挺你' : '：去了 ' + d.chief.visits + '／' + d.chief.need + ' 次')) + '">' + (d.chief.broken ? '里長挺你' : '里長 ' + d.chief.visits + '/' + d.chief.need) + '</span>' : '') + '</button>';
     }).join('') + fileSpot();
   }
   function dockAlerts() {
@@ -936,6 +965,7 @@
       if (!records?.[data.value]) return;
       if (G.configure(state, { [data.setting]: data.value })) { save(); render(); focusChoice('[data-action="setting"][data-setting="' + data.setting + '"][data-value="' + data.value + '"]'); } return;
     }
+    if (data.action === 'route' && !state.started) { if (G.chooseRoute?.(state, data.value)) { save(); render(); focusChoice('[data-action="route"][data-value="' + data.value + '"]'); } return; }
     if (data.action === 'skip-count') { finishCounting(); return; }
     if (data.action === 'skip') { if (motion) finishTravel(); return; }
     if (data.action === 'start' && !state.started) { if (G.start(state)) { saveNotice = ''; save(); render(); focusDock(); announce('第一回合開始，點地圖上的地點出發。'); } return; }
