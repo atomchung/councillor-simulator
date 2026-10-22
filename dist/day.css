@@ -421,7 +421,7 @@ body[data-phase="intro"] .hud,body[data-phase="intro"] .preparation-strip{displa
 .v13 .card-head,.v13 .race-head{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:6px}
 .v13 .card-head b,.v13 .race-head>b{font-size:14px}
 .v13 .card-head span,.v13 .race-head span{font-size:11px;color:var(--muted)}
-.v13 .race-board,.v13 .group-card,.v13 .offer-card,.v13 .situation,.v13 .carry,.v13 .issue-card,.v13 .cause-lines{border:1px solid var(--line);border-radius:10px;background:#fffdf7;padding:10px 12px}
+.v13 .race-board,.v13 .group-card,.v13 .profile-card,.v13 .offer-card,.v13 .situation,.v13 .carry,.v13 .issue-card,.v13 .cause-lines{border:1px solid var(--line);border-radius:10px;background:#fffdf7;padding:10px 12px}
 .v13 .race-row{display:grid;grid-template-columns:3em 1fr auto;align-items:center;gap:8px;margin:5px 0;font-size:13px}
 .v13 .race-row strong{font-variant-numeric:tabular-nums;font-size:15px;min-width:5.5em;text-align:right}
 .v13 .race-row strong small{display:block;font-size:10px;font-weight:600}.v13 .race-row small.up{color:#2f7a4a}.v13 .race-row small.down{color:#a5432e}
@@ -895,3 +895,8 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 /* Narrow phones: the debate question fits above the candidates' heads; the dock already names the moderator. */
 @media(max-width:440px){.v13 .conversation-bubble[data-kind="debate"]{left:7%;width:86%;top:2.5%;min-height:27.5%;padding:6px 10px;display:flex;flex-direction:column;justify-content:center}.v13 .conversation-bubble[data-kind="debate"] .bubble-speaker{display:none}.v13 .conversation-bubble[data-kind="debate"] p{font-size:12px;line-height:1.4}}
 @media(max-width:360px){.v13 .conversation-bubble[data-kind="debate"] p{font-size:11px}}
+
+/* District profile at the top of the side panel: the district, its three groups, you and your party's issues. */
+.v13 .profile-card{border-left:4px solid var(--party)}
+.v13 .profile-me{display:flex;align-items:center;gap:6px;margin:2px 0 4px;font-size:12.5px}.v13 .profile-me span:last-child{color:var(--muted)}
+.v13 .profile-card .group-row{padding:4px 0}
