@@ -28,26 +28,28 @@ function view(G,s,context={}){
   advice=(mediaChannel==='online'?'直播':'節目')+'可能問的 '+pool.length+' 題，你已知道 '+covered+' 題。'+(covered<pool.length?'現在曝光有風險，也可以多準備一回合。':'可以帶著政見曝光；也要留意連續曝光後的疲乏。');
   options=covered<Math.min(2,pool.length)?[prepare,mediaChannel==='online'?online:media||local]:[mediaChannel==='online'?online:media||online,prepare||local];
  }
+ if(mode==='organization'&&venue){const prep=readiness(G,s,venue.pool);advice+=' '+prep.text;if(prep.ready===0&&prepare){advice='先準備一題會更有把握；也可以承擔風險先跑地方。 '+advice;options=[prepare,...options.filter(o=>o?.id!=='prepare')];}}
  if(last?.rival?.attack)change='小馬已公開質疑你的說法，原計畫需要考慮是否先回應。';
  else if(last?.player?.direct?.votes<0)change='上回合的回答掉票了。下一站換了人群，也要重新看他們是否認同。';
  else if(last?.player?.network?.reach)change='小隊已實際替你跑地方；本回合可以繼續派工。';
  const due=G.pendingChallenges(s).find(c=>c.deadline<=s.day);
  if(due){advice='小馬的質疑這回合到期。回應能挽回部分支持，也會占用原本的行程。';const v=due.venues[0];options=[v?option('respond','canvass',{venue:v},'到'+G.VENUES[v].title+'回應','當地會問到小馬對你的質疑。','需要重申、修正或承擔原本的承諾。'):option('respond','tv',{respond:true},'上節目回應小馬','針對他已公開的批評作答。','需要節目費，也占用這回合。'),options[0]];}
  if(s.day===G.DEBATE_ROUND){advice='今天是政見發表會。小馬也會上台；你不出席，他就多一份舞台。';options=[option('debate','debate',{},'出席政見發表會','題目已公布：「'+(G.TOPICS[s.debate.topic]?.short||'本回合議題')+'」。','占本回合；不能同時跑原本的行程。'),options[0]];}
- else if(campaign.opportunity?.status==='open'){change='兩場邀約撞期，現在要決定要不要改行程。';advice='接地方邀約就延續組織，接專訪就搶曝光；下方列出各自拿到什麼、失去什麼。';options=[];}
+ else if(campaign.opportunity?.status==='open'){change='兩場邀約撞期，現在要決定要不要改行程。';advice='接地方邀約就延續組織，接專訪就搶曝光；邀約卡列出各自拿到什麼、失去什麼。';options=[];}
  else if(campaign.followup){change='上次曝光帶來接續直播邀約，今天不接就會過期。';advice=campaign.followup.text;options=[option('followup','online',{campaignFollowup:true},'接續上回的直播','延續已公開的題目，仍要自己決定怎麼回答。','占用本回合與直播助手，原本的進度延後。'),options[0]];}
- if(due&&(s.day===G.DEBATE_ROUND||campaign.opportunity?.status==='open'||campaign.followup))change+=' 小馬的質疑也在這回合到期，先看下方回應地點。';
- if(s.crisis?.status==='pending'){change='現在有一件爆料危機待處理。';advice='先看下方危機，決定怎麼回應，再安排這回合的行程。';options=[];}
+ if(due&&(s.day===G.DEBATE_ROUND||campaign.opportunity?.status==='open'||campaign.followup))change+=' 小馬的質疑也在這回合到期，先看事件中的回應地點。';
+ if(s.crisis?.status==='pending'){change='現在有一件爆料危機待處理。';advice='先看危機，決定怎麼回應，再安排這回合的行程。';options=[];}
  if(remaining<=2&&!due&&s.day!==G.DEBATE_ROUND&&!campaign.followup&&campaign.opportunity?.status!=='open'&&s.crisis?.status!=='pending'){advice='只剩 '+remaining+' 次行程。優先把已公開、有人認同的政見帶到現場；現在準備新題，可用的時間很少。';options=[local,online];}
  options=options.filter(Boolean).filter((x,i,all)=>all.findIndex(y=>y.action===x.action&&JSON.stringify(y.config)===JSON.stringify(x.config))===i).slice(0,2);
  return{mode,base,goal,steps,advice,change,options,active,waiting,remaining,rumor:G.rumorView(s),explicit:!!context.opening};
 }
+function readiness(G,s,pool){const ready=pool.filter(t=>s.player.known.includes(t)).length;return {ready,total:pool.length,text:'可能問的 '+pool.length+' 題，你已研究 '+ready+' 題。'+(ready<pool.length?'未研究就不知道各群反應，可能掉票；具體新方案通常要先查資料。助手今天查，下回合才用得到。':'這些題目能提出具體方案。')};}
 function selected(G,s,context={}){
  if(!s?.started||s.phase!=='plan')return'';
  const id=context.selectedAction,venue=context.selectedVenue,chief=G.chiefView(s).find(c=>c.venue===venue),members=s.player.team.members.filter(m=>m.hiredDay<s.day).length;
  const challenge=G.pendingChallenges(s).find(c=>c.venues.includes(venue));
  if(id==='canvass'&&challenge)return'這裡會問小馬對你的質疑。選擇重申或修正原本的說法，回應可以挽回部分支持。';
- if(id==='canvass'&&chief)return chief.broken?'這裡已有里長交情。小隊可以留守，你也能把行程留給另一群人。':'這次拜訪會累積地方交情；再走 '+Math.max(1,chief.need-chief.visits)+' 次，就能取得里長支持。';
+ if(id==='canvass'&&chief){const pool=G.venueView(s).find(v=>v.id===venue)?.pool||[];return (chief.broken?'這裡已有里長交情。':'這次拜訪會累積地方交情；再走 '+Math.max(1,chief.need-chief.visits)+' 次可取得支持。')+' 已研究 '+readiness(G,s,pool).ready+' 題；先看下方準備程度，再決定是否出發。';}
  if(id==='canvass')return'這次接觸的主要是'+(G.venueView(s).find(v=>v.id===venue)?.mainTitle||'當地居民')+'，看看你公開的政見是否適合他們。';
  if(id==='prepare')return'今天花時間準備，成果從下一回合用；留下助手分頭研究或募款，就能少停一件事。';
  if(id==='recruit'){const p=G.preview(s,id);return p.allowed?'這次增加 '+p.recruitCount+' 位助手，下回合到職；代價是少一次親自拉票。':p.reason||'目前無法再招募，先安排現有人手。';}

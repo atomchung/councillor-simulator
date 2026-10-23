@@ -41,7 +41,7 @@ for(const [action,day,config]of[['canvass',2,{venue:'market'}],['tv',3,{brief:'h
 {
  let found;
  for(let seed=1;seed<=30&&!found;seed++){const s=toRound(newState(seed),G.DEBATE_ROUND);if(s.crisis?.resolvedDay===s.day)found=s;}
- ok(found,'a real same-round resolved crisis fixture exists');const h=harness(saved(found));ok(!h.elements['event-feedback'].hidden,'resolved crisis is visible while planning');h.click({action:'debate-now'});h.click({action:'skip'});eq(h.state().phase,'question','debate still asks after resolving crisis');ok(h.elements['event-feedback'].hidden,'news overlay leaves the active question unobstructed');
+ ok(found,'a real same-round resolved crisis fixture exists');const h=harness(saved(found));ok(!h.elements['event-feedback'].hidden,'resolved crisis is visible while planning');ok(h.dock().includes('mobile-crisis-result'),'resolved crisis remains visible in the command panel when the phone map is collapsed');h.click({action:'debate-now'});h.click({action:'skip'});eq(h.state().phase,'question','debate still asks after resolving crisis');ok(h.elements['event-feedback'].hidden,'news overlay leaves the active question unobstructed');
 }
 // Research tier changes information, never exposes exact response votes.
 {
@@ -79,3 +79,39 @@ for(const [action,day,config]of[['canvass',2,{venue:'market'}],['tv',3,{brief:'h
  ok(h.dock().includes('最佳：第 9 名・高票當選'),'old ninth-place personal best uses current grade title');eq(JSON.parse(h.saved[KEY+'-bests']),record,'personal best reclassification leaves its stored votes and rank unchanged');
 }
 console.log(JSON.stringify({result:'passed',assertions,scope:'Manual settlement/reload, skip click guard, repeated public responses and final-round confirmation, correct gap signs, prominent debate, qualitative research, per-identity-party best records with unmodified election results.'}));
+
+// Phone map navigation is reversible and never commits an outing; research switches the main action only.
+{
+ const s=G.initial(601,{background:'heir',affiliation:'independent'});G.start(s);
+ const h=harness(saved(s),{width:375});h.click({action:'toggle-map'});
+ eq(h.elements['map-toggle'].attributes['aria-expanded'],'true','map can expand');
+ const venue=G.venueView(s).find(v=>v.pool.some(t=>!s.player.known.includes(t)));h.go('canvass',venue.id);
+ eq(h.elements['map-toggle'].attributes['aria-expanded'],'false','destination frees map space');
+ eq(h.state().day,1,'selecting a location does not spend a round');
+ ok(h.dock().includes('出發準備：0／'),'unprepared heir sees current readiness');
+ ok(h.dock().includes('助手今天查，下一回合才用得到'),'helper research timing is explicit');
+ ok(h.dock().indexOf('你的主行程')<h.dock().indexOf('例行安排・助手分工與加碼'),'main action precedes concurrent staffing');
+ const before=h.state().budget.available;h.click({action:'prepare-before-trip'});
+ eq(h.state().day,1,'switch to preparation is not an immediate action');eq(h.state().budget.available,before,'switch spends no money');
+ ok(h.dock().includes('本人研究'),'switch opens a real study itinerary');h.commit();h.click({action:'skip'});
+ eq(h.state().phase,'recap','study resolves through ordinary round flow');
+ const learned=h.state().recap.player.topic;ok(h.state().player.known.includes(learned),'study genuinely teaches the selected topic');
+ h.click({action:'next-round'});eq(h.elements['map-toggle'].attributes['aria-expanded'],'false','new round returns space to staff briefing');ok(h.dock().includes('先跑熟'),'studying before a local visit keeps the local campaign intention');
+}
+console.log(JSON.stringify({mobilePlanning:'passed',assertions}));
+
+{
+ const h=harness(saved(toRound(newState(601),G.CAMPAIGN_ROUND)),{width:375});
+ ok(h.dock().includes('臨時邀約與事件'),'current invitations have their own entry');
+ h.go('canvass','market');ok(h.dock().indexOf('臨時邀約與事件')<h.dock().indexOf('你的主行程'),'pending event summary remains above the selected itinerary');
+ ok(!/<details class="pending-decisions" open/.test(h.dock()),'optional invitation details collapse after selecting an itinerary');
+ ok(!/<section class="pending-decisions"[^]*network-orders/.test(h.dock()),'routine team orders are not an invitation');
+}
+console.log(JSON.stringify({invitationSeparation:'passed',assertions}));
+
+{
+ const h=harness(saved(newState(612)));h.go('tv');const topic=G.tvPool(h.state())[0];h.click({action:'brief',topic});
+ ok(h.dock().includes('1／1 題有專訪資料'),'paid interview readiness reflects its supplied single topic');
+ ok(!h.dock().includes('data-action="prepare-before-trip"'),'paid briefing does not unnecessarily recommend an extra research round');
+}
+console.log(JSON.stringify({interviewReadiness:'passed',assertions}));

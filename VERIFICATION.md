@@ -85,3 +85,14 @@ IAB 在隔離的本機 4173 來源，從選角到開票實際完成現任、無�
 IAB 實際完成一局 9 回合，涵蓋研究、專訪、接續直播、撞期邀約、合作募款、危機回應及結局三項承諾；沿用政見的直播完成後，下一回合簡報仍保留原話、觸及、票數與對手行動。六個正式支援 viewport（375×667、390×844、768×1024、1024×768、1280×800、1440×900）規劃畫面均無整頁水平或垂直溢出；長待辦在操作區內捲動。這是瀏覽器尺寸測試，並非實體裝置或真人趣味驗收。
 
 前一輪發現：先招滿 9 助手、主角募款、助手研究的路線在當時規則上成立；固定種子 19 的政二代例子於第 6 回合研究完全部 15 題，同時累積資金。這只證明可以做到，未證明是支配勝率路線。本輪已依人力對照採用較小團隊，但仍需以本輪完整平衡判斷前期投資與公開拉票的收益。小馬地圖標記仍是有誤差的行程傳聞；尚無同地碰面分支。
+
+
+## Mobile planning clarity (2026-10-23)
+
+- Phone planning replaces the always-visible map with a 44px expandable destination entry; selecting a location collapses it again. Recap uses the full command panel. Tablet and laptop map layouts remain visible.
+- Party emblem/check/name have explicit grid slots, including at 375px. Main itinerary, concurrent routine staffing/add-ons, and current invitations/events have separate labeled regions. Urgent crises stay expanded; choosing an invitation still uses the ordinary one-round itinerary.
+- Readiness reflects the public question pool, forced challenge/follow-up topic, or paid interview brief. Research is an explicit alternative that only preselects the preparation trip; helper learning applies after the round. Preparing before a local visit preserves that local opening intention.
+- Regression checks: existing engine 100,545, campaign routes 429, upgrades 2,008 and platform 178 pass; advisor 1,753, UI 880, round-flow 105, artwork 319 and export integrity 207 pass. No gameplay numerical rules changed and no new balance claim is made.
+- Actual IAB checks: 375×667 and 390×844 planning, party selection, expandable map, study + two research assistants, next-round readiness, public question and manual recap. Selected-action layouts at 768×1024, 1280×800 and 1440×900 retain the map and have no document overflow. Departure remains visible. Browser viewport checks are not physical iPhone Safari acceptance.
+
+- Map collapse also keeps same-round crisis results in a short phone command-panel receipt, rather than hiding the result inside the collapsed map.

@@ -37,3 +37,12 @@ for(let seed=1;seed<=12;seed++)for(const background of ['newcomer','heir','incum
  eq(A.selected(G,{...s,phase:'recap'},{selectedAction:'online'}),'','no stale planning advice during recap');
 }
 console.log(JSON.stringify({result:'passed',checks,scope:'Public-information staff advice, preserved opening intent, real actionable tradeoffs, current-only interruptions and no state changes. Not optimal-strategy or fun validation.'}));
+
+{
+ const s=fresh(601,'heir'),v=A.view(G,s,{opening:'canvass'});
+ eq(v.options[0].action,'prepare','no known local topics recommends preparing first');
+ ok(v.advice.includes('下回合才用得到'),'local advice states research timing');
+ ok(v.options.some(o=>o.action==='canvass'),'visiting remains a real tradeoff');
+ const venue=G.venueView(s)[0];ok(A.selected(G,s,{selectedAction:'canvass',selectedVenue:venue.id}).includes('已研究 0 題'),'selected local trip shows actual readiness');
+}
+console.log(JSON.stringify({localReadiness:'passed',checks}));
