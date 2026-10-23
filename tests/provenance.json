@@ -169,7 +169,7 @@
     "dist/assets/matte-toy-v1/game/walk.webp": "27a4f12439b4e23a5501ad61411f6c839d171f482111f6d7d612c79d419e5708",
     "dist/ui-layout.css": "81059452f76c0efdf3727f72dcce2b11e598cf37074432784a58f66f03298bfa",
     "dist/map-layout.css": "63f2c59f79af9687fdb983271b29c4d51a9465598edce8c54e00db5e5f229652",
-    "dist/day-advisor.js": "50f369c9e11e90aa964592e56b5cd14864d7eb9d762b4e8e94b50cb111a18497",
+    "dist/day-advisor.js": "57ca4f493529543ecb5bf655f06f6aba94cac22376fcf8b5171429251d8370ff",
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa"
   },
