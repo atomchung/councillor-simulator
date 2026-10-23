@@ -4,13 +4,13 @@
     "dist/campaign-ui.js": "dea5cafe880c524d49f18f97eefc184c4a5985425a0088687d8d1cc5b7f13d7f",
     "dist/campaign.css": "192192709b6a21b349c99a7167ccc5c6513bc81142480a265266899bef3b85e0",
     "dist/day-art.js": "3281fe8450b0ad15d7936ece971c5ec24d85356ea4eda1837f68040bf6e23b95",
-    "dist/day-engine.js": "ea019ae83fe18660bb50df1acd447a1412e45838761200d2565c2a3699e5aec2",
+    "dist/day-engine.js": "22aec73ad49f0d7b7efd2c32be9edd198aa87079af63c113c622f3a79b0e3a79",
     "dist/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
-    "dist/day-ui.js": "ef061a85d56612d824cbd594b3884a858732c53f9d1225c7aaa52e16f53d6349",
+    "dist/day-ui.js": "c60f1d7bbc0bf4c0cdde107347c2283e043437047ddc6eb397550be2d5a66dd5",
     "dist/day.css": "6f16c1ab9f87d58c68fcec746745b2857f39cc8743d96ad5dacaab145369e337",
     "dist/engine.js": "a36e44f51e476fcd2452b638fd7aaccbd503f0c471d050d5bb9832ec7c78af31",
     "dist/game.js": "ab2b8f918704348fcc5b172753c6d59a18148296b8feeba4eedd8191c157ce37",
-    "dist/index.html": "0fe174713650f8d1c84fadcc2698a2579b8b0f61a6c51c5c2bed573b1b840fcc",
+    "dist/index.html": "4f37f36c098ca9be13a5e6e66dd9a3a46b69c0b990f7099e69c12013fd9e5da0",
     "dist/legacy-v10/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/legacy-v10/day-engine.js": "6001069f1544b04d873d10f4acce57bfef46994d45c36b283bbe6ad6ba41cde5",
     "dist/legacy-v10/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
@@ -168,7 +168,10 @@
     "dist/assets/matte-toy-v1/game/tv.webp": "ce4d1ad98c3d1fcd8580dbe14efc495bb5f16131cb61374965edfc5616f4313b",
     "dist/assets/matte-toy-v1/game/walk.webp": "27a4f12439b4e23a5501ad61411f6c839d171f482111f6d7d612c79d419e5708",
     "dist/ui-layout.css": "b659fcbd4795f06bd9c382631480a62f542b3b1cc1ddfab20b3eabee5508eabe",
-    "dist/map-layout.css": "63f2c59f79af9687fdb983271b29c4d51a9465598edce8c54e00db5e5f229652"
+    "dist/map-layout.css": "63f2c59f79af9687fdb983271b29c4d51a9465598edce8c54e00db5e5f229652",
+    "dist/day-advisor.js": "713ebe8dc84ba53e43b29a0324e0c574b762fce76d6c47a91e02a87101797e35",
+    "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
+    "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa"
   },
   "export_only_changes": [
     "v10.2.0 export: local README, GAME_DESIGN, launch scripts, export integrity test and package scripts were added.",
