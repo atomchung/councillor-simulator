@@ -1,6 +1,7 @@
 /* The miniature stays visible; the map has one compact label per destination.
    Each transparent button also covers the building above its label. */
-.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots{display:block}
+/* The map is the only destination surface in every pack, including image fallbacks. */
+.v13 #map-hotspots{display:block}
 .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot{
   width:12%;max-width:88px;min-width:44px;height:16%;min-height:44px;
   margin:0;padding:0 0 2px;align-items:flex-end;justify-content:center;

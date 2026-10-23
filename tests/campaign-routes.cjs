@@ -69,4 +69,31 @@ for(const venue of ['street','river']){
  const challenged=copy(s);challenged.challenges.push({id:'route-test-challenge',kind:'stance',topic,status:'open',plan:G.TOPICS[topic].plans.findIndex(x=>x.id===first.player.answer),quote:first.player.quote,evidence:'小馬質疑這個做法。',issuedDay:1,deadline:2,audience:[],hit:0});ok(G.preview(challenged,'tv',config).willAsk,'a new challenge reopens a previously prepared stance');
 }
 
+// Correcting before the fact check must remain resolved when that check arrives.
+{
+ const s=fresh(2);step(s,'fundraise');advance(s);step(s,'fundraise');advance(s);
+ step(s,'press',{},'tip_accuse');advance(s);let checked=step(s,'press',{},'tip_correct');
+ while(!s.events.tip.verification&&s.day<s.events.tip.verifyAt){advance(s);checked=step(s,'fundraise');}
+ ok(s.events.tip.verification,'the original accusation is still fact checked');
+ eq(s.events.tip.responseDue,false,'a completed correction is not reopened by the delayed check');
+ eq(s.events.tip.publication.mode,'tip_correct','the latest public statement remains the correction');
+ const report=checked.events.find(e=>e.title==='爆料的核對結果');
+ ok(report&&!report.reason.includes('可以再開記者會更正')&&report.reason.includes('已經公開更正'),'the report acknowledges the correction without an impossible action');
+ advance(s);eq(G.fileView(s).items.find(x=>x.id==='tip').correct,false,'a correction is not repeatable');
+ eq(G.preview(s,'press').allowed,false,'the corrected tip cannot be published again');
+ const old=copy(s);old.events.tip.responseDue=true;G.upgrade(old);eq(old.events.tip.responseDue,false,'loading a previously affected save clears the stale response marker');
+}
+// Precise research from helpers is information, not the candidate's speaking practice.
+{
+ const s=fresh(19);step(s,'prepare',{topic:'childcare',research:['health'],deep:true});advance(s);
+ eq(s.player.insight.health.level,'precise','helpers finish researching the health issue');
+ ok(!s.player.studied.health,'helper research does not grant the candidate speaking bonus');
+ const preview=G.preview(s,'prepare',{topic:'health'});ok(preview.allowed,'the candidate can study a helper-researched issue');eq(preview.topic,'health','an explicitly chosen precise issue is not silently replaced');
+ step(s,'prepare',{topic:'health'});eq(s.player.studied.health,true,'the candidate earns the existing speaking bonus through personal study');
+ const left=copy(s);advance(left);for(const t of G.topicsOf(left))left.player.insight[t]={level:'precise'};
+ ok(G.preview(left,'prepare').allowed,'complete helper research does not close all personal study');
+ for(const t of G.topicsOf(left))left.player.studied[t]=true;
+ eq(G.preview(left,'prepare').allowed,false,'personal preparation closes only after every issue was personally studied');
+}
+
 console.log(JSON.stringify({result:'passed',checks,scope:'Campaign intentions, one-round conflicting appointments, delayed local-team work, media follow-up windows, TV repetition and repeated-answer rules; engine only, not balance, browser or fun validation.'}));
