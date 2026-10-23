@@ -1,0 +1,40 @@
+/* Round decisions and settlement share the existing type scale. */
+.v13 .world{overflow:clip}
+.v13[data-phase=recap] .event-timeline,.v13[data-phase=recap] .interaction{display:none}
+.v13 .round-settlement{display:flex;flex-direction:column;gap:12px;min-height:100%;font-size:14px}
+.v13 .round-settlement header{padding-bottom:10px;border-bottom:1px solid var(--line)}
+.v13 .round-settlement header>span{font-size:12px;color:var(--muted)}
+.v13 .round-settlement h2{font-size:20px;line-height:1.4;margin:4px 0 0;color:var(--ink)}
+.v13 .settlement-lines{display:flex;flex-direction:column;gap:12px}
+.v13 .settlement-lines section{padding-bottom:10px;border-bottom:1px solid var(--line)}
+.v13 .settlement-lines h3{font-size:14px;margin:0 0 5px}
+.v13 .settlement-lines p{font-size:14px;margin:0;line-height:1.55}
+.v13 .settlement-lines small,.v13 .settlement-details{font-size:12px;color:var(--muted)}
+.v13 .settlement-lines .delta-row{margin-top:6px;flex-wrap:wrap}
+.v13 .settlement-choice{margin-top:6px!important;padding:8px;background:#f4edda;border-radius:6px}
+.v13 .settlement-details>summary{min-height:36px;cursor:pointer;padding:8px 0}
+.v13 .round-settlement>.primary-button{position:sticky;bottom:0;z-index:4;flex:none;width:100%;min-height:44px;margin-top:auto;font-size:14px;box-shadow:0 0 0 5px var(--card)}
+.v13 .round-settlement .recap-card{padding:10px;font-size:12px}
+.v13 .answer-option.previous-stance{border:2px solid var(--green);background:#f1f5ef;box-shadow:none}
+.v13 .answer-reactions{display:flex;flex-wrap:wrap;gap:6px}
+.v13 .reaction-mark{display:inline-flex;align-items:center;gap:4px;background:#f3f1e9;padding:3px 6px;border-radius:5px;font-size:12px;white-space:nowrap;color:var(--ink)}
+.v13 .reaction-mark b{font-weight:500}.v13 .reaction-mark strong{font-size:13px}
+.v13 .q-status.prior{background:var(--mint);color:var(--green)}
+.v13 .k-previous{font-size:12px;color:var(--green)}
+.v13 .network-orders,.v13 .debate-reminder{padding:10px;border:1px solid var(--line);border-radius:9px;background:var(--card)}
+.v13 .network-orders h3,.v13 .debate-reminder b{font-size:14px;margin:0 0 8px}
+.v13 .network-orders label{display:flex;align-items:center;gap:10px;font-size:12px;margin:6px 0}
+.v13 .network-orders select{flex:1;min-width:0;min-height:40px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);font:inherit;font-size:14px}
+.v13 .network-orders p,.v13 .debate-reminder p{font-size:12px;margin:6px 0;color:var(--muted)}
+.v13 .network-orders small{font-size:12px;color:var(--muted)}
+.v13 .debate-reminder{border-color:#d8b778;background:#fff5dd}
+.v13 .debate-reminder>.primary-button{width:100%;min-height:44px;font-size:14px}
+.v13 .identity-best{font-size:12px;color:var(--green)}
+.v13 .result-next-grade{font-size:16px;margin:8px 0 0;color:var(--ink)}
+.v13 .result-best{font-size:13px;color:var(--green);margin:5px 0 0}
+@media(max-width:600px){.v13 .round-settlement{gap:8px}.v13 .round-settlement h2{font-size:18px}.v13 .settlement-lines{gap:8px}.v13 .settlement-lines section{padding-bottom:8px}.v13 .reaction-mark{gap:3px;padding:3px 5px}}
+.v13 .campaign-followup .followup-fit{font-size:12px;line-height:1.5;margin:6px 0;color:var(--muted)}
+
+.v13 .network-orders summary{font-size:13px;font-weight:600;line-height:1.5;cursor:pointer;min-height:24px}
+.v13 .network-orders[open] summary{margin-bottom:8px}
+.v13 .settlement-rival{color:var(--muted)}
