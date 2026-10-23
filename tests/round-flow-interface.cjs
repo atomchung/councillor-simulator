@@ -41,7 +41,7 @@ for(const [action,day,config]of[['canvass',2,{venue:'market'}],['tv',3,{brief:'h
 {
  let found;
  for(let seed=1;seed<=30&&!found;seed++){const s=toRound(newState(seed),G.DEBATE_ROUND);if(s.crisis?.resolvedDay===s.day)found=s;}
- ok(found,'a real same-round resolved crisis fixture exists');const h=harness(saved(found));ok(!h.elements['event-feedback'].hidden,'resolved crisis is visible while planning');h.click({action:'debate-now'});h.click({action:'skip'});eq(h.state().phase,'question','debate still asks after resolving crisis');ok(h.elements['event-feedback'].hidden,'news overlay leaves the active question unobstructed');
+ ok(found,'a real same-round resolved crisis fixture exists');const h=harness(saved(found));ok(!h.elements['event-feedback'].hidden,'resolved crisis is visible while planning');ok(h.dock().includes('mobile-crisis-result'),'resolved crisis remains visible in the command panel when the phone map is collapsed');h.click({action:'debate-now'});h.click({action:'skip'});eq(h.state().phase,'question','debate still asks after resolving crisis');ok(h.elements['event-feedback'].hidden,'news overlay leaves the active question unobstructed');
 }
 // Research tier changes information, never exposes exact response votes.
 {

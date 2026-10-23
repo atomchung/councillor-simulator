@@ -489,7 +489,8 @@
     const scheduled = campaignSelection();
     const invitation = c.opportunity?.status === 'open' || c.followup ? (scheduled ? '<details class="briefing-disclosure"><summary>已排入' + esc(scheduled.title) + '・更換邀約</summary>' + campaignCard(true) + '</details>' : campaignCard(true)) : '';
     const content = (state.crisis?.status === 'pending' ? crisisCard(state.crisis) : '') + debateReminder() + challenges + (offer ? offerCard(offer) : '') + invitation;
-    return content ? '<details class="pending-decisions"' + (!selectedAction || state.crisis?.status === 'pending' ? ' open' : '') + '><summary>臨時邀約與事件・' + (due.length + Number(!!offer) + Number(!!invitation) + Number(state.crisis?.status === 'pending') + Number(state.day === G.DEBATE_ROUND)) + ' 件待看</summary><p class="decision-guide">行程邀約與到場回應會取代主行程。合作提案不占回合；危機的代價另列。</p>' + content + '</details>' : '';
+    const crisis = state.crisis, receipt = crisis?.status === 'resolved' && crisis.resolvedDay === state.day ? '<p class="mobile-crisis-result" role="status"><b>' + esc(crisisChoice(crisis)) + '</b>・' + signedVotes(crisis.effect.votes) + ' 票' + info('處理支出：' + money(state.ledger.find(l => l.day === crisis.resolvedDay && l.action === 'crisis')?.cost || 0)) + '</p>' : '';
+    return receipt + (content ? '<details class="pending-decisions"' + (!selectedAction || state.crisis?.status === 'pending' ? ' open' : '') + '><summary>臨時邀約與事件・' + (due.length + Number(!!offer) + Number(!!invitation) + Number(state.crisis?.status === 'pending') + Number(state.day === G.DEBATE_ROUND)) + ' 件待看</summary><p class="decision-guide">行程邀約與到場回應會取代主行程。合作提案不占回合；危機的代價另列。</p>' + content + '</details>' : '');
   }
   function planPanel() {
     return '';
@@ -1215,7 +1216,7 @@
     }
     if (data.action === 'topic' && G.availableTopics(state).some(t => t.id === data.topic) && !state.player.studied?.[data.topic]) { selectedTopic = data.topic; researchPick = researchPick.filter(t => t !== selectedTopic); error = ''; save(); render(); focusChoice('[data-action="topic"][data-topic="' + selectedTopic + '"]'); return; }
     if (data.action === 'offer') { if (G.respondOffer(state, data.choice)) { save(); render(); announce(data.choice === 'accept' ? '已接受合作，立場已公開。' : '已婉拒合作。'); } return; }
-    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); $('event-feedback').querySelector?.('button')?.focus({preventScroll:true}); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
+    if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); focusDock(); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
     if (data.action === 'clarify') { if (G.clarify(state, data.id)) { save(); render(); announce('已發澄清文宣。'); } return; }
     if (data.action === 'pledge') { if (G.cleanPledge(state)) { save(); render(); announce('已宣示乾淨選戰。'); } return; }
     if (data.action === 'research') { const t = data.topic, own = selectedAction === 'prepare' ? (selectedTopic || G.preview(state, 'prepare', planConfig()).topic) : null; if (G.TOPICS[t] && t !== own && state.player.insight?.[t]?.level !== 'precise') researchPick = researchPick.includes(t) ? researchPick.filter(x => x !== t) : [...researchPick, t].slice(0, researchCapacity()); error = ''; save(); render(); focusChoice('[data-action="research"][data-topic="' + (t || '') + '"]'); return; }

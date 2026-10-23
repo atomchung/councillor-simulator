@@ -194,3 +194,6 @@ body.v13 .party-card.pick-card>b,body.v13 .party-card.pick-card>.pick-line,body.
 .v13 .possible-questions>summary{min-height:36px;padding:8px 0;cursor:pointer;font-size:12px;line-height:1.5;color:var(--muted)}
 .v13 .possible-questions>.research-row{margin:0}
 .v13 .routine-work>.research-disclosure{margin:8px 0}
+
+.v13 .mobile-crisis-result{display:none}
+@media(max-width:600px) and (min-height:421px){.v13 .mobile-crisis-result{display:block;margin:8px 0;padding:10px;border-left:3px solid #b48b44;background:#fff2da;font-size:13px;line-height:1.5}}
