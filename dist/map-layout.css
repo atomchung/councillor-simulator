@@ -1,0 +1,50 @@
+/* The miniature stays visible; the map has one compact label per destination.
+   Each transparent button also covers the building above its label. */
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots{display:block}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot{
+  width:12%;max-width:88px;min-width:44px;height:16%;min-height:44px;
+  margin:0;padding:0 0 2px;align-items:flex-end;justify-content:center;
+  border:0;border-radius:8px;background:transparent;box-shadow:none;
+  transform:translate(-50%,-100%);transition:background .15s;
+}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot .pin,
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label small,
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot .badge{display:none}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label{
+  display:flex;align-items:center;justify-content:center;max-width:none;
+  position:relative;padding:3px 5px;border:1px solid #a49573;border-radius:4px;
+  background:#fff9e9;box-shadow:0 2px 0 #d6c5a0,0 3px 4px #4b4a331a;color:var(--ink);
+}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label b{
+  font-size:12px;font-weight:600;line-height:1.25;white-space:nowrap;text-align:center;
+}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot:hover,
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot:focus-visible{
+  background:#fffdf72b;transform:translate(-50%,-100%);box-shadow:none;
+}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot.selected .hotspot-label{
+  background:#fff7dc;border-color:#bc892d;box-shadow:0 2px 0 #c39952,0 0 0 2px #e9bf6259;color:var(--ink);
+}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot.selected .hotspot-label b,
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot.selected .hotspot-label b::after{color:var(--ink)}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot .route-cue{
+  left:auto;right:2px;bottom:0;width:7px;height:7px;padding:0;
+  font-size:0;border:1px solid #fffdf7;border-radius:50%;box-shadow:none;
+}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .route-cue i{display:none}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot.ready .hotspot-label::after{
+  content:"";width:6px;height:6px;flex:none;margin-left:4px;background:#a5432e;border-radius:50%;
+}
+/* The post reaches the ground; a selected sign glows softly without covering the characters. */
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label::before{content:"";position:absolute;z-index:-1;left:calc(50% - 2px);top:100%;width:4px;height:7px;background:#bca578;border-radius:0 0 1px 1px;box-shadow:1px 0 0 #e2d4b7}
+.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot.selected::after{content:"";position:absolute;z-index:-2;bottom:-9px;left:50%;width:80%;height:12px;transform:translateX(-50%);border-radius:50%;background:#e9bf6245;pointer-events:none}
+@media(max-width:600px){
+  .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot{width:12.2%;min-width:40px;min-height:44px;height:19%;padding:0}
+  .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label{padding:2px 3px;border-radius:4px}
+  .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label b{font-size:12px;line-height:1.15;white-space:nowrap}
+  .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label b[data-short]{font-size:0}
+  .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot-label b[data-short]::after{content:attr(data-short);font-size:12px;line-height:1.15;white-space:nowrap}
+  .v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot .route-cue{right:0;bottom:-2px;width:6px;height:6px}
+}
+
+@media(min-width:601px){.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot[data-kind="tv"] .hotspot-label b{font-size:0}.v13[data-art="matte-toy-v1"][data-map="kit"] #map-hotspots .hotspot[data-kind="tv"] .hotspot-label b::after{content:"電視台";font-size:12px;line-height:1.25}}

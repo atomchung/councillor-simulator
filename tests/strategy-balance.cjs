@@ -22,30 +22,34 @@ function visible(s){const last=s.journal.at(-1);return{...own(s),tvPool:G.tvPool
 const isPlan=o=>!['honest','guarantee','counter'].includes(o.id)&&!o.id.startsWith('tip_');
 function pick(q,rule){if(rule==='faces')return chooseAnswer(q);const open=q.options.filter(o=>o.unlocked),plans=open.filter(isPlan),plan=plans[0],by=id=>open.find(o=>o.id===id),order={'plan>guarantee':[plan,by('guarantee')],'planB>guarantee':[plans.at(-1),by('guarantee')],'plan>honest':[plan,by('honest')],guarantee:[by('guarantee'),plan],honest:[by('honest'),plan]}[rule]||[plan];return(order.find(Boolean)||open[0]).id;}
 
+// Fixed routes are built for the campaign length (COUNCILLOR_ROUNDS, 10 or 9): the rounds before the debate are filled from a pattern, the debate
+// takes its round, and the last rounds follow. At 10 rounds each sequence is the same ten steps as before.
+const LEAD=G.DEBATE_ROUND-1,cycle=(pattern,n=LEAD)=>Array.from({length:n},(_,i)=>pattern[i%pattern.length]);
+const seqCycle=(pattern,post)=>[...cycle(pattern),'debate',...post],seqFill=(prefix,fill,post)=>[...prefix,...Array(Math.max(0,LEAD-prefix.length)).fill(fill),'debate',...post];
 // Fixed route: one action per round with fixed venue, answer, spending, donor and offer rules.
 function fixedRoute(spec){return{kind:'fixed',name:spec.name,spec,offer:()=>spec.offer||'decline',decide(s){const o=own(s),action=spec.seq[o.round-1],venue=G.VENUES[spec.venue]?spec.venue:spec.venue==='rotate'?VENUE_IDS[(o.round-1)%VENUE_IDS.length]:VENUE_IDS[(o.round-1)%2];return{action,config:{venue,donor:spec.donor&&spec.donor!=='small'?spec.donor:null,gifts:!!spec.gifts,billboard:(spec.boards||[]).includes(o.round),research:spec.research?G.topicsOf(s).find(t=>!o.known.includes(t))||null:null,booth:!!spec.booth,gotv:!!spec.gotv&&o.round>=G.GOTV_FROM,expose:true},answer:q=>pick(q,spec.answer)};}};}
 const route=(name,seq,extra={})=>({name,seq,venue:VENUE_IDS[0],answer:'plan>guarantee',offer:'decline',donor:'small',gifts:false,boards:[],research:false,booth:false,gotv:false,...extra});
-const [C,T,F,P,H,D,R,O]=['canvass','tv','fundraise','prepare','recruit','debate','rally','online'],ALTERNATE=[C,T,C,T,C,T,C,D,C,C];
+const [C,T,F,P,H,D,R,O]=['canvass','tv','fundraise','prepare','recruit','debate','rally','online'],ALTERNATE=seqCycle([C,T],[C,C]);
 const STARTS=[
  route('電視與街訪交替',ALTERNATE),
- route('全程街訪',[C,C,C,C,C,C,C,D,C,C]),
- route('全程街訪、合作都接',[C,C,C,C,C,C,C,D,C,C],{offer:'accept'}),
- route('前段電視、後段街訪',[T,T,T,T,C,C,C,D,C,C]),
- route('拜訪建商、多上電視',[F,T,C,T,C,T,C,D,C,T],{donor:'developer'}),
- route('自己準備再街訪',[P,C,P,C,P,C,P,D,P,C]),
- route('先擴編再街訪',[H,H,C,C,C,C,C,D,C,C]),
- route('造勢加看板、送小禮物',[C,C,R,C,R,C,C,D,R,C],{gifts:true,boards:[1,2]}),
- route('每回合照順序研究、擺攤、最後催票',[C,C,C,T,C,C,C,D,C,C],{research:true,booth:true,gotv:true}),
- route('直播與街訪交替',[O,C,O,C,O,C,O,D,O,C]),
- route('挖黑料再上電視引爆',[C,'dig',T,C,'dig',T,C,D,C,C]),
- route('同一個市場蹲到底',[C,C,C,C,C,C,C,D,C,C],{venue:'market'}),
+ route('全程街訪',seqFill([],C,[C,C])),
+ route('全程街訪、合作都接',seqFill([],C,[C,C]),{offer:'accept'}),
+ route('前段電視、後段街訪',seqFill([T,T,T,T],C,[C,C])),
+ route('拜訪建商、多上電視',seqCycle([F,T,C,T,C,T,C],[C,T]),{donor:'developer'}),
+ route('自己準備再街訪',seqCycle([P,C],[P,C])),
+ route('先擴編再街訪',seqFill([H,H],C,[C,C])),
+ route('造勢加看板、送小禮物',seqFill([C,C,R,C,R],C,[R,C]),{gifts:true,boards:[1,2]}),
+ route('每回合照順序研究、擺攤、最後催票',seqFill([C,C,C,T],C,[C,C]),{research:true,booth:true,gotv:true}),
+ route('直播與街訪交替',seqCycle([O,C],[O,C])),
+ route('挖黑料再上電視引爆',seqCycle([C,'dig',T],[C,C])),
+ route('同一個市場蹲到底',seqFill([],C,[C,C]),{venue:'market'}),
 ];
 // Diagnostics for known design gaps: these should start to differ from their baselines once fixed.
 const DIAGNOSTICS=[
  route('診斷：交替路線，方案全選另一個',ALTERNATE,{answer:'planB>guarantee'}),
  route('診斷：交替路線，地點全改最後一個',ALTERNATE,{venue:VENUE_IDS.at(-1)}),
- route('診斷：全程街訪、全部空頭保證',[C,C,C,C,C,C,C,D,C,C],{answer:'guarantee'}),
- route('診斷：全程街訪、全部坦白',[C,C,C,C,C,C,C,D,C,C],{answer:'honest'}),
+ route('診斷：全程街訪、全部空頭保證',seqFill([],C,[C,C]),{answer:'guarantee'}),
+ route('診斷：全程街訪、全部坦白',seqFill([],C,[C,C]),{answer:'honest'}),
  // Answers chosen by reading the faces, but the route itself ignores crowds, TV risk, crises and saving for the final push.
  route('診斷：交替路線、照順序研究、看臉色回答',ALTERNATE,{research:true,answer:'faces'}),
 ];
@@ -68,7 +72,7 @@ function dealValue(v,d){return d.faces.reduce((n,f,g)=>n+v.groups[g].share*FACE[
 function situational(s,{rallySmart=false,tvSmart=false,prepares=0,fundraises=1,tvFirst=false,recruits=0,promises=false,rallies=0,boards=0,gifts=false,booth=false,investigate=false,deep=false,online=1,chiefs=1,dirt=false}={}){
  const v=visible(s),count=id=>s.player.actions.filter(a=>a.action===id&&!a.record).length,answer=q=>chooseAnswer(q,{promises,last:v.round===G.DAYS});
  const late=v.round>=G.GOTV_FROM,reserve=late?0:G.COSTS.gotv*2,hot=(v.landscape?.ranking||[]).map(r=>r.topic);
- const addons=(action,config)=>({...(['canvass','rally'].includes(action)?{gifts:gifts&&v.cash>400000+reserve,billboard:boards>v.billboards&&v.round<=5&&v.cash>500000+reserve}:{}),research:config.research!==undefined?config.research:firstUnknown(v,hot),deep:deep&&v.team>=2,booth:(booth||v.cash<250000)&&v.team>(deep?2:1)&&action!=='online',gotv:late&&['canvass','rally','tv'].includes(action)&&v.cash>=G.COSTS.gotv+(action==='tv'&&!s.player.tvCredit?G.COSTS.tv:action==='rally'?G.COSTS.rally:0),investigate:investigate&&v.round>=3&&v.tip?.canInvestigate&&v.cash>=G.COSTS.tipCheck+100000});
+ const addons=(action,config)=>({...(['canvass','rally'].includes(action)?{gifts:gifts&&v.cash>400000+reserve,billboard:boards>v.billboards&&v.round<=Math.ceil(G.DAYS/2)&&v.cash>500000+reserve}:{}),research:config.research!==undefined?config.research:firstUnknown(v,hot),deep:deep&&v.team>=2,booth:(booth||v.cash<250000)&&v.team>(deep?2:1)&&action!=='online',gotv:late&&['canvass','rally','tv'].includes(action)&&v.cash>=G.COSTS.gotv+(action==='tv'&&!s.player.tvCredit?G.COSTS.tv:action==='rally'?G.COSTS.rally:0),investigate:investigate&&v.round>=3&&v.tip?.canInvestigate&&v.cash>=G.COSTS.tipCheck+100000});
  const done=(action,config={})=>({action,config:{...config,...addons(action,config)},answer});
  // Raising money: the best open broker deal if it is worth it, otherwise a small drive.
  const fundraise=(config={})=>{const best=v.donors.filter(d=>d.status==='open').map(d=>({d,val:dealValue(v,d)})).sort((a,b)=>b.val-a.val)[0];return done('fundraise',{...config,donor:best&&best.val>=.25?best.d.id:null});};
@@ -77,7 +81,7 @@ function situational(s,{rallySmart=false,tvSmart=false,prepares=0,fundraises=1,t
  // A rally-first player takes two public stances, then saves for rallies where those stances fit the crowd best.
  if(rallySmart&&count('rally')<rallies&&G.topicsOf(s).filter(t=>G.lastPlan(s.player,t)).length>=2){const spot=v.venues.map(ven=>({id:ven.id,val:platformValue(s,v,ven.mix)})).sort((a,b)=>b.val-a.val)[0];
   if(G.preview(s,'rally',{venue:spot.id}).allowed)return done('rally',{venue:spot.id,research:null});
-  if(count('fundraise')<fundraises&&v.round<=8)return fundraise();}
+  if(count('fundraise')<fundraises&&v.round<=G.DEBATE_ROUND)return fundraise();}
  const heat=t=>v.landscape?.ranking?.find(r=>r.topic===t)?.share||0,shaky=[...G.topicsOf(s)].filter(t=>v.landscape?.insight?.[t]?.level!=='precise').sort((a,b)=>heat(b)-heat(a))[0];
  if(shaky&&count('prepare')<prepares&&!v.challenges.length)return done('prepare',{topic:shaky,research:firstUnknown(v,hot.filter(t=>t!==shaky))});
  if(investigate&&v.tip?.evidenceLevel>=2&&v.tip.truthLabel==='確認重複請款'&&!v.tip.publication&&v.round>=4)return done('press',{research:null});
@@ -98,9 +102,9 @@ function situational(s,{rallySmart=false,tvSmart=false,prepares=0,fundraises=1,t
  // walks the street while a helper researches the TV questions.
  if(tvSmart){const ready=v.tvPool.filter(t=>v.known.includes(t)).length,tvR=firstUnknown(v,v.tvPool)||firstUnknown(v,hot);
   if(canTV&&(ready>=2||tv.brief))return done('tv',{brief:tv.brief,research:tvR});
-  if(!canTV&&count('fundraise')<fundraises&&v.round<=8)return fundraise({research:tvR});
+  if(!canTV&&count('fundraise')<fundraises&&v.round<=G.DEBATE_ROUND)return fundraise({research:tvR});
   return done('canvass',{venue:street.venue,research:tvR});}
- const best=moves[0];if(best.action==='tv'&&!canTV){if(v.round<=8&&count('fundraise')<fundraises&&v.cash<180000)return fundraise();return done('canvass',{venue:street.venue,research:street.research});}
+ const best=moves[0];if(best.action==='tv'&&!canTV){if(v.round<=G.DEBATE_ROUND&&count('fundraise')<fundraises&&v.cash<180000)return fundraise();return done('canvass',{venue:street.venue,research:street.research});}
  if(best.action==='rally'&&!G.preview(s,'rally',{venue:best.venue}).allowed)return done('canvass',{venue:street.venue,research:street.research});
  return done(best.action,{venue:best.venue,brief:best.brief,research:best.research});
 }
