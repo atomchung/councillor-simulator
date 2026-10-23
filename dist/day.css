@@ -979,6 +979,15 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
 .v13 .recap-hindsight{margin:10px 0 0;padding:8px 12px;border-radius:10px;background:#e7f1e4;font-size:13px;line-height:1.5;color:#2f6a46}
 .v13 .recap-hindsight.warn{background:#fbecd9;color:#8a4a1a}.v13 .recap-hindsight b{margin-right:8px}
 .v13 .journal-entry h3 small{margin-left:8px;font-size:12px;color:var(--muted)}.v13 .journal-entry{padding-bottom:12px}
+/* The round just played: one line on top of the next round's dock, its capsules on top of 選戰動態. */
+.v13 .last-line{display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px;margin:0 0 8px;font-size:14px;color:var(--muted)}
+.v13 .last-line b{padding:2px 10px;border-radius:999px;background:#f1efe4;color:var(--ink)}.v13 .last-line b.up{background:#e4f0e1;color:#2f6a46}.v13 .last-line b.down{background:#f8e3dc;color:#9a3f2b}
+.v13 .last-round{margin-top:10px;padding-bottom:4px}.v13 .last-round h3{margin:0;font-size:15px}.v13 .last-round h3 small{margin-left:8px;font-size:12px;font-weight:400;color:var(--muted)}
+.v13 .last-round .cap-row{margin-top:8px}.v13 .last-round .recap-details{margin-top:6px}
+/* The dirt file: how each dig went, and how a released lead went. */
+.v13 .dig-log{flex-basis:100%;margin:2px 0 0;padding:0;list-style:none;font-size:12px;line-height:1.6;color:var(--muted)}
+.v13 .dig-log .found{color:#2f6a46}.v13 .dig-log .backfire{color:#9a3f2b}
+.v13 .lead-outcome{font-size:12px;font-weight:700;color:var(--ink)}.v13 .lead-outcome.backfire,.v13 .lead-outcome.caught{color:#9a3f2b}
 /* The speaker in the scene bubble: face in their group's colour, name, then their words. */
 .v13 .conversation-bubble .bubble-speaker{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:12px;color:var(--ink)}
 .v13 .bubble-face{position:relative;flex:0 0 30px;width:30px;height:30px;border-radius:50%;overflow:hidden;background:var(--g-soft,#e4eee6);border:2px solid var(--g,#285d61)}
@@ -1152,6 +1161,8 @@ body.v13{height:auto;min-height:100dvh;overflow:auto;display:block}
  .v13 .mobile-destinations .hotspot .route-cue{position:static;margin-left:auto;font-size:11px;padding:2px 6px}
  .v13 .sup-est[data-route] .sup-row{grid-template-columns:4.9em minmax(0,1fr) 5em 4.6em;gap:5px}
 
+}
+
 /* ===== Matte-toy pack: component map, grounded figures and venue scenes =====
    The map is built from incoming/map-kit in day-art.js. Map parts, people and their markers share one stacking order by the
    y of their feet, so a building or tree in front hides whoever walks behind it. */
@@ -1201,3 +1212,27 @@ body.v13[data-act="3"] .kit-part,body.v13[data-act="3"] .kit-flat{filter:sepia(.
  .v13[data-art="matte-toy-v1"] #conversation-bubble[data-kind="debate"][data-stage="reaction"]{--tail:79%}
  .v13[data-art="matte-toy-v1"] #conversation-bubble[data-mode="rally"]{--tail:47%}
 }
+
+.v13 .answer-gain{display:flex;align-items:center;gap:8px;margin:8px 0 0;font-size:15px}.v13 .answer-gain b{font-size:18px}
+
+/* Campaign intent and the two mutually exclusive invitations. */
+.v13 .campaign-card{padding:12px;border:1px solid var(--line);border-radius:12px;background:#f6f8ef}
+.v13 .campaign-plans{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px}
+.v13 .campaign-plans button{display:flex;align-items:center;justify-content:center;gap:5px;min-height:42px;padding:7px;border:1px solid var(--line);border-radius:8px;background:#fffdf7;font-size:13px;color:var(--ink)}
+.v13 .campaign-plans button[aria-pressed="true"]{background:var(--green);border-color:var(--green);color:#fffdf7}
+.v13 .campaign-card .campaign-hint{margin:8px 0;font-size:12px;line-height:1.5}
+.v13 .campaign-progress{display:flex;flex-wrap:wrap;gap:5px 12px;padding:0;margin:8px 0;list-style:none;font-size:12px;color:var(--muted)}
+.v13 .campaign-progress i{margin-right:4px;font-style:normal}.v13 .campaign-progress .done{color:#2f6a46}
+.v13 .campaign-clash{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.v13 .campaign-card .campaign-clash h3{margin:0;font-size:15px}.v13 .campaign-card .campaign-clash>p{margin:5px 0 8px;font-size:12px;line-height:1.5}
+.v13 .campaign-options{display:grid;grid-template-columns:1fr 1fr;gap:7px}.v13 .campaign-option{min-width:0;padding:9px;border:1px solid var(--line);border-radius:9px;background:#fffdf7}.v13 .campaign-option.selected{border-color:var(--green);box-shadow:inset 0 0 0 1px var(--green)}
+.v13 .campaign-option h4{font-size:14px;margin:0 0 7px}.v13 .campaign-card .campaign-option p{font-size:12px;line-height:1.5;margin:5px 0}.v13 .campaign-option .campaign-gain{color:#2f6a46}.v13 .campaign-option .campaign-cost{color:#9a3f2b}.v13 .campaign-option button{width:100%;margin-top:6px}.v13 .campaign-option button:disabled{opacity:.5;cursor:default}
+.v13 .campaign-assets{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}.v13 .campaign-card .campaign-assets p{display:flex;align-items:center;gap:5px;padding:3px 7px;margin:0;background:#e4efde;border-radius:7px;font-size:12px;color:#2f6a46}
+.v13 .campaign-followup{display:flex;align-items:center;flex-wrap:wrap;gap:6px;margin-top:10px;font-size:13px}.v13 .campaign-followup button{margin-left:auto}.v13 .campaign-followup small{width:100%;color:var(--muted)}
+.v13 .campaign-card .campaign-rival,.v13 .campaign-card .campaign-latest,.v13 .campaign-card .campaign-missed{margin:8px 0 0;font-size:12px;line-height:1.5}.v13 .campaign-rival{padding-top:8px;border-top:1px solid var(--line)}.v13 .campaign-selected{padding:8px 10px;background:#e4efde;border-radius:8px}
+@media(max-width:420px){.v13 .campaign-options{grid-template-columns:1fr}.v13 .campaign-option{padding:10px}.v13 .campaign-plans button{font-size:12px}}
+
+.v13 .research-disclosure{margin:10px 0;border:1px solid var(--line);border-radius:9px;background:#fffdf7;padding:8px 10px}
+.v13 .research-disclosure>summary{cursor:pointer;font-size:13px;line-height:1.5;color:var(--ink)}.v13 .research-disclosure>summary b{margin-left:5px}.v13 .research-disclosure>summary span{display:inline-block;margin-left:10px;font-size:12px;color:var(--muted)}.v13 .research-disclosure>.research-row{margin-top:10px}.v13 .research-disclosure>.info{margin-top:8px}
+
+.v13 .world-column>.mobile-campaign{order:0;margin:0 0 2px}.v13 .mobile-campaign .campaign-card{margin:0}.v13 .mobile-campaign .card-head{display:flex;align-items:center;gap:6px}.v13 .mobile-campaign .campaign-card p{font-size:13px;line-height:1.5}.v13 .mobile-campaign .campaign-card .campaign-option p{font-size:12px}

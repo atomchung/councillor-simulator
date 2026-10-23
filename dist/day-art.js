@@ -46,28 +46,26 @@
   // Map pixels are 1536×1024, the same 3:2 box as the world; game units are 1200×650.
   const MX = 1200/1536, MY = 650/1024, g = (x, y) => ({x:+(x*MX).toFixed(1), y:+(y*MY).toFixed(1)});
   const KIT = {
-    // Building sprites: 1024² canvases, footprint centre at (512, 900); [file, centre x, base y, top of the drawn building in the canvas].
-    buildings: {houseA:['bld-house-a',150,392,541],temple:['bld-temple',345,392,711],park:['bld-park',545,392,611],office:['bld-office',740,392,641],recruit:['bld-recruit',935,392,681],plaza:['bld-plaza',1130,392,721],houseB:['bld-house-b',1330,392,511],
-      market:['bld-market',168,628,741,.68],fundraise:['bld-fundraise',430,628,686,.66],mrt:['bld-mrt',635,628,731,.66],tv:['bld-tv',905,628,676,.68],online:['bld-online',1105,628,706,.68],campus:['bld-campus',1372,628,726,.68]},
-    // The back street is a little smaller than the front one, as seen from above and in front.
-    scale: .62,
-    // Streets [x0, x1, centre y, width], vertical links [centre x, y0, y1, width]; the crossroads tile marks 保儀路口.
-    roads: [[52,1484,430,62],[60,1490,665,64],[84,1452,768,44]],
-    links: [[300,461,633,60],[768,461,633,60],[1236,461,633,60],[768,697,744,60],[1035,697,750,52]],
-    cross: [768,665],
-    // Trees stand between the slots along the front street, so none hides a person waiting at a door.
-    trees: [['tree-a',300,736,.42],['tree-b',560,738,.42],['tree-a',1238,738,.42],['tree-b',1474,790,.44],['tree-b',52,470,.44],['tree-a',40,786,.4]],
-    // Walkable graph on the street centre lines. Chains are ordered along their street.
-    // Walkers keep to the lower lane of each street; people waiting at doors stand on the upper lane.
-    nodes: {s1w:[110,446],s1a:[300,446],s1b:[768,446],s1c:[1236,446],start:[1330,446],s1e:[1440,446],s2w:[90,680],s2a:[300,680],s2b:[768,680],s2x:[1035,680],s2c:[1236,680],s2e:[1460,680],pw:[110,778],p0:[768,778],p1:[1035,778],pe:[1430,778]},
-    // The south arm of the crossroads is where people stop for 保儀路口; walkers reach the river by the link at the bridge.
-    chains: [['s1w','s1a','s1b','s1c','start','s1e'],['s2w','s2a','s2b','s2x','s2c','s2e'],['s1a','s2a'],['s1b','s2b'],['s1c','s2c'],['s2x','p1'],['pw','p0','p1','pe']],
-    // Where people stop: on the street, in front of each door. Labels sit on the roof line of their building.
-    stands: {start:[1330,412],prepare:[712,412],recruit:[935,412],temple:[345,412],plaza:[1130,412],market:[168,646],fundraise:[430,646],street:[768,714],tv:[905,646],online:[1088,646],debate:[1382,646],river:[540,756]},
-    labels: {start:[1330,262],prepare:[740,250],recruit:[935,290],temple:[345,300],plaza:[1130,300],market:[168,546],fundraise:[430,520],street:[768,650],tv:[905,520],online:[1105,535],debate:[1370,540],river:[540,818]},
-    // Residents stand where no route passes, mostly in pairs facing each other.
-    residents: [['elder-hat',150,444,false],['elder-cart',196,446,true],['middle-mom',902,720,false],['young-student',940,724,true],['elder-cane',228,780,false],['young-pack',330,786,false],['middle-polo',368,790,true],['elder-track',272,782,false],['young-bike',1460,446,true]],
-    rivalIdle: [1300,760]
+    // Six recognisable landmarks surround an open, connected neighbourhood. Logistics share the campaign office.
+    // [file, centre x, base y, top of the drawn building in the canvas, scale]
+    buildings: {temple:['bld-temple',270,340,711,1.12],office:['bld-office',770,290,641,.92],plaza:['bld-plaza',1250,440,721,1.06],
+      market:['bld-market',320,650,741,1.24],online:['bld-online',760,680,706,.94],tv:['bld-tv',1240,735,676,1.08]},
+    scale: 1,
+    // Roads follow the building clusters, with a small public square in the centre and a path to the river.
+    nodes: {t:[285,400],a:[530,425],o:[770,350],b:[1000,415],p:[1260,510],w1:[75,500],w2:[75,700],m:[330,715],me:[555,720],c:[650,500],x:[1000,500],e:[1450,590],e2:[1450,795],v:[1250,795],vc:[1000,785],s:[520,795],l:[775,755],r:[420,830]},
+    chains: [['t','a','o','b','x','p'],['t','w1','w2','m','me','c'],['a','c','x','b'],['p','e','e2','v'],['x','vc','v'],['me','s','l','v'],['s','r'],['vc','l']],
+    roadWidth: 88,
+    square: [800,475,160,75],
+    riverY: 880,
+    bridge: [1040,870,.32],
+    trees: [['tree-a',70,365,.7],['tree-b',1440,420,.65],['tree-a',1465,720,.7],['tree-b',600,330,.62],['tree-a',1050,315,.62],['tree-b',1000,825,.6],['tree-a',160,815,.7]],
+    // Waiting spots are beside the walking lane. Distinct keys keep action semantics while shared sites group the people.
+    siteFor: {start:'prepare',prepare:'prepare',recruit:'prepare',fundraise:'prepare',temple:'temple',plaza:'plaza',debate:'plaza',market:'market',tv:'tv',online:'online',street:'street',river:'river'},
+    stands: {start:[770,310],prepare:[770,310],recruit:[770,310],fundraise:[770,310],temple:[285,360],plaza:[1260,470],debate:[1260,470],market:[330,675],tv:[1250,755],online:[775,715],street:[830,440],river:[420,800]},
+    labels: {start:[990,375],prepare:[990,375],recruit:[990,375],fundraise:[990,375],temple:[470,430],plaza:[1030,540],debate:[1030,540],market:[535,745],tv:[1435,835],online:[760,875],street:[900,610],river:[230,850]},
+    // Two neighbours at the temple, a shopper and seller at the market, one person by the river. No line of spectators.
+    residents: [['elder-hat',135,385,false],['elder-cart',180,410,true],['middle-mom',160,670,false],['middle-polo',205,660,true],['young-courier',360,870,false]],
+    rivalIdle: [1130,835]
   };
   // The old single-image map, kept as the fallback when a kit image fails to load. Units here are game units.
   const DISTRICT = {
@@ -82,9 +80,9 @@
   function spot(id) { if (!kit()) { const p = DISTRICT.spots[id] || DISTRICT.spots.start; return {x:p[0],y:p[1]}; } return kitPoint(id, 'labels'); }
   function stand(id) { if (!kit()) return spot(id); return kitPoint(KIT.stands[id] ? id : 'start', 'stands'); }
   // Other people at a place take the next slot along the street, so nobody stands inside anybody else.
-  const SLOT_OFFSETS = [[0,0],[-54,0],[54,0],[-106,0],[106,0]], STREET_SLOTS_OFFSETS = [[0,0],[-52,6],[52,6],[-100,16],[100,16]];
-  function slot(id, n = 0) { const s = stand(id), o = (kit() && id === 'street' ? STREET_SLOTS_OFFSETS : SLOT_OFFSETS)[Math.max(0, Math.min(n, SLOT_OFFSETS.length - 1))]; return kit() ? {x:+(s.x+o[0]*MX).toFixed(1), y:+(s.y+o[1]*MY).toFixed(1)} : {x:s.x+o[0]*.6, y:s.y+o[1]*.6}; }
-  function toyKey(id, venue) { return ['canvass','rally'].includes(id) ? (KIT.stands[venue] ? venue : 'market') : id === 'press' ? 'tv' : id === 'dig' ? 'prepare' : id; }
+  const SLOT_OFFSETS = [[0,0],[-38,-18],[38,-12],[-55,18],[55,18]], STREET_SLOTS_OFFSETS = [[0,0],[-38,-18],[38,-12],[-55,18],[55,18]];
+  function slot(id, n = 0) { const s = stand(id), o = (kit() ? (id === 'street' ? STREET_SLOTS_OFFSETS : SLOT_OFFSETS) : [[0,0],[-54,0],[54,0],[-106,0],[106,0]])[Math.max(0, Math.min(n, SLOT_OFFSETS.length - 1))]; return kit() ? {x:+(s.x+o[0]*MX).toFixed(1), y:+(s.y+o[1]*MY).toFixed(1)} : {x:s.x+o[0]*.6, y:s.y+o[1]*.6}; }
+  function toyKey(id, venue) { const key = ['canvass','rally'].includes(id) ? (KIT.stands[venue] ? venue : 'market') : id === 'press' ? 'tv' : id === 'dig' ? 'prepare' : id; return kit() ? KIT.siteFor[key] || key : key; }
   // Shortest walk on the street graph from one place to another, ending at the second place's door (map pixels).
   function kitWalk(fromKey, toKey) {
     const edges = {}, link = (a, b) => { const d = Math.hypot(KIT.nodes[a][0]-KIT.nodes[b][0], KIT.nodes[a][1]-KIT.nodes[b][1]); (edges[a] ??= []).push([b,d]); (edges[b] ??= []).push([a,d]); };
@@ -99,7 +97,7 @@
     const end = [B.a, B.b].map(k => ({k, d: dist[k] + Math.hypot(KIT.nodes[k][0]-B.p[0], KIT.nodes[k][1]-B.p[1])})).sort((x, y) => x.d - y.d)[0];
     const chain = []; if (!sameEdge) for (let k = end.k; k; k = prev[k]) chain.unshift(KIT.nodes[k]);
     const s = KIT.stands[toKey] || KIT.stands.start;
-    return [A.p, ...chain, B.p, s].filter((p, i, all) => i === 0 || Math.hypot(p[0]-all[i-1][0], p[1]-all[i-1][1]) > .5);
+    return [KIT.stands[fromKey] || KIT.stands.start, A.p, ...chain, B.p, s].filter((p, i, all) => i === 0 || Math.hypot(p[0]-all[i-1][0], p[1]-all[i-1][1]) > .5);
   }
   function visualRoute(id, venue, from) {
     const key = toyKey(id, venue);
@@ -126,18 +124,20 @@
     return '<img class="kit-part ' + cls + '" data-art-image="map" data-art-map="kit" alt="" draggable="false" src="' + TOY_ROOT + 'game/map-' + file + '.webp" style="left:' + pct(left, 1536) + ';top:' + pct(top, 1024) + ';width:' + pct(size, 1536) + ';z-index:' + Math.round(base * MY) + '">';
   }
   function kitScene() {
-    const k = KIT.scale;
-    let flat = '<svg class="kit-flat" viewBox="0 0 1536 1024" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><clipPath id="kit-plate"><rect x="40" y="36" width="1456" height="892" rx="110"/></clipPath></defs>';
+    const k = KIT.scale, line = chain => chain.map((id, i) => (i ? 'L' : 'M') + KIT.nodes[id].join(' ')).join(' ');
+    let flat = '<svg class="kit-flat" viewBox="0 0 1536 1024" preserveAspectRatio="none" aria-hidden="true" focusable="false"><defs><clipPath id="kit-plate"><rect x="40" y="36" width="1456" height="892" rx="110"/></clipPath><linearGradient id="kit-lawn" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#edf0dc"/><stop offset="1" stop-color="#dce4c4"/></linearGradient><pattern id="kit-paving" width="72" height="48" patternUnits="userSpaceOnUse"><rect width="72" height="48" fill="#e4dbc5"/><path d="M0 0H72M0 24H72M0 48H72M0 0V24M36 0V24M72 0V24M18 24V48M54 24V48" fill="none" stroke="#cbbd9e" stroke-width="1" opacity=".48"/></pattern></defs>';
     flat += kitImage('ground', 0, 0, 1536, 1024, 'class="kit-ground"') + kitImage('ground-rain', 0, 0, 1536, 1024, 'class="kit-ground-rain"');
-    flat += kitImage('hills-back', 0, -26, 1536, 360);
-    flat += '<g clip-path="url(#kit-plate)">' + [-4, 835].map(x => '<svg x="' + x + '" y="774" width="841" height="220" viewBox="2 0 841 220" preserveAspectRatio="none">' + kitImage('river', 0, 0, 845, 220) + '</svg>').join('');
-    // Paving: the road texture repeats along each street; links are the same texture turned a quarter.
-    for (const [x0, x1, cy, w] of KIT.roads) { const t = 512 * w / 140; flat += '<svg x="' + x0 + '" y="' + (cy - w / 2) + '" width="' + (x1 - x0) + '" height="' + w + '" overflow="hidden">'; for (let x = 0; x < x1 - x0; x += t - 1) flat += kitImage('road-straight', x, -186 * t / 512, t, t); flat += '</svg>'; }
-    for (const [cx, y0, y1, w] of KIT.links) { const t = 512 * w / 140; flat += '<svg x="' + (cx - w / 2) + '" y="' + y0 + '" width="' + w + '" height="' + (y1 - y0) + '" overflow="hidden"><g transform="translate(' + w + ' 0) rotate(90)">'; for (let y = 0; y < y1 - y0; y += t - 1) flat += kitImage('road-straight', y, -186 * t / 512, t, t); flat += '</g></svg>'; }
+    flat += kitImage('hills-back', 0, -100, 1536, 240, 'opacity=".72"');
+    flat += '<g clip-path="url(#kit-plate)"><path d="M138 170Q750 85 1390 170Q1470 190 1475 290L1475 710Q1485 795 1360 875H178Q65 845 65 710V260Q65 190 138 170Z" fill="#a8b78d" opacity=".24" transform="translate(0 8)"/><path d="M138 170Q750 85 1390 170Q1470 190 1475 290L1475 710Q1485 795 1360 875H178Q65 845 65 710V260Q65 190 138 170Z" fill="url(#kit-lawn)"/>';
+    for (const [,cx,base,,bk] of Object.values(KIT.buildings)) { const scale=bk||k; flat += '<ellipse cx="'+cx+'" cy="'+(base+10)+'" rx="'+(184*scale)+'" ry="'+(37*scale)+'" fill="#d3d4ba" opacity=".35"/><ellipse cx="'+cx+'" cy="'+base+'" rx="'+(180*scale)+'" ry="'+(34*scale)+'" fill="#eee8d6"/>'; }
+    // Soft edges and rounded joins read as connected lanes, rather than a grid laid over the empty ground.
+    for (const c of KIT.chains) flat += '<path d="' + line(c) + '" fill="none" stroke="#b7b79a" stroke-opacity=".36" stroke-width="' + (KIT.roadWidth + 14) + '" stroke-linecap="round" stroke-linejoin="round"/><path d="' + line(c) + '" fill="none" stroke="url(#kit-paving)" stroke-width="' + KIT.roadWidth + '" stroke-linecap="round" stroke-linejoin="round"/>';
+    const [sx,sy,rx,ry] = KIT.square;
+    flat += '<ellipse cx="' + sx + '" cy="' + sy + '" rx="' + rx + '" ry="' + ry + '" fill="url(#kit-paving)"/>';
+    flat += [-4, 835].map(x => '<svg x="' + x + '" y="' + KIT.riverY + '" width="841" height="155" viewBox="2 0 841 220" preserveAspectRatio="none">' + kitImage('river', 0, 0, 845, 220) + '</svg>').join('');
     flat += '</g>';
-    { const [cx, cy] = KIT.cross, t = 512 * 62 / 140; flat += '<svg x="' + (cx - 64) + '" y="' + (cy - 64) + '" width="128" height="128" overflow="hidden">' + kitImage('road-cross', 64 - t / 2, 64 - t / 2, t, t) + '</svg>'; }
-    // The bridge spans the river from the riverside path to the front edge of the board.
-    flat += kitImage('bridge', 1035 - 256 * .42, 752 - 36 * .42, 512 * .42, 512 * .42);
+    const [bx,by,bk] = KIT.bridge;
+    flat += kitImage('bridge', bx - 256 * bk, by - 36 * bk, 512 * bk, 512 * bk);
     flat += '</svg>';
     let parts = '';
     for (const [file, cx, base, , bk] of Object.values(KIT.buildings)) parts += kitPart(file, cx, base, 1024, 900, bk || k, 'kit-building');
