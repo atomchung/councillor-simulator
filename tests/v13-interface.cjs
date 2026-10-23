@@ -213,7 +213,7 @@ equal(harness({[KEY]:'{bad'}).state().started,false,'invalid save opens a safe n
 // Source checks for the layout contract (not a rendering test).
 check(css.includes('container-type:size')&&css.includes('100cqh')&&css.includes('height:100dvh'),'desktop fits one window, scene sized by the column');check(css.includes('.v13 .hotspot.selected .hotspot-label small{display:block'),'phones show place names on the map, the crowd on the chosen one');check(css.includes('prefers-reduced-motion:reduce'),'reduced-motion safeguards');
 check(css.includes('body.v13[data-phase="report"] .game-layout{display:none}')&&css.includes('.v13 .report-card'),'report page replaces the game layout');check(css.includes('.v13 .research-row')&&css.includes('.v13 .tug-row')&&css.includes('.v13 .crisis-card')&&css.includes('.v13 .world.is-rainy'),'research, tug of war, crisis and rain styles');
-check(!ui.includes('setTimeout')&&!ui.includes('setInterval'),'no uncontrolled timers');check(html.includes('content="'+G.REVISION+'"'),'index matches the engine revision');check(html.includes('legacy-v12/index.html'),'footer links the preserved v12');
+check(!ui.includes('setTimeout')&&!ui.includes('setInterval'),'no uncontrolled timers');check(html.includes('content="'+G.REVISION+'"'),'index matches the engine revision');check(!html.includes('legacy-'),'current game does not link archived games');
 
 // v13.5: difficulty on identity cards, the online room on the map, chiefs' progress, and choosing whom to ask for money.
 {const h=harness({}, {seed:77});check(h.dock().includes('class="difficulty d-newcomer">困難')&&h.dock().includes('簡單')&&h.dock().includes('普通'),'identity cards show difficulty, not win rates');check(!/勝率/.test(h.dock()+h.panel()),'no win rate shown');

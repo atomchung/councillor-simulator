@@ -8,3 +8,4 @@ node_modules/
 .worktrees/
 FEEDBACK-ting-*.md
 scratch/
+.pages/
