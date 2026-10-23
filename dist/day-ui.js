@@ -570,7 +570,7 @@
     const free = researchCapacity(), picks = researchTopic() || [], list = G.topicsOf(state), ownTopic = selectedAction === 'prepare' ? (selectedTopic || G.preview(state, 'prepare', planConfig()).topic) : null;
     if (!list.length) return '';
     const chip = t => { const own = t === ownTopic, done = state.player.insight?.[t]?.level === 'precise'; return '<button class="research-chip ' + depthClass(t) + '" data-action="research" data-topic="' + t + '" aria-pressed="' + picks.includes(t) + '"' + (own || done || !free || (!picks.includes(t) && picks.length >= free) ? ' disabled aria-disabled="true"' : '') + '><b>' + esc(short(t)) + '</b><small>' + (own ? '本人研究' : statusOf(t)) + '</small></button>'; };
-    const names = picks.length ? picks.map(short).join('、') : '未分配';
+    const names = picks.length ? '可連選・再點取消' : '點選議題分配';
     return '<details class="research-disclosure"' + (researchOpen ? ' open' : '') + '><summary>助手研究 <b>' + picks.length + '／' + free + ' 人</b><span>' + esc(names) + '</span></summary><div class="research-row" role="group" aria-label="助手研究">' + list.map(chip).join('') + '</div>' + info('每位助手查一題，下回合起知道反應方向；本人研究才能摸清強弱並提高說服力。沒派研究的人會陪你拉票。') + (researchNote(picks, free) ? '<p class="research-note">' + researchNote(picks, free) + '</p>' : '') + '</details>';
   }
   // Assistants who walk with you: only the first few add to your pull, so the dots stop at the cap and extras show as a count.
@@ -611,11 +611,16 @@
     const status = id => state.player.studied?.[id] ? '已完成' : state.player.insight?.[id]?.level === 'precise' ? '資料齊全・可練習' : state.player.insight?.[id] ? '研究過' : '還沒查';
     return '<details class="topic-disclosure"' + (topicOpen ? ' open' : '') + '><summary>本人研究 <b>' + esc(short(current)) + '</b></summary><div class="topic-picks" role="group" aria-label="查哪個議題"><span class="pick-label">查哪題' + info('之後被問到這題，回答效果約 ×' + G.TUNING.studied + '，也能分辨三群反應強弱。越熱門的題越常被問。') + '</span>' + pool.map(t => '<button class="topic-pick" data-action="topic" data-topic="' + t.id + '" aria-pressed="' + (current === t.id) + '"' + (state.player.studied?.[t.id] ? ' disabled aria-disabled="true"' : '') + '><b>' + esc(t.short || t.title) + '</b><i class="heat" style="width:' + Math.round(heat(t.id) / max * 100) + '%"></i><small>' + esc(status(t.id)) + '</small></button>').join('') + '</div></details>';
   }
+  function actionMenu() {
+    const choices = [['canvass','街訪'],['prepare','研究'],['fundraise','募款'],['recruit','招募'],['rally','造勢'],['tv','電視'],['online','直播'],['file','爆料']];
+    const stances = G.topicsOf(state).filter(t => stanceOf(t)).length;
+    return '<details class="action-menu"' + (!selectedAction ? ' open' : '') + '><summary>所有行程 <span>募款・造勢・爆料等</span></summary><nav aria-label="所有競選行程">' + choices.map(([id, title]) => '<button data-action="plan-choice" data-kind="' + id + '" aria-pressed="' + (selectedAction === id) + '"><b>' + title + '</b>' + (id === 'rally' && stances < 2 ? '<small>先公開 2 個立場</small>' : id === 'file' ? '<small>查證與發布</small>' : '') + '</button>').join('') + '</nav><p>每回合親自選一項；選好再出發。爆料先看檔案。</p></details>';
+  }
   function dockPlan() {
     const p = selectedAction ? G.preview(state, selectedAction, planConfig()) : null;
     if (p && booth && !p.booth) { p.allowed = false; p.reason = '人手已用完：請取消募款攤，或減少一位研究助手。'; }
     if (p && selectedAction === 'prepare' && allStudied()) { p.allowed = false; p.reason = '議題都親自研讀過了，換個行程。'; }
-    if (!p) return '<div class="planning-briefing">' + pendingDecisions() + roundBriefing() + networkOrders() + '</div>';
+    if (!p) return '<div class="planning-briefing">' + actionMenu() + pendingDecisions() + roundBriefing() + networkOrders() + '</div>';
     const id = selectedAction, venue = onSite(id) ? G.venueView(state).find(v => v.id === p.venue) : null, place = placeName(id, p.venue);
     let body = '';
     if (onSite(id)) {
@@ -635,7 +640,7 @@
     if (['prepare', 'fundraise', 'recruit', 'dig'].includes(id)) body = officeActions() + body;
     if ((onSite(id) && p.venue === 'plaza') || id === 'debate') { if (state.day >= G.DEBATE_ROUND - 2 && state.day <= G.DEBATE_ROUND) body = '<div class="venue-occasion"><button data-action="select-action" data-kind="debate"' + (state.day !== G.DEBATE_ROUND ? ' disabled aria-disabled="true"' : '') + '>政見發表會・' + (state.day === G.DEBATE_ROUND ? '這回合開場' : '第 ' + G.DEBATE_ROUND + ' 回合開場') + '</button></div>' + body; }
     if (p.mediaFatigue < 1) body = '<p class="dock-info media-fatigue">這局已多次上節目，觀眾開始疲乏。</p>' + body;
-    return '<div class="dock-plan"><div class="dock-title">' + icon(id) + '<h2>' + esc(place) + '<small>' + esc(action(id).title) + '・' + (p.totalCost ? wan(p.totalCost) : '免費') + info(p.campaignFollowup ? '占用直播助手；這次觸及依題目和青年關注度決定。' : id === 'tv' && p.freeTv ? '本次免節目費；有準備的題目才能清楚表態。' : action(id).risk) + '</small></h2><button class="primary-button" data-action="confirm-action"' + (!p.allowed ? ' disabled aria-disabled="true"' : '') + '>出發 →</button></div><div class="dock-options-body">' + (window.CampaignAdvisor?.selected?.(G, state, { opening: openingPick, selectedAction, selectedVenue, selectedTopic, preview: p }) ? '<p class="staff-context">幕僚小葉：' + esc(window.CampaignAdvisor.selected(G, state, { opening: openingPick, selectedAction, selectedVenue, selectedTopic, preview: p })) + '</p>' : '') + pendingDecisions() + '<p class="main-action-guide">你的主行程・本回合只能選一個</p>' + body + networkOrders() + '<details class="briefing-disclosure"><summary>幕僚建議與選情</summary>' + roundBriefing() + '</details>' + (!p.allowed ? '<p class="commit-reason blocked" role="status">' + esc(p.reason) + '</p>' : '') + '</div></div>';
+    return '<div class="dock-plan"><div class="dock-title">' + icon(id) + '<h2>' + esc(place) + '<small>' + esc(action(id).title) + '・' + (p.totalCost ? wan(p.totalCost) : '免費') + info(p.campaignFollowup ? '占用直播助手；這次觸及依題目和青年關注度決定。' : id === 'tv' && p.freeTv ? '本次免節目費；有準備的題目才能清楚表態。' : action(id).risk) + '</small></h2><button class="primary-button" data-action="confirm-action"' + (!p.allowed ? ' disabled aria-disabled="true"' : '') + '>出發 →</button></div><div class="dock-options-body">' + actionMenu() + (window.CampaignAdvisor?.selected?.(G, state, { opening: openingPick, selectedAction, selectedVenue, selectedTopic, preview: p }) ? '<p class="staff-context">幕僚小葉：' + esc(window.CampaignAdvisor.selected(G, state, { opening: openingPick, selectedAction, selectedVenue, selectedTopic, preview: p })) + '</p>' : '') + pendingDecisions() + '<p class="main-action-guide">你的主行程・本回合只能選一個</p>' + body + networkOrders() + '<details class="briefing-disclosure"><summary>幕僚建議與選情</summary>' + roundBriefing() + '</details>' + (!p.allowed ? '<p class="commit-reason blocked" role="status">' + esc(p.reason) + '</p>' : '') + '</div></div>';
   }
 
   /* ---------- scene: venue interior, crowd and speech ---------- */
@@ -1164,6 +1169,22 @@
     setPosition(); save(); render(); focusDock(); window.scrollTo?.(0, 0); announce('新的一局：先選身分和政黨。');
   }
   function focusChoice(selector) { ($('dock').querySelector?.(selector) || $('map-hotspots').querySelector?.(selector) || $('panel').querySelector?.(selector))?.focus({ preventScroll: true }); }
+  // Replacing the options DOM creates a new scrolling element. Keep both the
+  // open controls and every scrolling level while changing an in-place option.
+  function renderKeepingPlace(selector) {
+    const dock = $('dock'), selectors = ['#dock', '#dock-body', '.dock-options-body'];
+    const find = key => key[0] === '#' ? $(key.slice(1)) : dock.querySelector?.(key);
+    const positions = selectors.map(key => [key, find(key)?.scrollTop || 0]);
+    for (const [key, set] of [['.research-disclosure', v => researchOpen = v], ['.topic-disclosure', v => topicOpen = v], ['.extras-disclosure', v => extrasOpen = v]]) {
+      const el = dock.querySelector?.(key); if (el) set(el.open);
+    }
+    const disclosures = ['.action-menu', '.possible-questions', '.briefing-disclosure', '.network-orders'];
+    const open = disclosures.map(key => [key, dock.querySelector?.(key)?.open]);
+    render();
+    for (const [key, value] of open) { const el = dock.querySelector?.(key); if (el && value !== undefined) el.open = value; }
+    focusChoice(selector);
+    for (const [key, top] of positions) { const el = find(key); if (el) el.scrollTop = top; }
+  }
   function dispatch(data) {
     endAfterglow();
     if (data.action === 'art-switch' && !modal && state.phase !== 'travel' && counting?.status !== 'inprogress') { Art?.setPack?.(Art.isToy() ? 'original' : 'matte-toy-v1'); dressed=''; $('venue-scene').dataset.key=''; scene(); render(); return; }
@@ -1191,8 +1212,14 @@
     if (data.action === 'next-round' && state.phase === 'recap') { mapExpanded = false; if (advance()) { save(); render(); focusDock(); revealDock(); announce(state.phase === 'result' ? '投票結束，開始開票。' : '第 ' + state.day + ' 回合開始。'); } return; }
     if (data.action === 'skip-count') { finishCounting(); return; }
     if (data.action === 'skip') { if (motion) finishTravel(); return; }
-    if (data.action === 'start' && !state.started) { if (G.start(state)) { saveNotice = ''; if (openingPick) { selectedAction = openingPick; selectedVenue = openingPick === 'canvass' ? G.venueView(state).find(v => v.main === G.routeView(state).group)?.id || 'market' : null; } save(); render(); focusDock(); announce('第一回合開始，' + (openingPick ? '首站已排好，檢查後出發。' : '點地圖上的地點出發。')); } return; }
+    if (data.action === 'start' && !state.started) { if (G.start(state)) { saveNotice = ''; if (openingPick) { selectedAction = openingPick; selectedVenue = openingPick === 'canvass' ? G.venueView(state).find(v => v.main === G.routeView(state).group)?.id || 'market' : null; } save(); render(); focusDock(); revealDock(); announce('第一回合開始，' + (openingPick ? '首站已排好，檢查後出發。' : '點地圖上的地點出發。')); } return; }
     if (state.phase !== 'plan' || !state.started) return;
+    if (data.action === 'plan-choice') {
+      if (data.kind === 'file') { openDialog('file'); return; }
+      if (!['canvass','prepare','fundraise','recruit','rally','tv','online'].includes(data.kind)) return;
+      const venue = onSite(data.kind) ? (selectedVenue || G.venueView(state).find(v => v.main === G.routeView(state).group)?.id || 'market') : null;
+      dispatch({ action: 'select-action', kind: data.kind, fromMenu: true, ...(venue ? { venue } : {}) }); return;
+    }
     if (data.action === 'toggle-map') { mapExpanded = !mapExpanded; render(); $('map-toggle').focus({ preventScroll: true }); return; }
     if (data.action === 'prepare-before-trip') { const topic = askPool().find(t => !state.player.known.includes(t) && G.availableTopics(state).some(x => x.id === t)); if (!topic) return; if (!openingPick && selectedAction === 'canvass') openingPick = 'canvass'; resetToggles(); selectedAction = 'prepare'; selectedVenue = null; selectedTopic = topic; error = ''; save(); render(); revealDock(); focusChoice('[data-action="confirm-action"]'); return; }
     if (data.action === 'advisor-select') {
@@ -1214,23 +1241,23 @@
       if (!pick?.allowed || !action(pick.action)) return;
       resetToggles(); selectedAction = pick.action; selectedVenue = pick.config?.venue || null; selectedTopic = null; campaignPick = data.action === 'campaign-followup' ? 'followup' : 'opportunity:' + pick.id; error = ''; save(); render(); revealDock(); focusChoice('[data-action="confirm-action"]'); announce('已排入' + pick.title + '，出發會占一回合。'); return;
     }
-    if (data.action === 'topic' && G.availableTopics(state).some(t => t.id === data.topic) && !state.player.studied?.[data.topic]) { selectedTopic = data.topic; researchPick = researchPick.filter(t => t !== selectedTopic); error = ''; save(); render(); focusChoice('[data-action="topic"][data-topic="' + selectedTopic + '"]'); return; }
+    if (data.action === 'topic' && G.availableTopics(state).some(t => t.id === data.topic) && !state.player.studied?.[data.topic]) { selectedTopic = data.topic; researchPick = researchPick.filter(t => t !== selectedTopic); error = ''; save(); renderKeepingPlace('[data-action="topic"][data-topic="' + selectedTopic + '"]'); return; }
     if (data.action === 'offer') { if (G.respondOffer(state, data.choice)) { save(); render(); announce(data.choice === 'accept' ? '已接受合作，立場已公開。' : '已婉拒合作。'); } return; }
     if (data.action === 'crisis') { if (G.respondCrisis(state, data.choice)) { save(); render(); focusDock(); announce(crisisChoice(state.crisis) + '，你的票數 ' + signedVotes(state.crisis.effect.votes) + '。結果已加入選戰動態。'); } return; }
     if (data.action === 'clarify') { if (G.clarify(state, data.id)) { save(); render(); announce('已發澄清文宣。'); } return; }
     if (data.action === 'pledge') { if (G.cleanPledge(state)) { save(); render(); announce('已宣示乾淨選戰。'); } return; }
-    if (data.action === 'research') { const t = data.topic, own = selectedAction === 'prepare' ? (selectedTopic || G.preview(state, 'prepare', planConfig()).topic) : null; if (G.TOPICS[t] && t !== own && state.player.insight?.[t]?.level !== 'precise') researchPick = researchPick.includes(t) ? researchPick.filter(x => x !== t) : [...researchPick, t].slice(0, researchCapacity()); error = ''; save(); render(); focusChoice('[data-action="research"][data-topic="' + (t || '') + '"]'); return; }
-    if (data.action === 'toggle') { const n = data.name; if (n === 'gifts') gifts = !gifts; else if (n === 'billboard') billboard = !billboard; else if (n === 'deep') deepOn = !deepOn; else if (n === 'booth') { const p = G.preview(state, selectedAction, planConfig()); if (booth || p.teamAssignments.some(x => !['research', 'stream'].includes(x.task))) booth = !booth; } else if (n === 'investigate') investigateOn = !investigateOn; else if (n === 'gotv') gotvOn = !gotvOn; else if (n === 'respond') { respondOn = !respondOn; if (respondOn) brief = null; } error = ''; save(); render(); focusChoice('[data-action="toggle"][data-name="' + n + '"]'); return; }
-    if (data.action === 'expose') { exposePick = data.id || null; error = ''; save(); render(); focusChoice('[data-action="expose"][data-id="' + (data.id || '') + '"]'); return; }
+    if (data.action === 'research') { const t = data.topic, own = selectedAction === 'prepare' ? (selectedTopic || G.preview(state, 'prepare', planConfig()).topic) : null; if (G.TOPICS[t] && t !== own && state.player.insight?.[t]?.level !== 'precise') researchPick = researchPick.includes(t) ? researchPick.filter(x => x !== t) : [...researchPick, t].slice(0, researchCapacity()); error = ''; save(); renderKeepingPlace('[data-action="research"][data-topic="' + (t || '') + '"]'); return; }
+    if (data.action === 'toggle') { const n = data.name; if (n === 'gifts') gifts = !gifts; else if (n === 'billboard') billboard = !billboard; else if (n === 'deep') deepOn = !deepOn; else if (n === 'booth') { const p = G.preview(state, selectedAction, planConfig()); if (booth || p.teamAssignments.some(x => !['research', 'stream'].includes(x.task))) booth = !booth; } else if (n === 'investigate') investigateOn = !investigateOn; else if (n === 'gotv') gotvOn = !gotvOn; else if (n === 'respond') { respondOn = !respondOn; if (respondOn) brief = null; } error = ''; save(); renderKeepingPlace('[data-action="toggle"][data-name="' + n + '"]'); return; }
+    if (data.action === 'expose') { exposePick = data.id || null; error = ''; save(); renderKeepingPlace('[data-action="expose"][data-id="' + (data.id || '') + '"]'); return; }
     if (data.action === 'donor') { const scroll = $('dock').querySelector?.('.dock-options-body')?.scrollTop || 0; donor = data.id && G.BROKERS?.[data.id] ? data.id : null; error = ''; save(); render(); const options = $('dock').querySelector?.('.dock-options-body'); if (options) options.scrollTop = scroll; focusChoice('[data-action="donor"][data-id="' + (data.id || '') + '"]'); return; }
-    if (data.action === 'brief' && G.TOPICS[data.topic]) { brief = brief === data.topic ? null : data.topic; respondOn = false; error = ''; save(); render(); focusChoice('[data-action="brief"][data-topic="' + data.topic + '"]'); return; }
+    if (data.action === 'brief' && G.TOPICS[data.topic]) { brief = brief === data.topic ? null : data.topic; respondOn = false; error = ''; save(); renderKeepingPlace('[data-action="brief"][data-topic="' + data.topic + '"]'); return; }
     if (data.action === 'mode' && action(data.kind)) { campaignPick = null; selectedAction = data.kind; error = ''; save(); render(); focusChoice('[data-action="mode"][data-kind="' + data.kind + '"]'); return; }
     if (data.action === 'select-action' && action(data.kind)) {
       mapExpanded = false;
       mapTipDismissed = true;
       campaignPick = null; researchOpen = false; researchPick = []; deepOn = false; brief = null; respondOn = false;
-      if (data.kind === 'canvass') { if (!(onSite(selectedAction) && data.venue === selectedVenue)) selectedAction = 'canvass'; if (venues[data.venue]) selectedVenue = data.venue; }
-      else if (data.kind === 'tv') { if (!['tv', 'press'].includes(selectedAction)) selectedAction = 'tv'; }
+      if (onSite(data.kind)) { if (data.fromMenu || data.kind === 'rally' || !(onSite(selectedAction) && data.venue === selectedVenue)) selectedAction = data.kind; if (venues[data.venue]) selectedVenue = data.venue; }
+      else if (data.kind === 'tv') { if (data.fromMenu || !['tv', 'press'].includes(selectedAction)) selectedAction = 'tv'; }
       else selectedAction = data.kind;
       error = ''; save(); render(); revealDock(); focusChoice('[data-action="confirm-action"]');
       announce('已選' + placeName(selectedAction, plannedVenue()) + '，還沒出發。'); return;

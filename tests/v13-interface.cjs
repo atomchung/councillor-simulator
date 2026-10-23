@@ -381,3 +381,29 @@ for(const kind of ['canvass','prepare','online']){
 
 console.log(JSON.stringify({result:'passed',assertions,scope:'Manual round settlement, qualitative response marks, repeated public confirmation, best result records and round briefing, one-time map tip, concrete opening itineraries, inline cooperation/crises/challenge responses, shared helper allocation and saved conflicts, exact ending platform quotes; shared campaign office, plaza debate entry, information and current-invitation dialogs, no empty progress entry, future-clash spoilers or cosmetic strategy selector, notes, fixed research order, disabled completed research and balanced stylesheet blocks; production engine, artwork and controller in a minimal JavaScript DOM harness: intro pick cards and the match-up, locked identity and party, the act, map destinations with likeliest questions, the research row and hidden draws, toggles, TV brief cards, venue scene with faces, unresearched questions, rally and billboard, offers, the crisis card, the debate, responding to and clarifying against the rival, the shareable report with the last frame of the count night, quiet rounds, offer terms, qualitative researched reactions beside answers, the count night for all three endings, the version notice, new game back to the intro, reload and mobile paths. CSS checks are source checks, not a browser or visual rendering.'}));
 module.exports={harness,G,html,css,root};
+
+// In-place research keeps newly rendered scroll containers and native details open.
+{
+ const h=harness({}, {width:375});h.click({action:'setting',setting:'background',value:'incumbent'});
+ h.elements.dock.scrollTop=180;h.elements['dock-body'].scrollTop=120;h.click({action:'start'});
+ equal([h.elements.dock.scrollTop,h.elements['dock-body'].scrollTop],[0,0],'start clears intro scroll offsets');
+ const menu=()=>h.nodes().filter(n=>n.dataset.action==='plan-choice').map(n=>n.dataset.kind);
+ equal(menu(),['canvass','prepare','fundraise','recruit','rally','tv','online','file'],'all itineraries discoverable in stable order');
+ const before=withoutUi(h.state());h.click({action:'plan-choice',kind:'rally'});
+ equal(h.state()._ui.action,'rally','rally can be inspected before unlocking');
+ equal([h.state().day,h.state().phase,h.state().budget],[before.day,'plan',before.budget],'inspecting a locked rally does not spend a turn');
+ check(h.nodes().find(n=>n.dataset.action==='confirm-action').disabled,'rally requirements still gate departure');
+ h.click({action:'plan-choice',kind:'canvass'});equal(h.state()._ui.action,'canvass','explicit street visit exits rally mode at the same venue');
+ h.click({action:'plan-choice',kind:'fundraise'});equal(h.state()._ui.action,'fundraise','fundraising directly accessible');
+ h.click({action:'plan-choice',kind:'file'});check(h.dialog().includes('挖料'),'visible expose entry opens evidence workflow');h.click({action:'close'});
+ h.click({action:'plan-choice',kind:'prepare'});
+ let options={scrollTop:280},research={open:true},content=h.elements['dock-body'].innerHTML;
+ h.elements.dock.querySelector=selector=>selector==='.dock-options-body'?options:selector==='.research-disclosure'?research:null;
+ Object.defineProperty(h.elements['dock-body'],'innerHTML',{get(){return content;},set(value){content=value;options={scrollTop:0};research={open:value.includes('class="research-disclosure" open')};}});
+ const picks=h.nodes().filter(n=>n.dataset.action==='research'&&!n.disabled).slice(0,3).map(n=>n.dataset.topic);
+ equal(picks.length,3,'three free helpers can research three topics');
+ for(const topic of picks){h.click({action:'research',topic});equal(options.scrollTop,280,'selection preserves recreated scroller');check(research.open,'selection keeps research open');}
+ equal(h.state()._ui.research,picks,'three consecutive research choices persist');
+ h.click({action:'research',topic:picks[1]});equal(h.state()._ui.research,[picks[0],picks[2]],'deselect stays in same workflow');equal(options.scrollTop,280,'deselect preserves position');
+}
+console.log(JSON.stringify({mobileDiscovery:'passed',assertions}));
