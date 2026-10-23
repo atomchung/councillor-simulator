@@ -49,11 +49,11 @@ function selected(G,s,context={}){
  const id=context.selectedAction,venue=context.selectedVenue,chief=G.chiefView(s).find(c=>c.venue===venue),members=s.player.team.members.filter(m=>m.hiredDay<s.day).length;
  const challenge=G.pendingChallenges(s).find(c=>c.venues.includes(venue));
  if(id==='canvass'&&challenge)return'這裡會問小馬對你的質疑。選擇重申或修正原本的說法，回應可以挽回部分支持。';
- if(id==='canvass'&&chief){const pool=G.venueView(s).find(v=>v.id===venue)?.pool||[];return (chief.broken?'這裡已有里長交情。':'這次拜訪會累積地方交情；再走 '+Math.max(1,chief.need-chief.visits)+' 次可取得支持。')+' 已研究 '+readiness(G,s,pool).ready+' 題；先看下方準備程度，再決定是否出發。';}
+ if(id==='canvass'&&chief){return (chief.broken?'這裡已有里長交情。':'這次拜訪會累積地方交情；再走 '+Math.max(1,chief.need-chief.visits)+' 次可取得支持。');}
  if(id==='canvass')return'這次接觸的主要是'+(G.venueView(s).find(v=>v.id===venue)?.mainTitle||'當地居民')+'，看看你公開的政見是否適合他們。';
- if(id==='prepare')return'今天花時間準備，成果從下一回合用；留下助手分頭研究或募款，就能少停一件事。';
+ if(id==='prepare')return'研究占一回合；助手可同時查其他題或募款。';
  if(id==='recruit'){const p=G.preview(s,id);return p.allowed?'這次增加 '+p.recruitCount+' 位助手，下回合到職；代價是少一次親自拉票。':p.reason||'目前無法再招募，先安排現有人手。';}
- if(id==='fundraise')return'今天補競選款，助手可以分頭研究；你本人的拉票要延到下回合。';
+ if(id==='fundraise')return'補競選款，代價是少一次親自拉票。';
  if(id==='online')return'直播主要接觸青年，占用 '+Math.min(2,members)+' 位助手；安排研究、募款的人就會變少。';
  if(id==='tv')return context.preview?.topic?'這次指定談「'+(G.TOPICS[context.preview.topic]?.title||'政見')+'」，三群人都會聽到；談得清楚才有後續曝光機會。':'曝光能接觸三群人；先看可能被問的三題，未研究的題仍有風險。';
  if(id==='debate')return'小馬也會上台。這場能讓三群人聽到你的政見，回答後再看各群的反應。';
@@ -62,6 +62,18 @@ function selected(G,s,context={}){
  return'';
 }
 function resolve(G,s,id,context={}){return view(G,s,context)?.options.find(o=>o.id===id)||null;}
-function render(G,s,context={}){const v=view(G,s,context);if(!v)return'';const current=v.steps.findIndex(x=>!x.done);return'<section class="staff-advisor" aria-label="幕僚本回合建議"><div class="advisor-head"><b>幕僚小葉</b><span>主力：'+escape(v.base)+'</span></div><p class="advisor-goal">'+escape(v.explicit?'你開局的安排：':'依基本盤建議：')+escape(v.goal)+'</p><ol class="advisor-steps">'+v.steps.map((x,i)=>'<li data-state="'+(x.done?'done':i===current?'current':'later')+'">'+(x.done?'✓ ':'')+escape(x.title)+'</li>').join('')+'</ol>'+(v.change?'<p class="advisor-change">'+escape(v.change)+'</p>':'')+(v.rumor?'<p class="advisor-rumor"><b>對手情報</b> '+escape(v.rumor.text)+'（'+escape(v.rumor.reliability)+'）</p>':'')+'<p class="advisor-advice">'+escape(v.advice)+'</p><div class="advisor-options">'+v.options.map(o=>'<button data-action="advisor-select" data-id="'+escape(o.id)+'"><b>'+escape(o.title)+' →</b><span>'+escape(o.reason)+'</span><small>取捨：'+escape(o.cost)+'</small></button>').join('')+'</div><p class="advisor-foot">可安排 '+v.active+' 位助手'+(v.waiting?'・'+v.waiting+' 位下回合到職':'')+'；建議可改，也能直接點地圖。</p></section>';}
+function render(G,s,context={}){
+ const v=view(G,s,context);if(!v)return'';
+ const current=v.steps.findIndex(x=>!x.done);
+ // Current developments and choices stay visible; recurring strategy and
+ // preparation detail can be opened without repeating the briefing each turn.
+ return '<section class="staff-advisor" aria-label="幕僚本回合建議"><div class="advisor-head"><b>小葉・本回合建議</b><span>主力：'+escape(v.base)+'</span></div>'
+ +(v.change?'<p class="advisor-change">'+escape(v.change)+'</p>':'')
+ +(!v.options.length?'<p class="advisor-advice">'+escape(v.advice)+'</p>':'')
+ +'<div class="advisor-options">'+v.options.map(o=>'<button data-action="advisor-select" data-id="'+escape(o.id)+'"><b>'+escape(o.title)+' →</b><small>取捨：'+escape(o.cost)+'</small></button>').join('')+'</div>'
+ +'<details class="advisor-detail"><summary>打法進度與建議理由</summary><p class="advisor-goal">'+escape(v.goal)+'</p><ol class="advisor-steps">'+v.steps.map((x,i)=>'<li data-state="'+(x.done?'done':i===current?'current':'later')+'">'+(x.done?'✓ ':'')+escape(x.title)+'</li>').join('')+'</ol>'
+ +(v.options.length?'<p class="advisor-advice">'+escape(v.advice)+'</p>':'')+v.options.map(o=>'<p><b>'+escape(o.title)+'</b>：'+escape(o.reason)+'</p>').join('')+'</details>'
+ +(v.rumor?'<details class="advisor-intel"><summary>對手情報・'+escape(v.rumor.reliability)+'</summary><p>'+escape(v.rumor.text)+'</p></details>':'')+'</section>';
+}
 return{view,selected,resolve,render};
 });

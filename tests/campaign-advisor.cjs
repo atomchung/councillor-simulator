@@ -43,6 +43,8 @@ console.log(JSON.stringify({result:'passed',checks,scope:'Public-information sta
  eq(v.options[0].action,'prepare','no known local topics recommends preparing first');
  ok(v.advice.includes('下回合才用得到'),'local advice states research timing');
  ok(v.options.some(o=>o.action==='canvass'),'visiting remains a real tradeoff');
- const venue=G.venueView(s)[0];ok(A.selected(G,s,{selectedAction:'canvass',selectedVenue:venue.id}).includes('已研究 0 題'),'selected local trip shows actual readiness');
+ const venue=G.venueView(s)[0];ok(A.selected(G,s,{selectedAction:'canvass',selectedVenue:venue.id}).includes('交情'),'selected local trip adds local context without repeating the readiness card');
 }
 console.log(JSON.stringify({localReadiness:'passed',checks}));
+
+{const s=fresh(),markup=A.render(G,s);ok(markup.includes('<details class="advisor-detail">'),'recurring plan starts collapsed');ok(markup.includes('<details class="advisor-intel">'),'opponent background starts collapsed');ok(!markup.includes('advisor-foot'),'no repeated generic instruction footer');ok(!A.selected(G,s,{selectedAction:'canvass',selectedVenue:G.venueView(s)[0].id}).includes('已研究'),'readiness appears in its dedicated card only');}
