@@ -158,3 +158,39 @@ body.v13 .dock-intro .identity-cards,body.v13 .dock-intro .party-cards{grid-temp
 @media(max-width:900px){.v13[data-phase=plan] .game-layout{grid-template-areas:"map" "dock";grid-template-rows:auto minmax(0,1fr)}}
 
 .v13[data-phase=plan] .event-timeline{display:none}
+
+/* Phone planning gives the command panel the space previously reserved for a fixed map. */
+.v13 .map-toggle{display:none}
+.v13 .main-action-guide{font-size:12px;color:var(--green);font-weight:700;margin:8px 0}
+.v13 .routine-work{border-top:1px solid var(--line);padding-top:12px;margin-top:12px}
+.v13 .routine-work h3{font-size:14px;margin:0 0 4px}
+.v13 .decision-guide{font-size:12px;line-height:1.5;color:var(--muted);margin:0 0 8px}
+.v13 .readiness-note{padding:10px;border-radius:8px;background:#f5f1e5;margin:8px 0;font-size:13px;line-height:1.5}
+.v13 .readiness-note p{font-size:12px;margin:4px 0 8px}
+.v13 .readiness-note button{min-height:44px;font-size:13px}
+.v13 details.pending-decisions{display:block;border:1px solid #d8b778;border-radius:9px;padding:10px;margin:12px 0;background:#fffaf0}
+.v13 .pending-decisions>summary{min-height:24px;cursor:pointer;font-size:14px;font-weight:600;line-height:1.6}
+.v13 .pending-decisions[open]>summary{margin-bottom:8px}
+.v13 .pending-decisions>section,.v13 .pending-decisions>article{margin-top:10px}
+/* Reserve a separate row for the check, rather than placing it over the party name. */
+body.v13 .dock-intro .party-card.pick-card{display:grid;grid-template-columns:minmax(0,1fr) 22px;align-content:start;align-items:center;min-width:0}
+body.v13 .party-card.pick-card .pick-mark{position:static;grid-area:1 / 2;align-self:start;flex:none}
+body.v13 .party-card.pick-card .emblem{grid-area:1 / 1}
+body.v13 .party-card.pick-card>b,body.v13 .party-card.pick-card>.pick-line,body.v13 .party-card.pick-card>.pick-meters{grid-column:1 / -1;width:auto;min-width:0}
+@media(max-width:600px) and (min-height:421px){
+ body.v13[data-phase=plan] .map-toggle{display:block;width:100%;min-height:44px;text-align:left;padding:8px 12px;font:inherit;font-size:13px;color:var(--green);border:1px solid var(--line);border-radius:8px;background:var(--card)}
+ body.v13[data-phase=plan] .world-heading{display:none}
+ body.v13[data-phase=plan][data-map-expanded=false] #world{display:none}
+ body.v13[data-phase=plan] .game-layout{grid-template-rows:auto minmax(0,1fr);grid-template-areas:"map" "dock"}
+ body.v13[data-phase=plan] .interaction{display:none}
+ body.v13[data-phase=plan] .world{width:min(100%,calc(30dvh * 1.5))}
+ body.v13[data-phase=recap] .world-column{display:none}
+ body.v13[data-phase=recap] .game-layout{grid-template-rows:minmax(0,1fr);grid-template-areas:"dock"}
+ .v13 .campaign-options{grid-template-columns:1fr}
+ .v13 .staff-advisor{margin:0;padding:10px}
+ .v13 .routine-work,.v13 .readiness-note{scroll-margin-top:8px}
+}
+
+.v13 .possible-questions>summary{min-height:36px;padding:8px 0;cursor:pointer;font-size:12px;line-height:1.5;color:var(--muted)}
+.v13 .possible-questions>.research-row{margin:0}
+.v13 .routine-work>.research-disclosure{margin:8px 0}
