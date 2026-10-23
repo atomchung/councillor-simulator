@@ -4,6 +4,10 @@
 
 ## 開始遊玩
 
+直接遊玩：<https://atomchung.github.io/councillor-simulator/>。不需登入，進度保存在目前瀏覽器；線上版與本機版的存檔各自獨立。
+
+若要在本機執行：
+
 需要 Node.js 18 或 Python 3，不需安裝 npm 套件，也不需帳號、API 金鑰或雲端服務。
 
 在 macOS 可雙擊 `start.command`。也可以在專案資料夾執行：
