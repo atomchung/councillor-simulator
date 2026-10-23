@@ -210,3 +210,13 @@ body.v13 .party-card.pick-card>b,body.v13 .party-card.pick-card>.pick-line,body.
 .v13 .advisor-detail>summary,.v13 .advisor-intel>summary{min-height:36px;padding:8px 0;font-size:12px;cursor:pointer;color:var(--muted)}
 .v13 .advisor-options{margin-top:8px}
 .v13 .research-disclosure>summary>span{font-size:12px}
+
+/* Ending titles wrap within the same report on phones and desktops. */
+.v13 .report-head>div{min-width:0;width:100%}
+.v13 .report-titles{display:grid;gap:12px;margin:14px 0;min-width:0}
+.v13 .report-title{padding:12px 14px;border:1px solid #ddd4bd;border-radius:12px;background:#f5efdf;min-width:0;overflow-wrap:anywhere}
+.v13 .report-title-badge{display:inline-flex;align-items:center;gap:7px;padding:4px 10px;border-radius:6px;background:#e5d5a7;color:#514022;font-size:14px;font-weight:800;max-width:100%;box-sizing:border-box}
+.v13 .report-title-line{font-family:"Noto Serif TC","Songti TC",serif;font-size:18px;line-height:1.6;margin:9px 0 4px;white-space:normal}
+.v13 .report-title-detail{display:block;color:var(--muted);font-size:12px;line-height:1.6}
+.v13 #count-verdict{overflow-wrap:anywhere}
+@media(max-width:600px){.v13 .report-title{padding:11px 12px}.v13 .report-title-line{font-size:16px}}
