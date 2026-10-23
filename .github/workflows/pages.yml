@@ -27,6 +27,8 @@ jobs:
           node-version: 22
       - name: Check runtime export
         run: node tests/export-integrity.cjs
+      - name: Check public release package
+        run: npm run test:pages
       - name: Check current game
         run: npm run test:v13
 
@@ -46,10 +48,15 @@ jobs:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+      - name: Build current game only
+        run: npm run build:pages
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:
-          path: dist
+          path: .pages
       - name: Publish game
         id: deployment
         uses: actions/deploy-pages@v4
