@@ -162,7 +162,7 @@ function characterPanel() {
   );
 }
 function tutorial(step) {
-  move("staff", 1010, 300, 0.75);
+  move("staff", 1060, 315, 0.7);
   const name = G.candidateName(s.settings),
     r = G.raceView(s),
     n = capacity();
@@ -487,7 +487,7 @@ function office() {
   $("visitor").classList.remove("waiting");
   visitorFor = "";
   clearReaction();
-  move("staff", 1010, 300, 0.75);
+  move("staff", 1060, 315, 0.7);
   $("dialogue").classList.add("hidden");
   sync();
 }
@@ -579,7 +579,7 @@ function advice() {
 function brief() {
   if (s.phase !== "plan") return resume();
   if (s.day === 1 && !tutorialDone) return tutorial(0);
-  move("staff", 1010, 300, 0.75);
+  move("staff", 1060, 315, 0.7);
   let title,
     sub,
     choices = [];
@@ -785,7 +785,7 @@ function team() {
   if (s.phase !== "plan") return resume();
   showPanel(
     "派助手研究",
-    `<p>一人查一題，下回合起可用。</p><div class="inline-note" id="team-summary">${esc(assignmentText())}</div><p class="confirm-strip" id="team-count">${teamCountText()}</p><div class="section-label">點議題派一人</div>${topicGrid("research")}<div class="feature-row"><label for="booth">留 1 人擺小額募款攤</label><input type="checkbox" id="booth" ${cfg.booth ? "checked" : ""}></div><p class="danger" id="team-warning">${conflict()}</p><div class="tabs"><button data-open="teamhub">團隊與招募</button><button data-open="extras">加碼與後勤</button><button data-open="knowledge">研究筆記</button></div>`,
+    `<div class="research-compare"><p><b>派助手</b>不占你的行程・下回合才能用・看得出各群喜不喜歡（兩人查同題就跟自己查一樣準）</p><p><b>自己查</b>（做準備）用掉今天・這回合就懂・看得出各群有多喜歡</p></div><div class="inline-note" id="team-summary">${esc(assignmentText())}</div><p class="confirm-strip" id="team-count">${teamCountText()}</p><div class="section-label">點議題派一人</div>${topicGrid("research")}<div class="feature-row"><label for="booth">留 1 人擺小額募款攤</label><input type="checkbox" id="booth" ${cfg.booth ? "checked" : ""}></div><p class="danger" id="team-warning">${conflict()}</p><div class="tabs"><button data-open="teamhub">團隊與招募</button><button data-open="extras">加碼與後勤</button><button data-open="knowledge">研究筆記</button></div>`,
     {
       text: action ? "回到行程" : "選主行程",
       fn: () => (action ? planDetail() : catalog()),
@@ -964,7 +964,7 @@ function inbox() {
   if (cr?.status === "pending") {
     // Whoever came to the door waits there while the crisis is handled.
     if (visitorFor) visitorWait();
-    move("staff", 930, 300, 0.75);
+    move("staff", 1060, 315, 0.7);
     const key = cr.round + ":" + cr.kind,
       first = alarmed !== key;
     alarmed = key;
@@ -972,25 +972,25 @@ function inbox() {
       "staff",
       "選戰快報",
       cr.text,
-      "出發前必須處理；關掉對話也不會消失，三種做法都可能掉票。",
+      "出發前必須處理。三種做法都會掉票，差在掉多少。",
       [
         {
           text: "發澄清文宣",
           note:
             wan(G.COSTS.crisis) +
-            " · 救回一部分" +
+            " · 掉票最少" +
             (s.budget.available < G.COSTS.crisis ? "（錢不夠）" : ""),
           fn: () => handleCrisis("pay"),
           disabled: s.budget.available < G.COSTS.crisis,
         },
         {
           text: "公開道歉切割",
-          note: "免費 · 你票最多的那群掉票",
+          note: "免費 · 被點名的那群掉票",
           fn: () => handleCrisis("apologize"),
         },
         {
           text: "硬槓反控" + (cr.by === "rival" ? "小馬" : ""),
-          note: "免費 · 五五波：有人力挺，或炎上掉更多",
+          note: "免費 · 五五波：加票，或掉最多",
           fn: () => handleCrisis("fight"),
         },
       ],
@@ -1191,7 +1191,6 @@ function react(id, caption) {
   $("reaction-layer").innerHTML = reactionMarkup(id, caption);
   $("reaction-layer").setAttribute("class", "reaction " + cls);
   $("candidate").classList.add(cls);
-  if (id === "pay") move("staff", 420, 300, 0.75);
   later(clearReaction, REACT_MS);
 }
 function handleCrisis(choice) {
