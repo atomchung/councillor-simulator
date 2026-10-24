@@ -93,6 +93,7 @@ function save() {
         tutorialDone,
         soundEnabled,
         seenVisits,
+        ending,
       }),
     );
   } catch {
@@ -106,6 +107,7 @@ function fresh(settings = newSettings) {
   G.start(s);
   action = null;
   cfg = { research: [] };
+  ending = null;
   tutorialDone = false;
   seenVisits = [];
   save();
@@ -392,6 +394,8 @@ function sync() {
   save();
 }
 function office() {
+  hideResult();
+  hideEnding();
   $("travel-scene").hidden = true;
   $("venue-scene").hidden = true;
   visitorArt("來訪代表");
@@ -1179,10 +1183,276 @@ function ask() {
     .querySelectorAll("button")
     .forEach((b) => b.classList.add("wide"));
 }
-function recap() {
-  if (s.phase !== "recap") return;
+/* ---------- Round result: the reaction on the spot, then the next round ----------
+   Mirrors the original recap (day-ui.js sceneView/dockRecap): the speaker reacts, the crowd's faces follow the
+   votes, and one glanceable line says how the round went. No extra button: tap to continue, or it moves on. */
+const GROUP_KEYS = ["elder", "middle", "young"],
+  RESULT_MS = 4000,
+  HOLD_MS = 350,
+  FACE_VOTES = 8,
+  signed = (n) => {
+    const v = Math.round(Number(n || 0));
+    return (v > 0 ? "+" : v < 0 ? "−" : "±") + Math.abs(v).toLocaleString("zh-TW");
+  },
+  toneOf = (n) =>
+    Math.round(n || 0) > 0 ? "up" : Math.round(n || 0) < 0 ? "down" : "zero";
+let resultClock = null;
+function crowdCount(mix) {
+  const raw = (mix || [1 / 3, 1 / 3, 1 / 3]).map((m) => m * 10),
+    counts = raw.map(Math.floor);
+  const left = 10 - counts.reduce((a, b) => a + b, 0);
+  raw
+    .map((r, g) => [r - counts[g], g])
+    .sort((a, b) => b[0] - a[0])
+    .slice(0, left)
+    .forEach(([, g]) => counts[g]++);
+  return counts;
+}
+function crowdOf(mix, key) {
+  const list = [];
+  crowdCount(mix).forEach((n, g) => {
+    for (let j = 0; j < n; j++)
+      list.push({
+        group: g,
+        variant: j % 2,
+        k: G.rand(s.seed, "crowd-slot", key, g, j),
+      });
+  });
+  return list.sort((a, b) => a.k - b.k).map(({ k, ...c }) => c);
+}
+// A group's faces follow its votes from the answer, as in the original venue scene.
+function withReactions(list, groups) {
+  const seen = [0, 0, 0],
+    size = [0, 0, 0];
+  for (const c of list) size[c.group]++;
+  const counts = size.map((n, gi) => {
+    const g = groups?.[gi];
+    if (!g?.reached || !n) return { up: 0, down: 0 };
+    const moved = Math.min(
+      n,
+      Math.max(
+        Math.round((n * Math.abs(g.votes)) / g.reached / FACE_VOTES),
+        Math.abs(g.votes) >= 30 ? 1 : 0,
+      ),
+    );
+    const gain = Number.isFinite(g.gain) ? g.gain : Math.max(0, g.votes),
+      loss = Math.max(0, gain - g.votes),
+      up = gain + loss > 0 ? Math.round((moved * gain) / (gain + loss)) : 0;
+    return { up, down: moved - up };
+  });
+  return list.map((c) => {
+    const j = seen[c.group]++,
+      k = counts[c.group];
+    return {
+      ...c,
+      tone: j < k.up ? "up" : j < k.up + k.down ? "down" : "flat",
+    };
+  });
+}
+// Who reacts and where: the same choices as the original recap scene.
+function resultView(r) {
+  const p = r.player,
+    team = s.player.team?.members || [],
+    first = String(p.result || "").split("。")[0];
+  if (["prepare", "recruit", "dig"].includes(p.action))
+    return {
+      kind: null,
+      who:
+        p.action === "recruit"
+          ? (team.at(-1)?.name || "新夥伴") + " · 新夥伴"
+          : (team[0]?.name || "小葉") + " · 幕僚",
+      text: first ? first + "。" : "",
+    };
+  if (p.action === "fundraise")
+    return {
+      kind: "fundraise",
+      crowd: [],
+      who: "街坊募款",
+      text: first ? first + "。" : "這次募款已記入競選預算。",
+    };
+  if (["canvass", "tv", "online", "debate", "rally"].includes(p.action)) {
+    const c = p.conversation,
+      kind = ["canvass", "rally"].includes(p.action) ? p.venue : p.action;
+    return {
+      kind,
+      mode: p.action,
+      crowd: withReactions(crowdOf(p.crowd, kind), p.effects?.groups),
+      speaker: c
+        ? { group: c.group ?? 0, variant: 1, tone: c.mood, name: c.name }
+        : null,
+      who: c
+        ? c.name + " · " + (G.GROUPS?.[c.group]?.title || "居民")
+        : p.action === "debate"
+          ? "小馬 · 對手"
+          : p.action === "rally"
+            ? "造勢活動"
+            : p.action === "online"
+              ? "直播結束"
+              : "主持人",
+      text: c
+        ? (c.reaction || c.lastReaction)?.replace(/^[^「]*「/, "").replace(/」$/, "") ||
+          first + "。"
+        : p.action === "debate"
+          ? "「" + (r.rival?.quote || r.rival?.result || "") + "」"
+          : p.action === "online"
+            ? "本次觸及 " + num(p.effects?.contacts) + " 人。"
+            : p.action === "rally"
+              ? "現場 " + num(p.effects?.contacts) + " 人聽完你的政見。"
+              : "「謝謝" + G.candidateName(s.settings) + "。」",
+      mood: c?.mood,
+    };
+  }
+  return {
+    kind: p.action === "press" ? "tv" : null,
+    mode: p.action,
+    crowd: [],
+    who: p.title || NAMES[p.action] || "這回合",
+    text: first ? first + "。" : "",
+  };
+}
+function resultMarkup(r, v) {
+  const sum = r.summary || {},
+    before = sum.before || { rank: r.raceBefore?.rank },
+    after = sum.after || { rank: r.race?.rank },
+    gap = after.gap ?? (r.race?.line || 0) - (r.race?.you || 0),
+    rankTone =
+      before.rank && after.rank
+        ? after.rank < before.rank
+          ? "up"
+          : after.rank > before.rank
+            ? "down"
+            : "zero"
+        : "zero",
+    chips = (sum.sources || [])
+      .filter((x) => Math.abs(x.votes) >= 1)
+      .sort(
+        (a, b) =>
+          (b.id === "answer") - (a.id === "answer") ||
+          Math.abs(b.votes) - Math.abs(a.votes),
+      )
+      .slice(0, 3),
+    mood = v.mood === "up" || v.mood === "down" ? v.mood : toneOf(r.totalVotes),
+    last = r.day >= G.DAYS;
+  return (
+    `<div class="rr-voice ${mood}"><span class="rr-who">${esc(v.who)}</span><p>${esc(v.text)}</p></div>` +
+    `<div class="rr-score ${toneOf(r.totalVotes)}"><strong>${signed(r.totalVotes)}</strong><span>票 · 第 ${r.day} 回合</span></div>` +
+    `<p class="rr-rank ${rankTone}"><b>${before.rank && before.rank !== after.rank ? "第 " + before.rank + " 名 → " : before.rank ? "維持" : ""}第 ${after.rank || "—"} 名</b><small>${gap <= 0 ? "過線 " + num(-gap) + " 票" : "距當選線 " + num(gap) + " 票"}</small></p>` +
+    (chips.length
+      ? `<ul class="rr-chips">${chips.map((x) => `<li class="${toneOf(x.votes)}">${esc(x.label)} <b>${signed(x.votes)}</b></li>`).join("")}</ul>`
+      : "") +
+    `<div class="rr-next"><i class="rr-timer"></i><span>${last ? "點一下前往開票" : "點一下繼續 · 第 " + (r.day + 1) + " 回合"}</span></div>`
+  );
+}
+function resultCard() {
+  let el = document.getElementById("round-result");
+  if (!el) {
+    el = document.createElement("section");
+    el.id = "round-result";
+    $("room").append(el);
+  }
+  if (!el.dataset.ready) {
+    el.dataset.ready = "1";
+    el.className = "round-result";
+    el.setAttribute("role", "status");
+    el.setAttribute("aria-live", "polite");
+    el.setAttribute("tabindex", "0");
+    // Press and hold to keep reading; a short tap moves on.
+    el.addEventListener("pointerdown", () => {
+      if (!resultClock) return;
+      resultClock.down = performance.now();
+      pauseResult();
+    });
+    el.addEventListener("pointerup", () => {
+      if (!resultClock) return;
+      const held = performance.now() - (resultClock.down ?? 0);
+      resultClock.down = null;
+      if (held < HOLD_MS) continueResult();
+      else runResult();
+    });
+    el.addEventListener("pointercancel", () => {
+      if (resultClock) resultClock.down = null;
+      runResult();
+    });
+    el.addEventListener("pointerenter", (e) => {
+      if (e.pointerType === "mouse") pauseResult();
+    });
+    el.addEventListener("pointerleave", (e) => {
+      if (e.pointerType === "mouse" && resultClock?.down == null) runResult();
+    });
+    el.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        continueResult();
+      }
+    });
+  }
+  return el;
+}
+function pauseResult() {
+  if (!resultClock?.timer) return;
+  clearTimeout(resultClock.timer);
+  resultClock.left -= performance.now() - resultClock.at;
+  resultClock.timer = null;
+  $("round-result").classList.add("paused");
+}
+function runResult() {
+  if (!resultClock || resultClock.timer || document.hidden) return;
+  const e = epoch;
+  resultClock.at = performance.now();
+  resultClock.timer = setTimeout(
+    () => {
+      if (e === epoch) continueResult();
+    },
+    Math.max(0, resultClock.left),
+  );
+  timers.push(resultClock.timer);
+  $("round-result").classList.remove("paused");
+}
+function hideResult() {
+  if (resultClock?.timer) clearTimeout(resultClock.timer);
+  resultClock = null;
+  const el = document.getElementById("round-result");
+  if (el) {
+    el.hidden = true;
+    el.innerHTML = "";
+  }
+}
+function continueResult() {
+  if (!resultClock || s.phase !== "recap") return;
+  hideResult();
   advance();
 }
+// The result of a choice stays in the same scene until it has been seen.
+function recap() {
+  if (s.phase !== "recap") return;
+  const r = s.recap;
+  if (!r) return advance();
+  office();
+  const v = resultView(r);
+  if (v.kind) {
+    $("venue-scene").innerHTML = window.DayArt.interior(v.kind, {
+      crowd: v.crowd,
+      speaker: v.speaker,
+      rain: G.weather(s).id === "rain",
+      staff: capacity(),
+      mode: v.mode,
+      stage: "reaction",
+      topic: G.TOPICS[r.player.topic]?.title,
+    });
+    $("venue-scene").hidden = false;
+    $("room").classList.add("field");
+  }
+  const el = resultCard();
+  el.innerHTML = resultMarkup(r, v);
+  el.dataset.tone = toneOf(r.totalVotes);
+  el.hidden = false;
+  el.classList.remove("paused");
+  resultClock = { left: RESULT_MS, timer: null, at: 0, down: null };
+  runResult();
+}
+document.addEventListener("visibilitychange", () =>
+  document.hidden ? pauseResult() : runResult(),
+);
 
 function recapDetail() {
   const r = s.recap || s.journal.at(-1);
@@ -1198,22 +1468,301 @@ function recapDetail() {
 }
 function advance() {
   if (s.phase !== "recap") return;
+  hideResult();
   closePanel();
   G.next(s);
   cfg = { research: [] };
   action = null;
+  // The vote count plays once; a reload mid-count continues from where it was.
+  if (s.phase === "result")
+    ending = matchMedia("(prefers-reduced-motion:reduce)").matches
+      ? { status: "seen", elapsed: COUNT.end }
+      : { status: "inprogress", elapsed: 0 };
   save();
   resume();
 }
+
+/* ---------- Ending: counting night, then the report card (ported from day-ui.js) ---------- */
+const COUNT = { wait: 1.2, reveal: 9, end: 12 },
+  VERDICT = {
+    elected: "凍蒜！當選",
+    refunded: "落選・退保證金",
+    forfeited: "落選",
+  },
+  QUIET_WORD = {
+    fundraise: "募款",
+    recruit: "招募",
+    prepare: "準備政見",
+    dig: "挖黑料",
+  },
+  TITLE_ICONS = {
+    "newcomer-upset": "✦",
+    "tie-elected": "籤",
+    "tie-lost": "籤",
+    "promise-king": "票",
+    "one-chief-short": "↗",
+  };
+let ending = null,
+  countFrame = 0;
+function endingLayer() {
+  let el = document.getElementById("office-ending");
+  if (!el) {
+    el = document.createElement("section");
+    el.id = "office-ending";
+    document.body.append(el);
+  }
+  if (!el.dataset.ready) {
+    el.dataset.ready = "1";
+    el.className = "office-ending";
+    el.setAttribute("aria-label", "開票與成績單");
+  }
+  return el;
+}
+function hideEnding() {
+  cancelAnimationFrame(countFrame);
+  const el = document.getElementById("office-ending");
+  if (el) {
+    el.hidden = true;
+    el.innerHTML = "";
+    el.dataset.view = "";
+  }
+}
+const endingTitles = () => s.result.titles || G.reportTitles(s, s.result);
+function partyBadge(id) {
+  const p = G.PARTIES[id] || G.PARTIES.independent;
+  return `<span class="party-badge" style="--party:${esc(p.color)}">${esc(p.short || p.title)}</span>`;
+}
+// Counted share for one candidate: uneven jumps fixed per game, so a reload replays the same night.
+function countedShare(c, who) {
+  if (c >= 1) return 1;
+  if (c <= 0) return 0;
+  const steps = 16,
+    k = Math.min(steps, Math.floor(c * steps + (who === "rival" ? 0.5 : 0)));
+  let done = 0,
+    total = 0;
+  for (let i = 0; i < steps; i++) {
+    const w = 0.4 + G.rand(s.seed, "count-step", who, i);
+    total += w;
+    if (i < k) done += w;
+  }
+  return done / total;
+}
+function renderCounting() {
+  const el = endingLayer(),
+    r = s.result,
+    name = G.candidateName(s.settings),
+    t = ending.elapsed,
+    titles = endingTitles(),
+    tie = titles.some((x) => x.id === "tie-elected" || x.id === "tie-lost"),
+    pauseAt = COUNT.reveal - 1.5,
+    revealed = t >= COUNT.reveal,
+    stage = revealed ? r.outcome : "count";
+  if (el.dataset.view !== "count") {
+    el.dataset.view = "count";
+    el.innerHTML = `<div class="oc-stage"><div class="oc-scene" id="oc-scene"></div><div class="count-screen"><h2 class="count-stage" id="oc-stage"></h2><div class="count-board" aria-hidden="true"><b>${esc(name)}</b><span class="count-track"><i id="oc-meter"></i></span><strong id="oc-votes">0</strong><i class="count-line" id="oc-line"><span id="oc-line-label"></span></i></div></div><strong class="count-verdict" id="oc-verdict" hidden></strong></div><button class="oc-skip" data-action="skip-count">略過開票 →</button>`;
+  }
+  el.hidden = false;
+  const scene = $("oc-scene");
+  if (scene.dataset.stage !== stage) {
+    window.DayArt.setCandidates({
+      player: {
+        identity: s.settings.background,
+        outfit: G.BACKGROUNDS[s.settings.background].outfit,
+        party: s.settings.affiliation,
+        name,
+      },
+    });
+    scene.innerHTML = window.DayArt.countNight(stage, { elapsed: t, name });
+    scene.dataset.stage = stage;
+  }
+  const c = Math.max(
+      0,
+      Math.min(
+        1,
+        (t - COUNT.wait) / ((tie ? pauseAt : COUNT.reveal) - COUNT.wait),
+      ),
+    ),
+    you = revealed
+      ? r.playerVotes
+      : Math.round(r.playerVotes * countedShare(c, "you")),
+    top = Math.max(r.playerVotes, r.lastSeat) * 1.12 || 1;
+  $("oc-stage").textContent =
+    t < COUNT.wait
+      ? "投票結束，開票開始"
+      : !revealed
+        ? tie && t >= pauseAt
+          ? "同票，依法抽籤"
+          : "開票中・已開 " + Math.round(c * 100) + "%"
+        : "開票結果・第 " + r.rank + " 名";
+  $("oc-votes").textContent = num(you);
+  $("oc-meter").style.width = Math.min(100, (you / top) * 100).toFixed(1) + "%";
+  $("oc-line").style.left =
+    "calc(var(--name-col) + (100% - var(--name-col) - var(--num-col)) * " +
+    Math.min(1, r.lastSeat / top).toFixed(4) +
+    ")";
+  $("oc-line-label").textContent = "當選線 " + num(r.lastSeat);
+  $("oc-verdict").hidden = !revealed;
+  $("oc-verdict").textContent = revealed
+    ? VERDICT[r.outcome] +
+      (titles.length ? "・" + titles.map((x) => x.title).join("・") : "")
+    : "";
+  $("oc-verdict").dataset.outcome = r.outcome;
+}
+function counting() {
+  renderCounting();
+  const e = epoch;
+  let prev = performance.now();
+  function tick(now) {
+    if (e !== epoch || s.phase !== "result" || ending?.status !== "inprogress")
+      return;
+    const dt = Math.max(0, Math.min((now - prev) / 1000, 0.5)),
+      before = ending.elapsed;
+    prev = now;
+    if (!document.hidden && !$("sheet").open)
+      ending.elapsed = Math.min(COUNT.end, ending.elapsed + dt);
+    if (ending.elapsed >= COUNT.end) return finishCounting();
+    if (Math.floor(ending.elapsed) !== Math.floor(before)) save();
+    renderCounting();
+    countFrame = requestAnimationFrame(tick);
+  }
+  countFrame = requestAnimationFrame(tick);
+}
+function finishCounting() {
+  if (s.phase !== "result" || ending?.status !== "inprogress") return;
+  cancelAnimationFrame(countFrame);
+  ending = { status: "seen", elapsed: COUNT.end };
+  save();
+  report();
+}
+function titlesMarkup() {
+  const titles = endingTitles();
+  return titles.length
+    ? `<section class="report-titles" aria-label="本局稱號">${titles.map((t) => `<div class="report-title" data-title="${esc(t.id)}"><span class="report-title-badge"><span aria-hidden="true">${TITLE_ICONS[t.id] || "✦"}</span>${esc(t.title)}</span><p class="report-title-line">${esc(t.line)}</p>${t.detail ? `<small class="report-title-detail">${esc(t.detail)}</small>` : ""}</div>`).join("")}</section>`
+    : "";
+}
+function platformMarkup() {
+  const v = s.result?.platform || G.platformView(s);
+  return `<section class="platform-summary"><h3>我公開承諾的政見</h3><p>${v.items.length ? "列出最近公開的 " + v.items.length + " 項" + (v.omitted ? "；本局共有 " + v.total + " 項。" : "。") : "這次沒有公開提出具體政見或保證。研究過的題目不算公開承諾。"}</p><ol>${v.items.map((x) => `<li><b>${esc(x.title)}${x.kind === "guarantee" ? "・保證" : ""}</b><blockquote>「${esc(x.quote)}」</blockquote><small>第 ${x.round} 回合・${esc(x.action === "offer" ? "接受合作並公開支持" : G.ACTIONS.find((a) => a.id === x.action)?.title || x.action)}${x.changed ? "・曾改口" : ""}</small></li>`).join("")}</ol></section>`;
+}
+function trendChart() {
+  const r = s.result,
+    LN = r.lastSeat,
+    start = s.startRace || { you: 0, rival: 0 },
+    points = [
+      start,
+      ...s.journal.map((j) => (j.race ? { you: j.race.you } : null)).filter(Boolean),
+      { you: r.playerVotes, final: true },
+    ],
+    max = Math.max(LN * 1.15, ...points.map((p) => p.you)) || 1,
+    W = 320,
+    H = 120,
+    x = (i) => 8 + (i * (W - 16)) / Math.max(1, points.length - 1),
+    y = (v) => H - 10 - (v / max) * (H - 20);
+  return `<svg class="trend" viewBox="0 0 ${W} ${H}" role="img" aria-label="${G.DAYS} 回合估票"><line x1="8" x2="${W - 8}" y1="${y(LN).toFixed(1)}" y2="${y(LN).toFixed(1)}" class="trend-line"/><text x="10" y="${(y(LN) - 5).toFixed(1)}" class="trend-label">今年當選線 ${num(LN)}</text><polyline points="${points.map((p, i) => x(i).toFixed(1) + "," + y(p.you).toFixed(1)).join(" ")}" class="trend-you"/>${points.map((p, i) => `<circle cx="${x(i).toFixed(1)}" cy="${y(p.you).toFixed(1)}" r="${p.final ? 4.2 : 2.6}" class="trend-dot${p.final ? " final" : ""}"/>`).join("")}</svg>`;
+}
+function roundParts(x) {
+  const list = [],
+    add = (label, v) => {
+      if (Math.abs(v || 0) >= 1) list.push(label + " " + signed(v));
+    },
+    took = Math.round(-(x.byRival || 0));
+  if (x.quiet)
+    list.push(
+      QUIET_WORD[x.action] +
+        "不影響票數；沒拉票" +
+        (took >= 1
+          ? "，對手" + (x.attack ? "攻擊你 −" : "拉走 ") + num(took) + " 票"
+          : ""),
+    );
+  else {
+    if (x.dig)
+      list.push(
+        x.dig === "found"
+          ? "挖到黑料"
+          : x.dig === "nothing"
+            ? "沒挖到黑料"
+            : "挖黑料被反咬",
+      );
+    add("你", x.direct);
+    add(x.attack ? "對手攻擊" : "對手拉走", x.byRival);
+  }
+  add("助手", x.team);
+  add("看板", x.billboard);
+  add("合作", x.offer);
+  add(x.planTitle || "出發前", x.plan);
+  add("回應小馬", x.rebuttal);
+  add(x.eventsTitle || "事件", x.events);
+  return list.join("・");
+}
+function roundWhat(x) {
+  const t = TOPIC(x.topic);
+  return x.action === "canvass"
+    ? x.where + "・談" + t
+    : x.action === "tv"
+      ? "電視・談" + t
+      : x.action === "online"
+        ? "直播・談" + t
+        : x.action === "debate"
+          ? "政見會・談" + t
+          : x.action === "rally"
+            ? x.where + "・造勢"
+            : x.action === "press"
+              ? "記者會爆料"
+              : G.ACTIONS.find((a) => a.id === x.action)?.title || x.action;
+}
+function reportMarkup() {
+  const r = s.result,
+    bg = G.BACKGROUNDS[s.settings.background],
+    party = G.PARTIES[s.settings.affiliation],
+    ok = r.outcome === "elected",
+    grade = r.grade || G.resultGrade(r),
+    verdict = grade.title + "・第 " + r.rank + " 名",
+    nextGrade = grade.next
+      ? grade.next.votesNeeded == null
+        ? "下一級是" + grade.next.title
+        : "再多 " + num(grade.next.votesNeeded) + " 票就是" + grade.next.title
+      : ok
+        ? "已達最高當選等級"
+        : "還差 " + num(r.gap) + " 票當選",
+    name = G.candidateName(s.settings),
+    key = [...(r.roundsSummary || [])]
+      .sort((a, b) => Math.abs(b.votes) - Math.abs(a.votes))
+      .slice(0, 3)
+      .map((x) => x.day),
+    rounds =
+      (r.roundsSummary || [])
+        .map(
+          (x) =>
+            `<li${key.includes(x.day) ? ' class="key-round"' : ""}><b>${x.day}</b><span>${esc(roundWhat(x))}</span><strong class="${x.votes >= 0 ? "up" : "down"}">${signed(x.votes)}</strong><small>${key.includes(x.day) ? '<em class="key-tag">影響最大前三</em>' : ""}${esc(roundParts(x))}</small></li>`,
+        )
+        .join("") +
+      (r.unkept || [])
+        .map(
+          (u) =>
+            `<li class="unkept"><b>✕</b><span>開票・被小馬拆穿的保證</span><strong class="down">${signed(u.votes)}</strong><small>「${esc(u.text)}」沒有更正，信的人改投別人</small></li>`,
+        )
+        .join(""),
+    est = r.race.groups.reduce((n, g) => n + g.you, 0) || 1,
+    groups = r.race.groups
+      .map((g, k) => {
+        const v = (r.playerVotes * g.you) / est;
+        return `<div class="g-${GROUP_KEYS[k]}"><b>${esc(g.title)}</b><span>${num(v)} 票${r.groupTotals?.[k] ? "（" + ((v / r.groupTotals[k]) * 100).toFixed(1) + "%）" : ""}</span></div>`;
+      })
+      .join("");
+  return `<article class="report-card"><header class="report-head"><span class="report-who">${esc(name)}｜${esc(bg.title)}・${partyBadge(s.settings.affiliation)}${esc(party.title)}</span><h2 class="report-verdict ${ok ? "win" : "lose"}">${esc(verdict)}</h2>${titlesMarkup()}<p class="result-next-grade">${esc(nextGrade)}</p></header><figure class="report-scene" aria-label="${esc(verdict + "的開票夜")}">${window.DayArt.countNight(r.outcome, { still: true, name, tally: { you: r.playerVotes, line: r.lastSeat, rank: r.rank, seats: r.seats } })}</figure><div class="report-numbers"><div><span>你的得票</span><strong>${num(r.playerVotes)}</strong><small>第 ${r.rank} 名（前 ${r.seats} 名當選）</small></div><div><span>當選線</span><strong>${num(r.lastSeat)}</strong><small>${ok ? "多 " : "還差 "}${num(r.gap)} 票</small></div><div><span>得票率</span><strong>${r.valid ? ((r.playerVotes / r.valid) * 100).toFixed(1) + "%" : "—"}</strong><small>有效票 ${num(r.valid)}</small></div></div>${platformMarkup()}<details class="report-rounds"><summary>每回合做了什麼 · 估票走勢</summary>${trendChart()}<div class="report-groups">${groups}</div><ol>${rounds}</ol></details></article>`;
+}
+function report() {
+  const el = endingLayer();
+  el.dataset.view = "report";
+  el.innerHTML = `<div class="oe-report">${reportMarkup()}<div class="report-tools"><button class="primary" data-action="replay">換個人物，再玩一次</button><button data-open="map">回顧選戰足跡</button></div><p class="footnote">獨立試版，不覆寫正式遊戲存檔。${storageOK ? "進度保存在這個瀏覽器。" : "本次無法儲存，關頁後進度可能遺失。"}</p></div>`;
+  el.hidden = false;
+  el.scrollTop = 0;
+}
 function result() {
   office();
-  const r = s.result,
-    platform = G.platformView(s);
-  showPanel(
-    "開票 · 你留下的承諾",
-    `<div class="statline"><span>結果<b>${esc(r.grade?.title || r.outcome || "開票完成")}</b></span><span>得票<b>${num(r.playerVotes)} 票</b></span></div><p>${esc(r.grade?.text || "選戰結束。再看一次自己的行程與承諾。")}</p>${r.titles?.map((t) => `<p class="badge">${esc(t.title)}</p>`).join("") || ""}<p>第 ${r.rank} 名 · ${esc(r.reflection || "")}</p><div class="section-label">這局公開承諾 · ${platform.total} 項</div>${platform.items.length ? platform.items.map((p) => `<p>${esc(p.quote || p.text || p.title)}</p>`).join("") : "<p>這局沒有公開具體政見。</p>"}<button data-open="map">回顧選戰足跡</button><p class="footnote">獨立試版，不覆寫正式遊戲存檔。${storageOK ? "進度保存在這個瀏覽器。" : "本次無法儲存，關頁後進度可能遺失。"}</p>`,
-    { text: "換個人物，再玩一次", fn: newGame },
-  );
+  if (!ending) ending = { status: "seen", elapsed: COUNT.end };
+  if (ending.status === "inprogress") return counting();
+  report();
 }
 function resume() {
   if (s.phase === "plan") {
@@ -1326,6 +1875,12 @@ document.addEventListener("click", (e) => {
       break;
     case "respond":
       choose("tv", { respond: true });
+      break;
+    case "skip-count":
+      finishCounting();
+      break;
+    case "replay":
+      newGame();
       break;
     case "clarify": {
       const ch = G.pendingChallenges(s)[0];
@@ -1522,6 +2077,18 @@ try {
     seenVisits = saved.seenVisits || [];
     action = saved.action;
     cfg = saved.cfg || {};
+    ending =
+      s.phase === "result" && saved.ending?.status === "inprogress"
+        ? {
+            status: "inprogress",
+            elapsed: Math.max(
+              0,
+              Math.min(COUNT.end, Number(saved.ending.elapsed) || 0),
+            ),
+          }
+        : s.phase === "result"
+          ? { status: "seen", elapsed: COUNT.end }
+          : null;
     G.upgrade(s);
     resume();
   } else {

@@ -335,11 +335,56 @@ function harness(initial, opts = {}) {
   const q = G.question(h.state()),
     answer = q.options.find((o) => o.unlocked);
   h.run("G.answer(s," + JSON.stringify(answer.id) + ");recap()");
+  // The result is shown in the same scene before the next round starts.
+  eq(
+    [h.state().day, h.state().phase],
+    [1, "recap"],
+    "answer shows its result before advancing",
+  );
+  const card = h.nodes["round-result"],
+    total = Math.round(h.state().recap.totalVotes);
+  ok(!card.hidden, "result card visible on the spot");
+  ok(
+    h.nodes["room"].classList.contains("field") &&
+      !h.nodes["venue-scene"].hidden,
+    "result stays in the field scene",
+  );
+  ok(
+    h.nodes["venue-scene"].innerHTML.includes('data-stage="reaction"'),
+    "scene switches to the residents' reaction",
+  );
+  ok(
+    card.innerHTML.includes(
+      (total > 0 ? "+" : total < 0 ? "−" : "±") +
+        Math.abs(total).toLocaleString("zh-TW"),
+    ),
+    "signed round total shown",
+  );
+  ok(
+    card.innerHTML.includes(
+      'rr-score ' + (total > 0 ? "up" : total < 0 ? "down" : "zero"),
+    ),
+    "good or bad carried by colour class",
+  );
+  ok(card.innerHTML.includes("名"), "rank change shown");
+  ok(
+    !card.innerHTML.includes("<button") &&
+      h.nodes.dialogue.classList.contains("hidden"),
+    "no extra next-round button",
+  );
+  const reloadMid = harness(h.snapshot());
+  eq(reloadMid.state().phase, "recap", "reload during result keeps it");
+  ok(!reloadMid.nodes["round-result"].hidden, "reload shows result again");
+  h.run("pauseResult()");
+  ok(card.classList.contains("paused"), "holding pauses the countdown");
+  h.run("runResult()");
+  h.flush();
   eq(
     [h.state().day, h.state().phase],
     [2, "plan"],
-    "answer advances directly to next planning round",
+    "result auto-advances to the next planning round",
   );
+  ok(card.hidden, "result card cleared for planning");
   const settled = clone(h.state());
   h.run("finishTravel();recap();advance()");
   eq(h.state(), settled, "stale callbacks cannot settle twice");
@@ -420,7 +465,7 @@ function harness(initial, opts = {}) {
     { s: state(), cfg: {}, action: null, tutorialDone: true },
     { storageError: true },
   );
-  h.run("choose('fundraise');depart();finishTravel()");
+  h.run("choose('fundraise');depart();finishTravel();continueResult()");
   eq(h.state().day, 2, "storage failure still allows play");
 }
 // Full nine-round controller journeys preserve the shared engine outcome for every identity.
@@ -443,6 +488,8 @@ for (const background of ["newcomer", "heir", "incumbent"]) {
       G.arrive(baseline);
       G.next(baseline);
       h.run("choose('fundraise');depart();finishTravel()");
+      eq(h.state().phase, "recap", background + " round " + round + " result first");
+      h.run("continueResult()");
       eq(
         h.state().day,
         baseline.day,
@@ -459,12 +506,68 @@ for (const background of ["newcomer", "heir", "incumbent"]) {
       baseline.journal,
       background + " exact nine-round history seed " + seed,
     );
+    // Ending: the count plays once, then the original report card.
+    eq(h.run("ending.status"), "inprogress", "count starts after round nine");
+    eq(h.nodes["office-ending"].dataset.view, "count", "counting night shown");
+    eq(h.snapshot().ending.status, "inprogress", "count state saved");
+    const midCount = harness(h.snapshot());
+    eq(
+      midCount.nodes["office-ending"].dataset.view,
+      "count",
+      "reload mid-count continues the count",
+    );
+    h.run("finishCounting()");
+    const end = h.nodes["office-ending"];
+    eq(end.dataset.view, "report", "report card after the count");
+    ok(!end.hidden, "ending stays on screen");
+    for (const part of ["report-card", "report-scene", "platform-summary", "report-numbers"])
+      ok(end.innerHTML.includes(part), "report includes " + part);
+    for (const t of baseline.result.titles || [])
+      ok(end.innerHTML.includes(t.title), "title " + t.title);
+    ok(!h.nodes.sheet.open, "ending is not a dismissible panel");
     const loaded = harness(h.snapshot());
     eq(
       loaded.state().result,
       baseline.result,
       "result reload does not draw election twice",
     );
+    eq(
+      loaded.nodes["office-ending"].dataset.view,
+      "report",
+      "reload after the count goes straight to the report",
+    );
   }
+}
+// Ending titles from the shared engine appear on the report card, as in the original.
+{
+  const s = state(7, "newcomer");
+  for (let r = 0; r < G.DAYS; r++) {
+    if (s.crisis?.status === "pending") G.respondCrisis(s, "apologize");
+    G.begin(s, "fundraise", { research: [], booth: false });
+    G.arrive(s);
+    G.next(s);
+  }
+  s.result.titles = [
+    { id: "promise-king", title: "承諾之王", line: "說到的都做到了。" },
+  ];
+  const h = harness({
+    s,
+    cfg: {},
+    action: null,
+    tutorialDone: true,
+    ending: { status: "seen", elapsed: 12 },
+  });
+  const end = h.nodes["office-ending"];
+  eq(end.dataset.view, "report", "seen count goes straight to report");
+  ok(
+    end.innerHTML.includes("report-titles") && end.innerHTML.includes("承諾之王"),
+    "titles shown on the report",
+  );
+  const old = harness({ s, cfg: {}, action: null, tutorialDone: true });
+  eq(
+    old.nodes["office-ending"].dataset.view,
+    "report",
+    "saves from before the count was tracked never replay it",
+  );
 }
 console.log(JSON.stringify({ result: "passed", assertions: checks }));

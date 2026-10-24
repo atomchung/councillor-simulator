@@ -9,7 +9,7 @@ const source = path.join(root, 'dist');
 // source artwork stay in the repository for regression tests, never in Pages.
 function releaseFiles() {
   const html = fs.readFileSync(path.join(source, 'index.html'), 'utf8');
-  const files = new Set(['index.html', 'office.html', 'office.js', 'office.css', 'assets/office/office-windows.png']);
+  const files = new Set(['index.html', 'office.html', 'office.js', 'office.css', 'office-result.css', 'assets/office/office-windows.png']);
   for (const [, url] of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
     if (url === './' || /^https?:/.test(url)) continue;
     const file = url.split(/[?#]/)[0];
