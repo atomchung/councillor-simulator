@@ -661,6 +661,30 @@ button.primary small {
 .rows strong {
   font-size: 15px;
 }
+/* Assistant research entry: visible on the first plan screens, not buried in the team hub. */
+.research-entry {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 52px;
+  padding: 10px 14px;
+  margin: 12px 0;
+  border: 2px dashed var(--teal);
+  background: #eef4ef;
+}
+.rows > .research-entry {
+  margin: 0;
+}
+.research-entry strong {
+  display: block;
+  color: var(--teal);
+  font-size: 15px;
+}
+.research-entry small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
 .section-label {
   font-size: 13px;
   font-weight: 700;
@@ -1043,19 +1067,85 @@ select {
 .caption {
   display: none;
 }
-.utilities {
+.hud {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  inset: max(8px, env(safe-area-inset-top)) 8px auto 8px;
   display: flex;
-  gap: 6px;
-  z-index: 4;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: none;
 }
-.utilities button {
-  font-size: 12px;
-  background: #fff8e8cc;
-  padding: 8px 12px;
+.hud > * {
+  pointer-events: auto;
+}
+.hud-status {
+  display: grid;
+  gap: 2px;
+  max-width: calc(100% - 64px);
+  padding: 6px 10px;
+  border: 1px solid #cdbb97;
+  border-radius: 10px;
+  background: #fff8e8e6;
   box-shadow: 0 3px 12px #59442620;
+  color: #293d3e;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.hud-status strong {
+  font-size: 13px;
+}
+.hud-status span {
+  color: #4f685d;
+  font-variant-numeric: tabular-nums;
+}
+.hud-gear {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff8e8e6;
+  box-shadow: 0 3px 12px #59442620;
+}
+.settings {
+  width: min(360px, calc(100% - 28px));
+}
+.settings .sheet-body {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+.setting-row span {
+  display: grid;
+  gap: 2px;
+}
+.setting-row small {
+  color: #637065;
+  font-size: 12px;
+}
+.setting-row b {
+  min-width: 2.2em;
+  text-align: center;
+  font-size: 14px;
+}
+#sound-toggle[aria-pressed="true"] b {
+  color: #2f6b4f;
+}
+#sound-toggle[aria-pressed="false"] b {
+  color: #8a6b4a;
 }
 .dialogue {
   bottom: 66px;
@@ -1259,21 +1349,11 @@ select {
   .office-prop text {
     font-size: 28px;
   }
-  .calendar text {
-    font-size: 24px;
-  }
   .person-label {
     font-size: 25px;
   }
   .room {
     background: linear-gradient(#f4dec2, #ebc393);
-  }
-  .utilities {
-    bottom: 12px;
-    right: 10px;
-  }
-  .dialogue:not(.hidden) ~ .utilities {
-    display: flex;
   }
   .character-list svg {
     width: 42px;
@@ -1304,9 +1384,6 @@ select {
     bottom: 56px;
     max-height: 75%;
     width: min(580px, 90%);
-  }
-  .utilities {
-    bottom: 6px;
   }
 }
 #venue-scene {
@@ -1377,9 +1454,6 @@ select {
   .office-prop text {
     font-size: 30px;
   }
-  .calendar text {
-    font-size: 25px;
-  }
   .room > svg {
     height: 74%;
   }
@@ -1387,9 +1461,6 @@ select {
     white-space: normal;
     max-height: 66px;
     overflow: auto;
-  }
-  .utilities button {
-    min-height: 44px;
   }
 }
 @media (max-width: 900px) {
@@ -1399,7 +1470,450 @@ select {
   #knock {
     transform: translateX(20px);
   }
-  .calendar text {
-    font-size: 29px;
+}
+
+/* People and events: dialogue types, crisis tier, option reactions, name tags. */
+.dialogue {
+  --talk: #306966;
+  --talk-soft: #e4efe9;
+  border-left: 5px solid var(--talk);
+}
+.dialogue[data-type="resident"],
+.dialogue[data-type="host"] {
+  --talk: #8a6a3c;
+  --talk-soft: #f3e8d2;
+}
+.dialogue[data-type="offer"] {
+  --talk: #b0782a;
+  --talk-soft: #fbecc8;
+}
+.dialogue[data-type="invite"] {
+  --talk: #5f6fa0;
+  --talk-soft: #e5e9f5;
+}
+.dialogue[data-type="rival"] {
+  --talk: #6b5a8e;
+  --talk-soft: #ebe5f4;
+}
+.dialogue .speaker {
+  flex-wrap: wrap;
+  gap: 6px 8px;
+  color: var(--talk);
+}
+.talk-tag {
+  flex: none;
+  font-size: 12px;
+  font-weight: 750;
+  line-height: 1.25;
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: var(--talk);
+  background: var(--talk-soft);
+  border: 1px solid color-mix(in srgb, var(--talk) 35%, transparent);
+}
+.talk-tag:empty {
+  display: none;
+}
+.speaker .who {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+}
+.speaker .who b {
+  font-size: 14px;
+  color: #2f3f3c;
+}
+.speaker .who small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6f7464;
+}
+.speaker .who small:empty {
+  display: none;
+}
+.dialogue .actions button:only-child {
+  grid-column: 1/-1;
+}
+.facts {
+  margin: 4px 0 12px;
+  display: grid;
+  gap: 4px;
+}
+.facts p {
+  display: grid;
+  grid-template-columns: 4.5em 1fr;
+  gap: 8px;
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: var(--talk-soft);
+}
+.facts b {
+  color: var(--talk);
+  font-weight: 700;
+}
+.facts .loss span {
+  color: #9a3b26;
+}
+.facts .gain span {
+  color: #2d6b45;
+}
+/* Crisis: an alert, not a chat bubble. */
+.dialogue[data-type="crisis"] {
+  --talk: #b23a26;
+  --talk-soft: #fbe2d8;
+  background: #fff6f1fa;
+  border: 2px solid #c8553b;
+  border-left-width: 2px;
+  box-shadow:
+    0 0 0 4px #c8553b33,
+    0 14px 40px #7a2a1a40;
+  padding-top: 0;
+}
+.dialogue[data-type="crisis"] .speaker {
+  margin: 0 -20px 4px;
+  padding: 8px 44px 8px 16px;
+  background: repeating-linear-gradient(
+    -45deg,
+    #b23a26,
+    #b23a26 12px,
+    #a43220 12px,
+    #a43220 24px
+  );
+  border-radius: 13px 13px 0 0;
+}
+.dialogue[data-type="crisis"] .talk-tag {
+  color: #fff;
+  background: #00000026;
+  border-color: #ffffff66;
+}
+.dialogue[data-type="crisis"] .talk-tag::before {
+  content: "⚠ ";
+}
+.dialogue[data-type="crisis"] .who b,
+.dialogue[data-type="crisis"] .who small {
+  color: #fff;
+}
+.dialogue[data-type="crisis"] .close {
+  color: #fff;
+  z-index: 1;
+}
+.dialogue[data-type="crisis"] h1 {
+  color: #5a1f12;
+}
+.dialogue[data-type="crisis"][data-state="resolved"] {
+  border-color: #c99a7f;
+  box-shadow: 0 12px 40px #65452a26;
+}
+.dialogue[data-type="crisis"][data-state="resolved"] .speaker {
+  background: #9c5a45;
+}
+.dialogue.alarm {
+  animation: crisis-shake 0.55s ease-in-out;
+}
+@keyframes crisis-shake {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  15% {
+    translate: -9px 0;
+  }
+  30% {
+    translate: 8px 0;
+  }
+  45% {
+    translate: -6px 0;
+  }
+  60% {
+    translate: 5px 0;
+  }
+  80% {
+    translate: -2px 0;
+  }
+}
+.room.crisis-alert::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background: radial-gradient(transparent 40%, #c8352080);
+  animation: crisis-flash 0.9s ease-out both;
+}
+@keyframes crisis-flash {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 1;
+  }
+  45% {
+    opacity: 0.35;
+  }
+  65% {
+    opacity: 0.8;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+#knock.alert rect {
+  fill: #fbe2d8;
+  stroke: #b23a26;
+  stroke-width: 3;
+}
+#knock.alert text {
+  fill: #9a2f1d;
+  font-weight: 700;
+}
+#knock.alert {
+  animation: door-pulse 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes door-pulse {
+  50% {
+    opacity: 0.7;
+  }
+}
+/* Name tags: one small pill on the character's feet, name then role. */
+.actor .name-bg {
+  fill: #fffaf0;
+  stroke: #b9a57c;
+  stroke-width: 1.5;
+}
+.actor .person-label {
+  font: 650 21px system-ui;
+  fill: #2f4542;
+}
+.actor .tag-role {
+  font-size: 0.78em;
+  font-weight: 500;
+  fill: #6e7768;
+}
+#staff .name-bg {
+  stroke: #2f7472;
+}
+#visitor[data-look] .name-bg {
+  stroke: #b0782a;
+}
+.actor .wait-cue {
+  display: none;
+}
+.actor.waiting .wait-cue {
+  display: inline;
+  animation: wait-bob 1.6s ease-in-out infinite;
+}
+.wait-cue path {
+  fill: #fffaf0;
+  stroke: #b0782a;
+  stroke-width: 3;
+}
+.wait-cue text {
+  font: 700 22px system-ui;
+  fill: #8a5a1c;
+}
+@keyframes wait-bob {
+  50% {
+    translate: 0 -6px;
+  }
+}
+.actor.waiting {
+  opacity: 1;
+}
+/* Option reactions (scene coordinates). */
+.reaction .react-cap rect {
+  fill: #2f3f3c;
+  opacity: 0.9;
+}
+.reaction .react-cap text {
+  font: 700 30px system-ui;
+  fill: #fff;
+}
+.reaction .react-cap {
+  animation: cap-in 1.7s ease both;
+}
+@keyframes cap-in {
+  0% {
+    opacity: 0;
+    translate: 0 12px;
+  }
+  15%,
+  85% {
+    opacity: 1;
+    translate: 0 0;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.react-leaflets .leaf {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: leaf-fly 1.5s ease-out var(--d) both;
+}
+.leaf rect {
+  fill: #fffdf3;
+  stroke: #9a8a62;
+  stroke-width: 2;
+}
+.leaf path {
+  stroke: #6f9a8e;
+  stroke-width: 3;
+}
+.leaf text {
+  font: 700 12px system-ui;
+  fill: #a5513a;
+}
+@keyframes leaf-fly {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0) rotate(0) scale(0.6);
+  }
+  20% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) rotate(var(--r)) scale(1);
+  }
+}
+/* The candidate sits behind the desk mask: dipping the whole figure reads as a bow. */
+#candidate.react-bow {
+  animation: bow 1.5s ease-in-out both;
+}
+@keyframes bow {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  30%,
+  70% {
+    translate: 0 58px;
+  }
+}
+.react-bow .bow-lines path {
+  fill: none;
+  stroke: #7d6a52;
+  stroke-width: 5;
+  stroke-linecap: round;
+  animation: cap-in 1.5s ease both;
+}
+#candidate.react-counter {
+  animation: counter 0.5s ease-in-out 3;
+}
+@keyframes counter {
+  50% {
+    translate: 0 -22px;
+  }
+}
+.react-counter .burst path {
+  stroke: #e0a227;
+  stroke-width: 9;
+  stroke-linecap: round;
+  animation: burst 1.5s ease-out both;
+}
+@keyframes burst {
+  0% {
+    opacity: 0;
+    stroke-width: 3;
+  }
+  12%,
+  70% {
+    opacity: 1;
+    stroke-width: 18;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+.react-counter .bang {
+  font: 900 110px system-ui;
+  fill: #d0802a;
+  stroke: #fffaf0;
+  stroke-width: 6;
+  paint-order: stroke;
+  animation: cap-in 1.5s ease both;
+}
+#candidate.react-flame {
+  animation: shiver 0.12s linear 10;
+}
+@keyframes shiver {
+  50% {
+    translate: -6px 0;
+  }
+}
+.react-flame .flame {
+  fill: #e8622c;
+  stroke: #f3a541;
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: flame 0.45s ease-in-out var(--d) infinite alternate;
+}
+@keyframes flame {
+  0% {
+    transform: scale(0.85, 0.8);
+    opacity: 0.75;
+  }
+  100% {
+    transform: scale(1.05, 1.15);
+    opacity: 1;
+  }
+}
+.react-flame .smoke circle {
+  fill: #6b5f58;
+  opacity: 0.35;
+  animation: smoke 1.6s ease-out both;
+}
+@keyframes smoke {
+  from {
+    translate: 0 30px;
+    opacity: 0;
+  }
+  50% {
+    opacity: 0.4;
+  }
+  to {
+    translate: 0 -40px;
+    opacity: 0;
+  }
+}
+@media (max-width: 900px) {
+  .actor .person-label {
+    font-size: 34px;
+  }
+  .reaction .react-cap text {
+    font-size: 34px;
+  }
+  .wait-cue text {
+    font-size: 26px;
+  }
+  .dialogue[data-type="crisis"] .speaker {
+    margin: 0 -10px 4px;
+    padding: 7px 40px 7px 12px;
+  }
+}
+@media (max-width: 600px) {
+  .facts p {
+    grid-template-columns: 4em 1fr;
+    font-size: 13px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dialogue.alarm,
+  .room.crisis-alert::before,
+  #knock.alert,
+  .actor.waiting .wait-cue,
+  .reaction *,
+  #candidate[class*="react-"] {
+    animation: none !important;
   }
 }

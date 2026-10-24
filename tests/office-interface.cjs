@@ -26,11 +26,11 @@ function state(seed = 24, background = "heir") {
   return s;
 }
 function harness(initial, opts = {}) {
-  const saved = initial ? { [KEY]: JSON.stringify(initial) } : {},
+  const saved = { ...(initial ? { [KEY]: JSON.stringify(initial) } : {}), ...(opts.extraSaved || {}) },
     nodes = {},
     timers = new Map(),
     events = {},
-    audio = { starts: 0, gain: 0, resumes: 0 };
+    audio = { starts: 0, contexts: 0, resumes: 0 };
   let serial = 0,
     doc;
   function element(id = "") {
@@ -114,8 +114,18 @@ function harness(initial, opts = {}) {
       (events[k] ??= []).push(f);
     },
   };
+  // Minimal Web Audio mock; real day-sound.js runs against it when opts.realSound is set.
+  const audioNode = () => ({
+    gain: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} },
+    frequency: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+    connect() {},
+    disconnect() {},
+    start() { audio.starts++; },
+    stop() {},
+  });
   class AudioContext {
     constructor() {
+      audio.contexts++;
       this.sampleRate = 100;
       this.currentTime = 0;
       this.state = "suspended";
@@ -125,40 +135,17 @@ function harness(initial, opts = {}) {
       const data = new Float32Array(300);
       return { getChannelData: () => data };
     }
-    createBufferSource() {
-      return {
-        connect(x) {
-          return x;
-        },
-        start() {
-          audio.starts++;
-        },
-      };
-    }
-    createBiquadFilter() {
-      return {
-        frequency: { value: 0 },
-        connect(x) {
-          return x;
-        },
-      };
-    }
-    createGain() {
-      return {
-        gain: {
-          value: 0,
-          setTargetAtTime(v) {
-            audio.gain = v;
-          },
-        },
-        connect(x) {
-          return x;
-        },
-      };
-    }
+    createGain() { return audioNode(); }
+    createOscillator() { return audioNode(); }
+    createBufferSource() { return audioNode(); }
+    createBiquadFilter() { return audioNode(); }
     resume() {
       this.state = "running";
       audio.resumes++;
+      return Promise.resolve();
+    }
+    suspend() {
+      this.state = "suspended";
       return Promise.resolve();
     }
   }
@@ -170,7 +157,20 @@ function harness(initial, opts = {}) {
     },
   };
   const ctx = {
-    window: { DayGame: G, AudioContext },
+    window: {
+      DayGame: G,
+      ...(opts.realSound
+        ? {
+            AudioContext,
+            localStorage: undefined,
+            navigator: { audioSession: { type: "auto" } },
+            setTimeout: (f, ms) => timers.set(++serial, { f, ms }) && serial,
+            clearTimeout: (id) => timers.delete(id),
+            addEventListener() {},
+          }
+        : {}),
+      ...(opts.soundStub ? { DaySound: opts.soundStub } : {}),
+    },
     document: doc,
     localStorage: storage,
     console,
@@ -186,8 +186,11 @@ function harness(initial, opts = {}) {
     Math,
     Float32Array,
   };
+  ctx.window.localStorage ??= opts.realSound ? storage : undefined;
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(root + "/day-art.js", "utf8"), ctx);
+  if (opts.realSound)
+    vm.runInContext(fs.readFileSync(root + "/day-sound.js", "utf8"), ctx, { filename: "day-sound.js" });
   vm.runInContext(source, ctx, { filename: "office.js" });
   const run = (code) => vm.runInContext(code, ctx);
   return {
@@ -206,7 +209,7 @@ function harness(initial, opts = {}) {
     click(data) {
       const b = element();
       b.dataset = data;
-      for (const f of events.click || []) f({ target: b });
+      for (const f of events.click || []) f({ target: b, isTrusted: true });
     },
     footer() {
       const b = nodes["sheet-foot"].children[0];
@@ -272,12 +275,90 @@ function harness(initial, opts = {}) {
       id + " available in publicity",
     );
   h.click({ open: "teamhub" });
-  for (const label of ["招募一位助手", "地方小隊", "安排 2 位助手"])
+  for (const label of ["招募一位助手", "地方小隊", "派 2 位助手"])
     ok(h.nodes["sheet-body"].innerHTML.includes(label), "team hub " + label);
   h.click({ action: "category", id: "intel" });
   ok(
     h.nodes["sheet-body"].innerHTML.includes("查證手上的資料"),
     "verification visible with intelligence",
+  );
+}
+// Tutorial is at most three short beats and names parallel assistant research early.
+{
+  const h = harness({
+    s: state(24, "newcomer"),
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: false,
+  });
+  const beats = [];
+  h.run("tutorial(0)");
+  for (let i = 0; i < 3; i++) {
+    beats.push(h.nodes.sub.textContent);
+    ok(
+      [...h.nodes.sub.textContent].length <= 25,
+      "tutorial beat " + (i + 1) + " body stays short",
+    );
+    if (i < 2) h.nodes.actions.children[0].onclick();
+  }
+  ok(
+    h.nodes.line.textContent.includes("第一步") && h.run("tutorialDone"),
+    "third beat is the last and picks the first step",
+  );
+  ok(
+    beats[1].includes("不占你的行程"),
+    "second beat says assistant research runs alongside your action",
+  );
+}
+// Assistant research is one tap from the first plan screens and the staff brief.
+{
+  const h = harness({
+    s: state(24, "newcomer"),
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: true,
+  });
+  h.run("catalog()");
+  ok(
+    h.nodes["sheet-body"].innerHTML.includes('data-open="team"') &&
+      h.nodes["sheet-body"].innerHTML.includes("2 位可派"),
+    "catalog shows research entry with free assistants",
+  );
+  h.run("choose('canvass',{venue:'market'})");
+  ok(
+    h.nodes["sheet-body"].innerHTML.includes("派助手研究 · 2 位可派"),
+    "first plan detail shows research entry",
+  );
+  h.click({ open: "team" });
+  eq(h.nodes["sheet-title"].textContent, "派助手研究", "entry opens research picker");
+  h.click({ action: "research", id: "health" });
+  h.run("planDetail()");
+  ok(
+    h.nodes["sheet-body"].innerHTML.includes("1 位可派") &&
+      h.nodes["sheet-body"].innerHTML.includes("已派："),
+    "entry reflects assignment",
+  );
+  // Brief advice keys on state: a free assistant points at an unresearched hot topic.
+  const fresh = harness({
+    s: state(24, "newcomer"),
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: true,
+  });
+  fresh.run("brief()");
+  const hot = fresh.run("hotUnknownTopic()");
+  ok(hot, "hot unresearched topic found");
+  ok(
+    fresh.nodes.sub.textContent.includes("2 位助手可派"),
+    "brief names idle assistants",
+  );
+  fresh.nodes.actions.children[1].onclick();
+  eq(fresh.config().research, [hot], "brief shortcut assigns the hot topic");
+  eq(fresh.nodes["sheet-title"].textContent, "派助手研究", "shortcut opens picker");
+  fresh.run("brief()");
+  ok(
+    !fresh.nodes.sub.textContent.includes("2 位助手可派"),
+    "advice changes once assistants are assigned",
   );
 }
 // Consecutive research selection stays in the same panel and cannot exceed capacity.
@@ -335,11 +416,56 @@ function harness(initial, opts = {}) {
   const q = G.question(h.state()),
     answer = q.options.find((o) => o.unlocked);
   h.run("G.answer(s," + JSON.stringify(answer.id) + ");recap()");
+  // The result is shown in the same scene before the next round starts.
+  eq(
+    [h.state().day, h.state().phase],
+    [1, "recap"],
+    "answer shows its result before advancing",
+  );
+  const card = h.nodes["round-result"],
+    total = Math.round(h.state().recap.totalVotes);
+  ok(!card.hidden, "result card visible on the spot");
+  ok(
+    h.nodes["room"].classList.contains("field") &&
+      !h.nodes["venue-scene"].hidden,
+    "result stays in the field scene",
+  );
+  ok(
+    h.nodes["venue-scene"].innerHTML.includes('data-stage="reaction"'),
+    "scene switches to the residents' reaction",
+  );
+  ok(
+    card.innerHTML.includes(
+      (total > 0 ? "+" : total < 0 ? "−" : "±") +
+        Math.abs(total).toLocaleString("zh-TW"),
+    ),
+    "signed round total shown",
+  );
+  ok(
+    card.innerHTML.includes(
+      'rr-score ' + (total > 0 ? "up" : total < 0 ? "down" : "zero"),
+    ),
+    "good or bad carried by colour class",
+  );
+  ok(card.innerHTML.includes("名"), "rank change shown");
+  ok(
+    !card.innerHTML.includes("<button") &&
+      h.nodes.dialogue.classList.contains("hidden"),
+    "no extra next-round button",
+  );
+  const reloadMid = harness(h.snapshot());
+  eq(reloadMid.state().phase, "recap", "reload during result keeps it");
+  ok(!reloadMid.nodes["round-result"].hidden, "reload shows result again");
+  h.run("pauseResult()");
+  ok(card.classList.contains("paused"), "holding pauses the countdown");
+  h.run("runResult()");
+  h.flush();
   eq(
     [h.state().day, h.state().phase],
     [2, "plan"],
-    "answer advances directly to next planning round",
+    "result auto-advances to the next planning round",
   );
+  ok(card.hidden, "result card cleared for planning");
   const settled = clone(h.state());
   h.run("finishTravel();recap();advance()");
   eq(h.state(), settled, "stale callbacks cannot settle twice");
@@ -385,43 +511,261 @@ function harness(initial, opts = {}) {
     !h.nodes.dialogue.classList.contains("hidden"),
     "automatic visitor dialogue",
   );
+  const offer = G.offerView(s);
   ok(
-    h.nodes.line.textContent.includes(G.offerView(s).pitch),
+    h.nodes.line.textContent.includes(offer.planText),
     "actual current invitation only",
   );
-  eq(h.state().day, 2, "hearing invitation does not spend a turn");
-}
-// Weather uses the shared engine and a single synthesised source, with mute and background silence.
-{
-  const rain = Array.from({ length: 100 }, (_, i) => state(i)).find(
-    (s) => G.weather(s).id === "rain",
-  );
-  ok(rain, "rain fixture");
-  const h = harness({ s: rain, cfg: {}, action: null, tutorialDone: true });
-  const beforeAudio = h.state();
+  eq(h.nodes.dialogue.dataset.type, "offer", "offer dialogue is typed");
+  eq(h.nodes["talk-tag"].textContent, "合作邀約", "offer tag");
   ok(
-    h.nodes.room.classList.contains("rainy"),
-    "actual rain switches glass overlay",
+    h.nodes.details.children[0].innerHTML.includes("你得到") &&
+      h.nodes.details.children[0].innerHTML.includes("代價"),
+    "offer lists what they ask and what you get",
   );
-  eq(h.audio.starts, 0, "no audio before gesture");
-  h.run("rainAudio(true);rainAudio(true)");
-  eq(h.audio.starts, 1, "one loop for repeated gestures");
-  ok(h.audio.gain > 0, "rain gain enabled");
+  ok(
+    h.nodes["#visitor .tag-name"].textContent !== "來訪代表",
+    "visitor tag names the broker",
+  );
+  eq(h.state().day, 2, "hearing invitation does not spend a turn");
+  // Closing without answering: the visitor waits at the door with a cue.
+  h.run("hideTalk()");
+  h.flush();
+  ok(
+    h.nodes.visitor.classList.contains("waiting") &&
+      !h.nodes.visitor.classList.contains("gone"),
+    "unanswered visitor waits at the door",
+  );
+  // Answering: the result shows the engine's change, then the visitor walks out.
+  h.run("inbox()");
+  const money = h.state().budget.available;
+  h.run("handleOffer('accept')");
+  const rec = h.state().offers.find((x) => x.id === offer.id);
+  eq(rec.status, "accepted", "accept goes through the engine");
+  ok(
+    h.nodes.details.children[0].innerHTML.includes(
+      "+" + (rec.effect.money / 10000).toLocaleString("zh-TW"),
+    ) || !rec.effect.money,
+    "accepted deal shows the engine's money",
+  );
+  eq(
+    h.state().budget.available - money,
+    rec.effect.money,
+    "shown money matches the budget change",
+  );
+  h.flush();
+  ok(
+    h.nodes.visitor.classList.contains("gone"),
+    "handled visitor leaves the office",
+  );
+  h.run("hideTalk()");
+  h.flush();
+  ok(h.nodes.visitor.classList.contains("gone"), "visitor stays gone");
+}
+// A crisis is a different tier: its own type, tag, alarm, option reaction and engine-sourced result.
+{
+  let s;
+  for (let seed = 1; seed < 200 && !s; seed++) {
+    const x = state(seed, "heir");
+    for (let r = 1; r < G.DAYS && x.phase === "plan"; r++) {
+      if (x.crisis?.status === "pending") {
+        s = x;
+        break;
+      }
+      G.begin(x, "fundraise", {});
+      G.arrive(x);
+      G.next(x);
+    }
+  }
+  ok(s, "real crisis fixture");
+  const h = harness({
+    s,
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: true,
+    seenVisits: [s.day],
+  });
+  h.run("inbox()");
+  eq(h.nodes.dialogue.dataset.type, "crisis", "crisis dialogue is typed");
+  ok(
+    h.nodes["talk-tag"].textContent.startsWith("突發事件"),
+    "crisis carries the alert tag",
+  );
+  ok(h.nodes.dialogue.classList.contains("alarm"), "crisis entry alarms");
+  eq(h.nodes.line.textContent, s.crisis.text, "crisis text from engine");
+  h.run("hideTalk();inbox()");
+  ok(
+    !h.nodes.dialogue.classList.contains("alarm"),
+    "reopening the same crisis does not alarm again",
+  );
+  ok(h.nodes.knock.classList.contains("alert"), "door flags a pending crisis");
+  h.run("handleCrisis('apologize')");
+  ok(
+    h.nodes["reaction-layer"].getAttribute("class").includes("react-bow"),
+    "apology plays the bow reaction",
+  );
+  h.flush();
+  const c = h.state().crisis;
+  eq(c.status, "resolved", "crisis resolved through the engine");
+  eq(h.nodes.dialogue.dataset.state, "resolved", "result shown after reaction");
+  ok(
+    h.nodes.details.children[0].innerHTML.includes(
+      Math.abs(Math.round(c.effect.votes)).toLocaleString("zh-TW"),
+    ),
+    "result shows the engine's vote change",
+  );
+  // Each crisis option has its own reaction class.
+  const classes = new Set();
+  for (const choice of ["pay", "apologize", "fight"]) {
+    const x = clone(s);
+    x.budget.available = Math.max(x.budget.available, G.COSTS.crisis);
+    const k = harness({ s: x, cfg: {}, action: null, tutorialDone: true });
+    k.run("handleCrisis(" + JSON.stringify(choice) + ")");
+    classes.add(k.nodes["reaction-layer"].getAttribute("class"));
+  }
+  eq(classes.size, 3, "three options, three different reactions");
+}
+// Ordinary talk keeps its own types.
+{
+  const h = harness({ s: state(), cfg: {}, action: null, tutorialDone: true });
+  h.run("brief()");
+  eq(h.nodes.dialogue.dataset.type, "staff", "staff advice is typed");
+  eq(h.nodes.speaker.textContent, "小葉", "staff name");
+  h.run('say("field","小馬｜對手","q","",[])');
+  eq(h.nodes.dialogue.dataset.type, "rival", "rival talk is typed");
+  h.run('say("field","秀琴阿姨｜退休老師","q","",[])');
+  eq(h.nodes.dialogue.dataset.type, "resident", "resident talk is typed");
+  eq(h.nodes["speaker-role"].textContent, "退休老師", "role shown apart");
+}
+// Settings entry, single sound switch and shared-audio wiring.
+const rainState = Array.from({ length: 100 }, (_, i) => state(i)).find(
+  (s) => G.weather(s).id === "rain",
+);
+ok(rainState, "rain fixture");
+const stubFor = (calls, on = { v: true }) => ({
+  enabled: () => on.v,
+  play: (...a) => calls.push(["play", ...a]),
+  startLoop: (n) => calls.push(["startLoop", n]),
+  stopLoop: (n) => calls.push(["stopLoop", n]),
+  setEnabled: (v) => {
+    on.v = !!v;
+    calls.push(["setEnabled", !!v]);
+  },
+});
+{
+  const h = harness({ s: rainState, cfg: {}, action: null, tutorialDone: true });
+  ok(h.nodes.room.classList.contains("rainy"), "actual rain switches glass overlay");
+  eq(h.audio.contexts, 0, "office never creates its own AudioContext");
+  ok(!/new\s+AC\b|window\.AudioContext|createBufferSource/.test(source), "office.js has no private rain synth");
+}
+{
+  const calls = [];
+  const h = harness({ s: rainState, cfg: {}, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  ok(calls.some((c) => c[0] === "startLoop" && c[1] === "rain"), "rainy round starts the shared rain loop");
+  // HUD: round and funds together, no calendar/ledger text props left.
+  eq(h.nodes["hud-round"].textContent, "第 " + rainState.day + " / " + G.DAYS + " 回合 · 雨", "HUD round shows rain");
+  ok(h.nodes["hud-funds"].textContent.startsWith("競選經費 "), "HUD funds label");
+  ok(!/id="calendar-round"|id="ledger-money"|id="weather-label"/.test(html), "calendar and ledger text props removed");
+  ok(html.includes('id="settings-open"') && html.indexOf('id="settings-open"') < html.indexOf('id="scene"'), "gear in top bar");
+  // Settings: main screen no longer carries the controls.
+  const main = html.slice(0, html.indexOf('<dialog class="sheet settings"'));
+  ok(!main.includes('id="sound-toggle"') && !main.includes('id="restart"'), "controls moved out of main screen");
+  ok(html.indexOf('id="sound-toggle"') > html.indexOf('id="settings"'), "sound switch lives in settings");
+  h.nodes["settings-open"].onclick();
+  ok(h.nodes.settings.open, "gear opens settings");
+  eq(h.nodes["sound-state"].textContent, "開", "sound defaults on");
   h.nodes["sound-toggle"].onclick();
-  eq(h.audio.gain, 0, "mute fades rain");
+  ok(calls.some((c) => c[0] === "setEnabled" && c[1] === false), "toggle mutes shared module");
+  eq(h.nodes["sound-state"].textContent, "關", "label follows");
+  eq(h.nodes["sound-toggle"].attributes["aria-pressed"], "false", "pressed state follows");
+  h.nodes["settings-close"].onclick();
+  ok(!h.nodes.settings.open, "settings close");
+  // New game stays confirm-first: restart closes settings, opens picker, cancel keeps the campaign.
+  const before = h.state();
+  h.nodes["settings-open"].onclick();
+  h.nodes.restart.onclick();
+  ok(!h.nodes.settings.open && h.nodes.sheet.open, "new game opens the character picker");
+  h.run("closePanel()");
+  eq(h.state(), before, "cancelling new game keeps the campaign");
+}
+{
+  // Real shared module: preference persists in the same key as the main game; first click unlocks.
+  const h = harness({ s: rainState, cfg: {}, action: null, tutorialDone: true }, { realSound: true });
+  eq(h.audio.contexts, 0, "no AudioContext before a trusted click");
+  h.click({ action: "x" });
+  eq(h.audio.contexts, 1, "first trusted click creates the context");
+  ok(h.audio.starts >= 1, "silent unlock buffer started inside the same click");
   h.nodes["sound-toggle"].onclick();
-  h.doc.hidden = true;
-  h.emit("visibilitychange");
-  eq(h.audio.gain, 0, "background tab silent");
-  eq(h.state(), beforeAudio, "audio has no effect on game state");
+  eq(h.saved["wenshan-sound"], "off", "sound preference persists under the shared key");
+  eq(h.nodes["sound-state"].textContent, "關", "label shows off");
+  const reloaded = harness(
+    { s: rainState, cfg: {}, action: null, tutorialDone: true },
+    { realSound: true, extraSaved: { "wenshan-sound": "off" } },
+  );
+  eq(reloaded.nodes["sound-state"].textContent, "關", "off survives reload");
+}
+{
+  // Event wiring: departure, steps, question, result, ending, crisis, rival; each once.
+  const calls = [];
+  const h = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  const count = (n) => calls.filter((c) => c[0] === "play" && c[1] === n).length;
+  h.click({ action: "noop" });
+  ok(count("click") >= 1, "button tap cue");
+  h.run("choose('canvass',{venue:'market'});depart()");
+  eq(count("depart"), 1, "departure cue once");
+  ok(calls.some((c) => c[0] === "startLoop" && c[1] === "steps"), "footsteps start while travelling");
+  h.run("finishTravel()");
+  ok(calls.filter((c) => c[0] === "stopLoop" && c[1] === "steps").length >= 1, "footsteps stop on arrival");
+  eq(count("question"), 1, "question pop once");
+  h.run("{const q=G.question(s);G.answer(s,q.options.find(o=>o.unlocked).id);recap();recap()}");
+  eq(count("positive") + count("negative"), 1, "result cue exactly once per recap");
+  const r = h.state().journal.at(-1);
+  eq(count(r.totalVotes >= 0 ? "positive" : "negative"), 1, "cue matches vote sign");
+  eq(count("rival"), r.rival?.attack || r.rival?.challenge ? 1 : 0, "rival cue only when attacked");
+  calls.length = 0;
+  const hc = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  hc.run("s.crisis={status:'pending',text:'test crisis',id:'c1'};inbox();inbox()");
+  eq(calls.filter((c) => c[0] === "play" && c[1] === "crisis").length, 1, "crisis sting once per crisis");
+  calls.length = 0;
+  const e = state(5);
+  const he = harness({ s: e, cfg: { research: [] }, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  for (let d = 1; d <= G.DAYS; d++) he.run("choose('fundraise');depart();finishTravel();advance()");
+  he.run("finishCounting();finishCounting();result()");
+  eq(calls.filter((c) => c[0] === "play" && ["win", "lose"].includes(c[1])).length, 1, "ending cue once");
+}
+{
+  // Audio failure never blocks play.
+  const bad = { enabled() { throw Error("x"); }, play() { throw Error("x"); }, startLoop() { throw Error("x"); }, stopLoop() { throw Error("x"); }, setEnabled() { throw Error("x"); } };
+  const h = harness({ s: state(), cfg: {}, action: null, tutorialDone: true }, { soundStub: bad });
+  h.run("choose('fundraise');depart();finishTravel();continueResult()");
+  eq(h.state().day, 2, "throwing audio module still plays a round");
+  const none = harness({ s: state(), cfg: {}, action: null, tutorialDone: true });
+  none.nodes["settings-open"].onclick();
+  none.nodes["sound-toggle"].onclick();
+  none.run("choose('fundraise');depart();finishTravel();continueResult()");
+  eq(none.state().day, 2, "no audio module still plays a round");
 }
 {
   const h = harness(
     { s: state(), cfg: {}, action: null, tutorialDone: true },
     { storageError: true },
   );
-  h.run("choose('fundraise');depart();finishTravel()");
+  h.run("choose('fundraise');depart();finishTravel();continueResult()");
   eq(h.state().day, 2, "storage failure still allows play");
+}
+{
+  // Only a crisis or a cooperation offer interrupts; 小葉 speaks up only with something new.
+  const h = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("s.day=4;s.crisis=null;G.offerView=()=>null");
+  eq(h.run("urgent()"), false, "no crisis or offer: nothing interrupts");
+  h.run("s.crisis={status:'pending',text:'x'}");
+  eq(h.run("urgent()"), true, "a pending crisis interrupts");
+  h.run("s.crisis=null;s.journal=[];s.day=4");
+  eq(h.run("briefWorthShowing()"), false, "小葉 stays quiet without news");
+  h.run("s.day=1");
+  eq(h.run("briefWorthShowing()"), true, "小葉 opens round one");
+  h.run("s.day=G.DAYS-1");
+  eq(h.run("briefWorthShowing()"), true, "小葉 flags the last two rounds");
 }
 // Full nine-round controller journeys preserve the shared engine outcome for every identity.
 for (const background of ["newcomer", "heir", "incumbent"]) {
@@ -443,6 +787,8 @@ for (const background of ["newcomer", "heir", "incumbent"]) {
       G.arrive(baseline);
       G.next(baseline);
       h.run("choose('fundraise');depart();finishTravel()");
+      eq(h.state().phase, "recap", background + " round " + round + " result first");
+      h.run("continueResult()");
       eq(
         h.state().day,
         baseline.day,
@@ -459,12 +805,68 @@ for (const background of ["newcomer", "heir", "incumbent"]) {
       baseline.journal,
       background + " exact nine-round history seed " + seed,
     );
+    // Ending: the count plays once, then the original report card.
+    eq(h.run("ending.status"), "inprogress", "count starts after round nine");
+    eq(h.nodes["office-ending"].dataset.view, "count", "counting night shown");
+    eq(h.snapshot().ending.status, "inprogress", "count state saved");
+    const midCount = harness(h.snapshot());
+    eq(
+      midCount.nodes["office-ending"].dataset.view,
+      "count",
+      "reload mid-count continues the count",
+    );
+    h.run("finishCounting()");
+    const end = h.nodes["office-ending"];
+    eq(end.dataset.view, "report", "report card after the count");
+    ok(!end.hidden, "ending stays on screen");
+    for (const part of ["report-card", "report-scene", "platform-summary", "report-numbers"])
+      ok(end.innerHTML.includes(part), "report includes " + part);
+    for (const t of baseline.result.titles || [])
+      ok(end.innerHTML.includes(t.title), "title " + t.title);
+    ok(!h.nodes.sheet.open, "ending is not a dismissible panel");
     const loaded = harness(h.snapshot());
     eq(
       loaded.state().result,
       baseline.result,
       "result reload does not draw election twice",
     );
+    eq(
+      loaded.nodes["office-ending"].dataset.view,
+      "report",
+      "reload after the count goes straight to the report",
+    );
   }
+}
+// Ending titles from the shared engine appear on the report card, as in the original.
+{
+  const s = state(7, "newcomer");
+  for (let r = 0; r < G.DAYS; r++) {
+    if (s.crisis?.status === "pending") G.respondCrisis(s, "apologize");
+    G.begin(s, "fundraise", { research: [], booth: false });
+    G.arrive(s);
+    G.next(s);
+  }
+  s.result.titles = [
+    { id: "promise-king", title: "承諾之王", line: "說到的都做到了。" },
+  ];
+  const h = harness({
+    s,
+    cfg: {},
+    action: null,
+    tutorialDone: true,
+    ending: { status: "seen", elapsed: 12 },
+  });
+  const end = h.nodes["office-ending"];
+  eq(end.dataset.view, "report", "seen count goes straight to report");
+  ok(
+    end.innerHTML.includes("report-titles") && end.innerHTML.includes("承諾之王"),
+    "titles shown on the report",
+  );
+  const old = harness({ s, cfg: {}, action: null, tutorialDone: true });
+  eq(
+    old.nodes["office-ending"].dataset.view,
+    "report",
+    "saves from before the count was tracked never replay it",
+  );
 }
 console.log(JSON.stringify({ result: "passed", assertions: checks }));
