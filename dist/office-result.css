@@ -41,6 +41,59 @@
   outline: 3px solid #287b82;
   outline-offset: 3px;
 }
+/* Small, short lived SVG cues explain which paid field action just happened. */
+#venue-scene > .spend-effects {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+.spend-effect text {
+  font-family: inherit;
+  font-weight: 800;
+}
+.spend-billboard {
+  transform-box: fill-box;
+  transform-origin: center bottom;
+  animation: spend-pop 1.55s cubic-bezier(.2,.8,.25,1.2) both;
+}
+.spend-billboard rect:first-of-type { filter: drop-shadow(0 7px 2px #49351c55); }
+.spend-billboard text { fill: #4b4030; font-size: 36px; }
+.spend-gifts path:first-child { fill: none; stroke: #a37b51; stroke-width: 5; stroke-dasharray: 8 10; }
+.gift-hop { transform-box: fill-box; transform-origin: center; animation: gift-hop 1.65s ease-out both; }
+.gift-hop rect { fill: #d5885e; stroke: #80543a; stroke-width: 4; }
+.gift-hop path:not(:first-child) { fill: #f4ce74; stroke: #80543a; stroke-width: 3; stroke-linejoin: round; }
+.gift-two { animation-delay: .12s; }
+.gift-three { animation-delay: .24s; }
+.spend-gotv rect { fill: #fff5dc; stroke: #53877d; stroke-width: 4; }
+.spend-gotv text { fill: #315e58; font-size: 21px; }
+.spend-gotv > g > path { fill: #d6875c; stroke: #80553d; stroke-width: 5; stroke-linejoin: round; }
+.spend-gotv > g > path:not(:first-of-type) { fill: none; stroke: #d6875c; stroke-width: 4; }
+.vote-cue { transform-box: fill-box; transform-origin: center; animation: cue-pop 1.45s ease-out both; }
+.cue-two { animation-delay: .12s; }
+.cue-three { animation-delay: .24s; }
+.spend-rally .stage-light { fill: #f5d88955; stroke: #f5d889; stroke-width: 56; stroke-linecap: round; transform-box: view-box; transform-origin: 600px 90px; animation: light-sweep 1.8s ease-in-out both; }
+.spend-rally .light-right { animation-delay: .12s; }
+.crowd-flag { transform-box: fill-box; transform-origin: 50% 100%; animation: flag-wave .55s ease-in-out 3 alternate both; }
+.flag-left path:first-child,.flag-mid path:first-child,.flag-right path:first-child { fill: none; stroke: #72563c; stroke-width: 7; stroke-linecap: round; }
+.flag-left path:last-child,.flag-mid path:last-child,.flag-right path:last-child { fill: #df986b; stroke: #fff0cf; stroke-width: 4; }
+.flag-mid path:last-child { fill: #5c9690; }
+.flag-left { animation-delay: .12s; }
+.flag-right { animation-delay: .24s; }
+.spend-tv .on-air { fill: #bb6249; stroke: #fff1d4; stroke-width: 6; filter: drop-shadow(0 5px 3px #432d1f55); }
+.spend-tv .on-air-dot { fill: #f6cf72; animation: on-air 1.45s ease-in-out both; }
+.spend-tv text { fill: #fff7df; font-size: 31px; letter-spacing: 2px; }
+.camera { fill: #526f69; stroke: #314a47; stroke-width: 8; }
+.camera-flash { fill: #f7d477; stroke: #fff4ce; stroke-width: 8; transform-box: fill-box; transform-origin: center; animation: camera-flash 1.45s ease-out both; }
+@keyframes spend-pop { from { opacity: 0; transform: translateY(85px) scale(.62); } 72% { opacity: 1; transform: translateY(-10px) scale(1.04); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@keyframes gift-hop { 0% { opacity: 0; transform: translate(-145px, 58px) scale(.5); } 25% { opacity: 1; transform: translate(-90px, -72px) scale(1.04); } 58% { transform: translate(-35px, 12px) scale(.94); } to { opacity: 1; transform: translate(0, 0) scale(1); } }
+@keyframes cue-pop { from { opacity: 0; transform: scale(.45) translateY(20px); } 55% { opacity: 1; transform: scale(1.12) translateY(-5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+@keyframes light-sweep { from { opacity: 0; transform: rotate(-17deg); } 35% { opacity: .75; } to { opacity: .3; transform: rotate(17deg); } }
+@keyframes flag-wave { from { transform: rotate(-11deg); } to { transform: rotate(12deg); } }
+@keyframes on-air { 0%,100% { opacity: 1; } 35%,65% { opacity: .25; } }
+@keyframes camera-flash { 0%,100% { opacity: 0; transform: scale(.3); } 20% { opacity: 1; transform: scale(1.2); } 38% { opacity: .2; transform: scale(.8); } 54% { opacity: .9; transform: scale(1); } }
 @keyframes rr-in {
   from {
     opacity: 0;
@@ -852,6 +905,11 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
+  .spend-effect,
+  .spend-effect * {
+    animation: none !important;
+  }
+  .spend-effect { opacity: 1 !important; }
   .office-ending .count-art *,
   .office-ending .count-verdict {
     animation: none !important;

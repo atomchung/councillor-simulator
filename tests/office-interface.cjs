@@ -222,6 +222,24 @@ function harness(initial, opts = {}) {
     },
   };
 }
+// Recap overlays are driven by the settled player report and never mutate game state.
+{
+  const h = harness({ s: state(71, "heir"), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("s.day=3;s.budget.available=5000000;G.begin(s,'canvass',{venue:'market',billboard:true});G.arrive(s);G.answer(s,G.question(s).options.find(o=>o.unlocked).id)");
+  const settled = h.state();
+  ok(!!settled.recap.player.addons.billboard, "billboard addon recorded in the settled round");
+  h.run("recap()");
+  ok(h.nodes["venue-scene"].innerHTML.includes('data-spend-animation=\"billboard\"'), "billboard spending renders its result-scene animation");
+  eq(h.state(), settled, "billboard animation leaves game state unchanged");
+}
+{
+  const h = harness({ s: state(72, "heir"), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("G.begin(s,'canvass',{venue:'market'});G.arrive(s);G.answer(s,G.question(s).options.find(o=>o.unlocked).id)");
+  const settled = h.state();
+  h.run("recap()");
+  ok(!h.nodes["venue-scene"].innerHTML.includes("data-spend-animation="), "plain canvass renders no spending animation");
+  eq(h.state(), settled, "plain canvass recap leaves game state unchanged");
+}
 // Identity/party are real game settings; cancellation keeps an existing campaign intact.
 {
   const h = harness({

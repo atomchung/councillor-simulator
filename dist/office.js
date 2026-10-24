@@ -2223,6 +2223,35 @@ function resultMarkup(r, v) {
     `<div class="rr-next"><i class="rr-timer"></i><span>${last ? "點一下前往開票" : "點一下繼續 · 第 " + (r.day + 1) + " 回合"}</span></div>`
   );
 }
+// These overlays are presentation only; the completed player report is the source of truth.
+function spendEffectsMarkup(r) {
+  const p = r.player || {},
+    addons = p.addons || {},
+    effects = [];
+  if (addons.billboard)
+    effects.push(
+      `<g class="spend-effect spend-billboard" data-spend-animation="billboard"><path d="M790 410v145m190-145v145" stroke="#76583c" stroke-width="17" stroke-linecap="round"/><rect x="735" y="278" width="310" height="150" rx="18" fill="#c9794d" stroke="#754b35" stroke-width="10"/><rect x="751" y="294" width="278" height="118" rx="10" fill="#fff4d7"/><path d="M770 315h240" stroke="#4f8278" stroke-width="12"/><text x="890" y="375" text-anchor="middle">${esc(G.candidateName(s.settings))}</text><path d="M785 428h265" stroke="#8c6b48" stroke-width="12" stroke-linecap="round"/></g>`,
+    );
+  if (addons.gifts)
+    effects.push(
+      `<g class="spend-effect spend-gifts" data-spend-animation="gifts"><g class="gift-hop gift-one"><path d="M270 524Q335 408 420 510"/><rect x="393" y="480" width="50" height="50" rx="8"/><path d="M388 480h60v13h-60zM408 480q-20-23 0-23q17 0 10 23q12-23 26-13q10 13-21 13"/></g><g class="gift-hop gift-two"><path d="M270 524Q420 390 560 500"/><rect x="535" y="470" width="50" height="50" rx="8"/><path d="M530 470h60v13h-60zM550 470q-20-23 0-23q17 0 10 23q12-23 26-13q10 13-21 13"/></g><g class="gift-hop gift-three"><path d="M270 524Q500 410 700 510"/><rect x="675" y="480" width="50" height="50" rx="8"/><path d="M670 480h60v13h-60zM690 480q-20-23 0-23q17 0 10 23q12-23 26-13q10 13-21 13"/></g></g>`,
+    );
+  if (addons.gotv)
+    effects.push(
+      `<g class="spend-effect spend-gotv" data-spend-animation="gotv"><g class="vote-cue cue-one"><path d="M150 412l55-23v48l-55-23z"/><path d="M205 397q24 16 0 32M215 389q37 24 0 48"/><rect x="105" y="330" width="165" height="48" rx="16"/><text x="187" y="361" text-anchor="middle">記得投票</text></g><g class="vote-cue cue-two"><rect x="490" y="362" width="42" height="78" rx="9"/><circle cx="511" cy="428" r="3"/><rect x="425" y="310" width="176" height="48" rx="16"/><text x="513" y="341" text-anchor="middle">記得投票</text></g><g class="vote-cue cue-three"><path d="M930 430l52-22v46l-52-22z"/><path d="M982 415q24 16 0 32M992 407q37 24 0 48"/><rect x="900" y="335" width="176" height="48" rx="16"/><text x="988" y="366" text-anchor="middle">記得投票</text></g></g>`,
+    );
+  if (p.action === "rally")
+    effects.push(
+      `<g class="spend-effect spend-rally" data-spend-animation="rally"><path class="stage-light light-left" d="M85 80L365 540"/><path class="stage-light light-right" d="M1115 80L835 540"/><g class="crowd-flag flag-left"><path d="M330 565v-94"/><path d="M333 474l84 17-82 27z"/></g><g class="crowd-flag flag-mid"><path d="M600 583v-100"/><path d="M603 486l90 17-88 30z"/></g><g class="crowd-flag flag-right"><path d="M870 565v-94"/><path d="M873 474l84 17-82 27z"/></g></g>`,
+    );
+  if (p.action === "tv")
+    effects.push(
+      `<g class="spend-effect spend-tv" data-spend-animation="tv"><rect class="on-air" x="78" y="75" width="205" height="64" rx="14"/><circle class="on-air-dot" cx="105" cy="107" r="12"/><text x="190" y="117" text-anchor="middle">ON AIR</text><g class="camera-flash"><path d="M973 188l18 45 48-8-33 36 25 40-45-21-31 38 8-49-45-23 49-5z"/><circle cx="986" cy="265" r="30"/></g><g class="camera" transform="translate(1040 430)"><path d="M-54-29h74l25 22v52h-99z"/><circle cx="-18" cy="10" r="25"/><circle cx="-18" cy="10" r="13"/><path d="M45-15l38-19v67L45 14z"/></g></g>`,
+    );
+  return effects.length
+    ? `<svg class="spend-effects" viewBox="0 0 1200 650" aria-hidden="true" focusable="false">${effects.join("")}</svg>`
+    : "";
+}
 function resultCard() {
   let el = document.getElementById("round-result");
   if (!el) {
@@ -2321,6 +2350,7 @@ function recap() {
       topic: G.TOPICS[r.player.topic]?.title,
     });
     $("venue-scene").hidden = false;
+    $("venue-scene").innerHTML += spendEffectsMarkup(r);
     $("room").classList.add("field");
   }
   const el = resultCard();

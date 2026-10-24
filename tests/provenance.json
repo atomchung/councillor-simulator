@@ -173,10 +173,10 @@
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa",
     "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e",
-    "dist/office.html": "a421ab764c428f1407119d04fba8bb9717136546fc9afabb6762d3aa50836abc",
-    "dist/office.js": "e72e05caab97be7c201101db8ec82ce70113a116c6bb76921b1f977aef78b1ee",
+    "dist/office.html": "8859b862a4d12fd906f31a0f04093de3335da5095d3ab4b0e94247918cba3602",
+    "dist/office.js": "c3a9cc2478658a1a62c14589b4c544499371f2edad7d34984b272663a413adad",
     "dist/office.css": "67017f1b8718bbe517d757c7e5e47234ec6f69b62bd3200d2fcf8a2fb9be55c1",
-    "dist/office-result.css": "6d4c77df86a0f9a27c73b9ed6abe837dbf75fedc97fc698becfc51283c6b82ed",
+    "dist/office-result.css": "3e1621921a8c538d2f7360b37b333b13777135f7093b3f556146add62cf6e54f",
     "dist/assets/office/office-ldesk-aide.png": "73732ef5b764b516152e5b4776977a3922b27ff52464b7383890dc93ec4a2b8d",
     "dist/assets/office/office-ldesk-empty.png": "a39ec39662f229122e7b868a9010f5d14d8b29cb792bdc312f2e7737a0dff16f"
   },
