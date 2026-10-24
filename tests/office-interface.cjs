@@ -349,15 +349,16 @@ function harness(initial, opts = {}) {
   const hot = fresh.run("hotUnknownTopic()");
   ok(hot, "hot unresearched topic found");
   ok(
-    fresh.nodes.sub.textContent.includes("2 位助手可派"),
-    "brief names idle assistants",
+    fresh.nodes.sub.textContent.includes("派助手查「" + fresh.run("TOPIC(hotUnknownTopic())") + "」"),
+    "brief points idle assistants at the hot topic",
   );
-  fresh.nodes.actions.children[1].onclick();
+  fresh.nodes.actions.children[0].onclick();
   eq(fresh.config().research, [hot], "brief shortcut assigns the hot topic");
-  eq(fresh.nodes["sheet-title"].textContent, "派助手研究", "shortcut opens picker");
+  eq(fresh.run("action"), "canvass", "brief shortcut also plans a street visit");
+  ok(fresh.nodes["sheet-title"].textContent.includes("出發準備"), "shortcut opens the plan");
   fresh.run("brief()");
   ok(
-    !fresh.nodes.sub.textContent.includes("2 位助手可派"),
+    !fresh.nodes.sub.textContent.includes("派助手查「" + fresh.run("TOPIC(" + JSON.stringify(hot) + ")") + "」"),
     "advice changes once assistants are assigned",
   );
 }
@@ -760,12 +761,11 @@ const stubFor = (calls, on = { v: true }) => ({
   eq(h.run("urgent()"), false, "no crisis or offer: nothing interrupts");
   h.run("s.crisis={status:'pending',text:'x'}");
   eq(h.run("urgent()"), true, "a pending crisis interrupts");
-  h.run("s.crisis=null;s.journal=[];s.day=4");
-  eq(h.run("briefWorthShowing()"), false, "小葉 stays quiet without news");
-  h.run("s.day=1");
-  eq(h.run("briefWorthShowing()"), true, "小葉 opens round one");
-  h.run("s.day=G.DAYS-1");
-  eq(h.run("briefWorthShowing()"), true, "小葉 flags the last two rounds");
+  h.run("s.crisis=null;s.day=4");
+  const a = h.run("advice()");
+  ok(/離當選線|當選線上/.test(a.title), "小葉 states the vote gap every round");
+  ok(/每回合要多拿|守住/.test(a.sub), "小葉 states the pace needed");
+  ok(a.pick && typeof a.pick.fn === "function" && a.pick.text, "小葉 offers one concrete next step");
 }
 {
   // The day's action can be changed from the plan sheet without scrolling.
