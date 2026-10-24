@@ -26,6 +26,6 @@
 
 ## 美術來源
 
-`assets/office/office-windows.png` 使用內建 imagegen，以原辦公室素材編輯新增右側窗戶。角色、地圖與現場沿用原版圖集。背景以 1536×1024 鎖定桌椅、白板、地板與遮擋位置。
+`assets/office/office-ldesk.png` 以原辦公室素材（含右側窗戶）由 Codex 內建影像編輯產生：主桌位置不變，從右端加一段 L 型側桌與一張空椅，作為幕僚的位置；桌前地板保持空出供人物走動。角色、地圖與現場沿用原版圖集。
 
 生成提示：Edit the empty campaign office game background. Keep the exact camera/composition, matte clay toy materials, warm wood palette, desk and chair positions, whiteboard, existing left window, door and floor geometry. Replace only the top of the right bookshelf with a matching wooden two-pane window showing softly blurred green trees and pale sky. Keep lower shelving and foreground desk aligned for existing sprites and occlusion masks. No people, text, UI or rain.
