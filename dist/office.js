@@ -418,12 +418,6 @@ function pending() {
 function urgent() {
   return s.crisis?.status === "pending" || !!G.offerView(s);
 }
-// 小葉 speaks up on her own only when she has something new; otherwise she is one tap away.
-function briefWorthShowing() {
-  if (s.day === 1) return true;
-  const a = advice();
-  return a.researched.length > 0 || G.DAYS - s.day + 1 === 2;
-}
 function sync() {
   const p = s.phase === "plan" ? preview() : s.pending || preview();
   $("round").textContent =
@@ -524,14 +518,18 @@ function researchEntry() {
   return `<button class="research-entry" data-open="team"><strong>派助手研究 · ${freeHelpers()} 位可派</strong><small>${picked.length ? "已派：" + esc(picked.join("、")) : "不占你的行程"}</small></button>`;
 }
 // Staff advice picks from current state: last result, rounds left, unread issues, race gap.
+// 小葉 every round: where the vote stands, the pace needed, and one concrete next step built from current state.
 function advice() {
   const last = s.journal.at(-1),
     r = G.raceView(s),
-    gap = num(Math.max(0, r.line - r.you)),
+    gapRaw = Math.max(0, r.line - r.you),
     left = G.DAYS - s.day + 1,
     free = freeHelpers(),
     hot = hotUnknownTopic(),
-    standing = `估計第 ${r.rank} 名，差 ${gap} 票。`;
+    known = s.player.known || [],
+    venues = G.venueView(s),
+    score = (v) => v.pool.filter((t) => known.includes(t)).length,
+    best = [...venues].sort((a, b) => score(b) - score(a))[0];
   const researched = [
     ...new Set(
       (last?.player.teamReports || [])
@@ -539,20 +537,44 @@ function advice() {
         .map((x) => x.knowledge),
     ),
   ];
-  const title =
-    last?.player.action === "prepare"
-      ? `「${TOPIC(last.player.topic)}」查好了，今天能帶去現場。`
-      : last
-        ? (last.player.result || last.summary.headline).split("。")[0] + "。"
-        : standing;
-  let sub = last ? standing : "先選今天的主行程。";
-  if (researched.length)
-    sub = `助手查好「${researched.map(TOPIC).join("、")}」，今天能用。`;
-  else if (left <= 2)
-    sub = `只剩 ${left} 回合，帶已公開的政見去拉票。`;
-  else if (free && hot)
-    sub = `「${TOPIC(hot)}」最多人關心還沒查，${free} 位助手可派。`;
-  return { title, sub, researched, free, hot };
+  const title = gapRaw
+    ? `第 ${r.rank} 名，離當選線還差 ${num(gapRaw)} 票。`
+    : `第 ${r.rank} 名，目前在當選線上。`;
+  const pace =
+    (last ? `上回合 ${signed(last.totalVotes)} 票。` : "") +
+    (gapRaw
+      ? `剩 ${left} 回合，每回合要多拿約 ${num(Math.ceil(gapRaw / left))} 票。`
+      : `剩 ${left} 回合，守住就好。`);
+  const canvassAt = (v) => () => {
+    choose("canvass", { venue: v.id });
+    planDetail();
+  };
+  let tip, pick;
+  const fresh = researched.find((t) => venues.some((v) => v.pool.includes(t)));
+  if (fresh) {
+    const v = venues.find((x) => x.pool.includes(fresh));
+    tip = `助手查好「${TOPIC(fresh)}」，去${v.title}講它。`;
+    pick = { text: `去${v.title}街訪`, fn: canvassAt(v) };
+  } else if (left <= 2) {
+    tip = `最後衝刺，去${best.title}拉票。`;
+    pick = { text: `去${best.title}街訪`, fn: canvassAt(best) };
+  } else if (s.budget.available < 100000) {
+    tip = "經費快見底，先募款，下回合才有錢出門。";
+    pick = { text: "去募款", fn: () => (choose("fundraise"), planDetail()) };
+  } else if (free && hot) {
+    tip = `派助手查「${TOPIC(hot)}」，你先去${best.title}街訪。`;
+    pick = {
+      text: `派助手＋去${best.title}`,
+      fn: () => {
+        cfg.research = [...new Set([...(cfg.research || []), hot])];
+        canvassAt(best)();
+      },
+    };
+  } else {
+    tip = `去${best.title}街訪，那裡 ${score(best)} 個議題你有資料。`;
+    pick = { text: `去${best.title}街訪`, fn: canvassAt(best) };
+  }
+  return { title, sub: pace + tip, pick, researched, free, hot };
 }
 function brief() {
   if (s.phase !== "plan") return resume();
@@ -570,20 +592,11 @@ function brief() {
     title = a.title;
     sub = a.sub;
     choices = [
-      { text: action ? "回到今天的行程" : "排今天的行程", fn: () => (action ? planDetail() : catalog()), primary: true },
-      a.researched.length
-        ? { text: "看研究筆記", fn: knowledge }
-        : a.free && a.hot
-          ? {
-              text: `派助手查「${TOPIC(a.hot)}」`,
-              note: `${a.free} 位可派`,
-              fn: () => {
-                cfg.research = [...new Set([...(cfg.research || []), a.hot])];
-                sync();
-                team();
-              },
-            }
-          : { text: "團隊與招募", fn: teamHub },
+      { ...a.pick, primary: true },
+      {
+        text: action ? "回到我排的行程" : "我自己排",
+        fn: () => (action ? planDetail() : catalog()),
+      },
     ];
   }
   say("staff", `小葉 · 第 ${s.day} 回合`, title, sub, choices);
@@ -1951,7 +1964,7 @@ function advance() {
 }
 
 /* ---------- Ending: counting night, then the report card (ported from day-ui.js) ---------- */
-const COUNT = { wait: 1.2, reveal: 9, end: 12 },
+const COUNT = { wait: 3.2, reveal: 11, end: 14 },
   VERDICT = {
     elected: "凍蒜！當選",
     refunded: "落選・退保證金",
@@ -2029,7 +2042,7 @@ function renderCounting() {
   if (revealed) playEndingSound(r);
   if (el.dataset.view !== "count") {
     el.dataset.view = "count";
-    el.innerHTML = `<div class="oc-stage"><div class="oc-scene" id="oc-scene"></div><div class="count-screen"><h2 class="count-stage" id="oc-stage"></h2><div class="count-board" aria-hidden="true"><b>${esc(name)}</b><span class="count-track"><i id="oc-meter"></i></span><strong id="oc-votes">0</strong><i class="count-line" id="oc-line"><span id="oc-line-label"></span></i></div></div><strong class="count-verdict" id="oc-verdict" hidden></strong></div><button class="oc-skip" data-action="skip-count">略過開票 →</button>`;
+    el.innerHTML = `<div class="oc-stage"><div class="oc-intro" id="oc-intro"><p>投票日</p><h2>下午四點，投票所關門</h2><span>等開票<i>.</i><i>.</i><i>.</i></span></div><div class="oc-scene" id="oc-scene"></div><div class="count-screen"><h2 class="count-stage" id="oc-stage"></h2><div class="count-board" aria-hidden="true"><b>${esc(name)}</b><span class="count-track"><i id="oc-meter"></i></span><strong id="oc-votes">0</strong><i class="count-line" id="oc-line"><span id="oc-line-label"></span></i></div></div><strong class="count-verdict" id="oc-verdict" hidden></strong></div><button class="oc-skip" data-action="skip-count">略過開票 →</button>`;
   }
   el.hidden = false;
   const scene = $("oc-scene");
@@ -2056,6 +2069,7 @@ function renderCounting() {
       ? r.playerVotes
       : Math.round(r.playerVotes * countedShare(c, "you")),
     top = Math.max(r.playerVotes, r.lastSeat) * 1.12 || 1;
+  $("oc-intro").hidden = t >= COUNT.wait;
   $("oc-stage").textContent =
     t < COUNT.wait
       ? "投票結束，開票開始"
@@ -2258,7 +2272,7 @@ function resume() {
         visitorEnter(visitorItem());
         later(settleVisitor, 1200);
       }
-      if (briefWorthShowing()) brief();
+      brief();
     }
   } else if (s.phase === "travel") travel();
   else if (s.phase === "question") ask();

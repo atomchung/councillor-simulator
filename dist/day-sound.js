@@ -52,7 +52,7 @@
     const beat = () => {
       loop.timer = null;
       if (loops.get(name) !== loop || !ready()) { loop.active = false; return; }
-      safely(() => name === 'steps' ? noise(.065, .055, 0, name, 650) : tone(140, 65, .045, .09, 0, name));
+      safely(() => name === 'steps' ? tone(520, 520, .03, .012, 0, name) : tone(880, 880, .05, .035, 0, name));
       loop.timer = window.setTimeout(beat, name === 'steps' ? 350 : 220 - 170 * progress);
     };
     beat();
@@ -86,20 +86,23 @@
       return;
     }
     const delay = Math.max(0, Math.min(.5, Number(opts.delay) || 0));
-    if (name === 'click') tone(700, 420, .028, .035);
-    else if (name === 'depart') tone(220, 650, .16, .1);
-    else if (name === 'question') tone(480, 820, .10, .075);
-    else if (name === 'positive') { tone(440, 440, .12, .1); tone(660, 660, .18, .1, .12); }
-    else if (name === 'negative') tone(170, 100, .22, .12);
-    else if (name === 'rival') { tone(150, 135, .12, .12); tone(125, 110, .17, .12, .17); }
-    else if (name === 'crisis') { tone(233, 233, .34, .1); tone(247, 247, .34, .1); tone(92, 70, .5, .14, .12); }
-    else if (name === 'draw') noise(.045, .16, delay, 'draw', 1700);
+    // Soft wooden mallet palette (fundamental plus the marimba's fourth partial) to match the clay-toy art.
+    const N = { A2: 110, D3: 146.8, F3: 174.6, A3: 220, C4: 261.6, Db4: 277.2, E4: 329.6, G4: 392, A4: 440, C5: 523.3, D5: 587.3, E5: 659.3, G5: 784, C6: 1046.5 };
+    const mallet = (f, at = 0, vol = .1, len = .5, tag = '') => { tone(f, f, len, vol, delay + at, tag); tone(f * 3.93, f * 3.93, len * .3, vol * .22, delay + at, tag); };
+    if (name === 'click') tone(1400, 1400, .02, .012);
+    else if (name === 'depart') { mallet(N.G4, 0, .08, .35); mallet(N.D5, .1, .08, .45); }
+    else if (name === 'question') mallet(N.E5, 0, .07, .4);
+    else if (name === 'positive') { mallet(N.C5, 0, .09, .4); mallet(N.E5, .09, .09, .4); mallet(N.G5, .18, .1, .6); }
+    else if (name === 'negative') { mallet(N.E4, 0, .09, .45); mallet(N.C4, .16, .09, .7); }
+    else if (name === 'rival') { mallet(N.D3, 0, .11, .4); mallet(N.D3, .14, .09, .5); }
+    else if (name === 'crisis') { for (let i = 0; i < 3; i++) { mallet(N.C4, i * .16, .09, .3); mallet(N.Db4, i * .16 + .02, .07, .3); } mallet(N.A2, .5, .12, .9); }
+    else if (name === 'draw') mallet(N.C6, 0, .07, .25, 'draw');
     else if (name === 'win') {
-      tone(110, 45, .32, .25);
+      [N.C5, N.E5, N.G5, N.C6].forEach((f, i) => mallet(f, i * .11, .1, i === 3 ? 1.2 : .45));
       const rng = random('firecrackers');
-      for (let i = 0; i < 18; i++) noise(.025 + rng() * .035, .1 + rng() * .08, .04 + i * .08, 'firecracker-' + i, 2600);
-    } else if (name === 'lose') tone(200, 65, .7, .18);
-    else if (name === 'stamp') { noise(.09, .14, .04, 'stamp', 900); tone(95, 55, .12, .1, .04); }
+      for (let i = 0; i < 12; i++) noise(.02 + rng() * .02, .05 + rng() * .04, .55 + i * .09, 'firecracker-' + i, 3200);
+    } else if (name === 'lose') { mallet(N.A3, 0, .09, .6); mallet(N.F3, .3, .09, .6); mallet(N.D3, .6, .1, 1.3); }
+    else if (name === 'stamp') { mallet(N.A2, .04, .12, .35); noise(.05, .06, .04, 'stamp', 700); }
   }
   function startLoop(name) { if (!on || !['steps', 'count'].includes(name)) return; if (!loops.has(name)) loops.set(name, { active: false, timer: null }); runLoop(name); }
   function stopLoop(name) { pending = pending.filter(cue => cue.name !== name); const loop = loops.get(name); if (loop) window.clearTimeout(loop.timer); loops.delete(name); for (const v of [...voices]) if (v.tag === name) stopVoice(v, name === 'rain' && !document.hidden ? .18 : 0); }
