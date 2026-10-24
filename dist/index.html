@@ -19,7 +19,8 @@
   <script defer src="day-art.js?v=13.8.0"></script>
   <script defer src="day-team-art.js?v=13.8.0"></script>
   <script defer src="day-advisor.js?v=13.9.2"></script>
-  <script defer src="day-ui.js?v=13.9.2"></script>
+  <script defer src="day-sound.js?v=13.10.0"></script>
+  <script defer src="day-ui.js?v=13.10.0"></script>
 </head>
 <body class="v13">
   <a class="skip-link" href="#dock">跳到本回合的操作</a>
@@ -30,7 +31,7 @@
       <button class="hud-money" data-action="budget" aria-label="展開完整預算明細"><span class="eyebrow">競選款</span><strong id="cash">54 萬</strong></button>
       <button id="hud-race" class="hud-race" data-action="poll" aria-label="查看選情與民調"><span id="race-summary" class="race-summary">開始後估計</span></button>
     </section>
-    <nav aria-label="遊戲工具"><details class="tools-menu"><summary>更多</summary><div class="tools-popover"><button id="art-switch" data-action="art-switch" aria-label="切換美術風格">霧面玩具</button><button data-action="journal">紀錄<span id="journal-count" class="count">0</span></button><button data-action="rules">規則</button><span id="global-controls"><button id="new-game" data-action="restart" class="new-game-button" title="回到選身分的畫面" hidden>新的一局</button></span></div></details></nav>
+    <nav aria-label="遊戲工具"><details class="tools-menu"><summary>更多</summary><div class="tools-popover"><button id="sound-toggle" data-action="sound-toggle" aria-pressed="true">音效：開</button><button id="art-switch" data-action="art-switch" aria-label="切換美術風格">霧面玩具</button><button data-action="journal">紀錄<span id="journal-count" class="count">0</span></button><button data-action="rules">規則</button><span id="global-controls"><button id="new-game" data-action="restart" class="new-game-button" title="回到選身分的畫面" hidden>新的一局</button></span></div></details></nav>
   </header>
   <main>
     <div id="save-warning" class="notice" role="status" hidden></div>

@@ -83,6 +83,41 @@
       if (raw) saveNotice = '遊戲改版了，舊進度不能沿用，已開新局。';
     }
   } catch (_) { state = G.initial(seed()); saveError = '目前無法讀取本機存檔。'; }
+  // Persist only presentation receipts. Restoring a phase never repeats its arrival cue.
+  let soundSeed = state.seed, soundSeen = { ...(state._ui?.soundSeen || {}) };
+  const sound = (method, ...args) => { try { return window.DaySound?.[method]?.(...args); } catch (_) {} };
+  if (state.started) {
+    if (state.phase === 'question' || state.phase === 'recap') soundSeen[state.day + ':' + state.phase] = true;
+    if (state.phase === 'recap') soundSeen[state.day + ':attack'] = true;
+    for (const q of G.pendingChallenges(state)) soundSeen['challenge:' + q.id] = true;
+    if (state.phase === 'result') {
+      if (counting?.status === 'seen' || counting?.elapsed >= COUNT.reveal) soundSeen.reveal = true;
+      if (counting?.status === 'seen') soundSeen.stamp = true;
+      if (counting?.elapsed >= COUNT.reveal - 1.5) soundSeen.draw = true;
+    }
+  }
+  function soundOnce(key, name, opts = {}) {
+    if (soundSeen[key]) return;
+    soundSeen[key] = true; sound('play', name, { seed: state.seed, ...opts }); save();
+  }
+  function syncSound() {
+    if (soundSeed !== state.seed) { soundSeed = state.seed; soundSeen = {}; }
+    sound('play', 'seed', { seed: state.seed });
+    const paused = !!modal || document.hidden;
+    sound(!paused && state.phase === 'travel' && motion?.stage === 'walk' ? 'startLoop' : 'stopLoop', 'steps');
+    sound(!paused && state.started && state.phase !== 'result' && $('world').classList.contains('is-rainy') ? 'startLoop' : 'stopLoop', 'rain');
+    if (paused || state.phase !== 'result' || counting?.status !== 'inprogress') sound('stopLoop', 'count');
+    const button = $('sound-toggle'), enabled = sound('enabled') === true;
+    button.textContent = '音效：' + (enabled ? '開' : '關'); button.setAttribute('aria-pressed', String(enabled));
+    if (paused || !state.started) return;
+    if (state.phase === 'question') soundOnce(state.day + ':question', 'question');
+    if (state.phase === 'recap') {
+      const votes = state.recap?.player?.direct?.votes || 0;
+      soundOnce(state.day + ':recap', votes > 0 ? 'positive' : votes < 0 ? 'negative' : 'seed');
+      if (state.recap?.rival?.attack) soundOnce(state.day + ':attack', 'rival');
+    }
+    if (state.phase === 'plan') for (const q of G.pendingChallenges(state)) soundOnce('challenge:' + q.id, 'rival');
+  }
   let dismissedFeedback = typeof state._ui?.dismissedFeedback === 'string' ? state._ui.dismissedFeedback : '';
   const roundDays = G.ROUND_DAYS || 3;
   const period = day => '第 ' + (Math.floor((day - 1) * roundDays) + 1) + '–' + Math.floor(day * roundDays) + ' 天';
@@ -203,7 +238,7 @@
     card.innerHTML = '<div class="event-card-top"><span>選戰快報 · R' + c.round + '</span><button type="button" data-action="dismiss-event" aria-expanded="true" aria-label="收起選戰快報">收起 ▴</button></div><h2>' + esc(crisisChoice(c)) + '</h2><p>' + esc(exposedBy(c.round) + c.text) + '</p><div class="event-impact"><strong>' + signedVotes(c.effect.votes) + '<small>你的票數</small></strong><span>' + money(cost) + '<small>處理支出</small></span></div><div class="event-groups">' + (c.effect.byGroup || []).map((v, i) => '<span>' + esc(groupTitle(i)) + ' <b>' + signedVotes(v) + '</b></span>').join('') + '</div>';
   }
   function save() {
-    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, expose: exposePick, campaign: campaignPick, mapTipDismissed, openingPick, bestRecord: bestRecordStatus, dismissedFeedback, counting: counting ? { ...counting } : null };
+    state._ui = { x: position.x, y: position.y, topic: selectedTopic, venue: selectedVenue, action: selectedAction, gifts, billboard, research: researchPick, deep: deepOn, booth, investigate: investigateOn, gotv: gotvOn, brief, respond: respondOn, donor, expose: exposePick, campaign: campaignPick, mapTipDismissed, openingPick, bestRecord: bestRecordStatus, dismissedFeedback, soundSeen: { ...soundSeen }, counting: counting ? { ...counting } : null };
     try { window.localStorage.setItem(KEY, JSON.stringify(state)); }
     catch (_) { saveError = '瀏覽器無法儲存進度；重新整理可能會失去進度。'; }
     showNotice();
@@ -909,6 +944,7 @@
     const show = state.phase === 'result' && counting?.status !== 'inprogress';
     $('report').hidden = !show;
     $('report-body').innerHTML = show ? reportMarkup() : '';
+    if (show && endingTitles().length) soundOnce('stamp', 'stamp');
     if (!$('report-tools').innerHTML.includes('data-action="tally"')) $('report-tools').insertAdjacentHTML?.('afterbegin', '<button class="secondary-button" data-action="tally">看完整開票</button>');
   }
   // Counted share for one candidate: the count rises in uneven jumps fixed per game, so a reload replays the same night.
@@ -921,10 +957,15 @@
   function renderCounting() {
     const active = state.phase === 'result' && counting?.status === 'inprogress', scene = $('count-scene');
     $('count-presentation').hidden = !active;
-    if (!active) { if (scene.dataset.stage) { scene.innerHTML = ''; scene.dataset.stage = ''; } return; }
+    if (!active) { sound('stopLoop', 'count'); if (scene.dataset.stage) { scene.innerHTML = ''; scene.dataset.stage = ''; } return; }
     const r = state.result, t = counting.elapsed, titles = endingTitles(), tie = titles.some(x => x.id === 'tie-elected' || x.id === 'tie-lost'), pauseAt = COUNT.reveal - 1.5, revealed = t >= COUNT.reveal, stage = revealed ? r.outcome : 'count';
     if (scene.dataset.stage !== stage) { scene.innerHTML = Art?.countNight ? Art.countNight(stage, { elapsed: t, name: state.player.name }) : ''; scene.dataset.stage = stage; }
     const c = Math.max(0, Math.min(1, (t - COUNT.wait) / ((tie ? pauseAt : COUNT.reveal) - COUNT.wait))), you = revealed ? r.playerVotes : Math.round(r.playerVotes * countedShare(c, 'you'));
+    if (!modal && !document.hidden) {
+      if (revealed) { sound('stopLoop', 'count'); sound('stopLoop', 'draw'); soundOnce('reveal', r.outcome === 'elected' ? 'win' : 'lose'); }
+      else if (tie && t >= pauseAt) { sound('stopLoop', 'count'); soundOnce('draw', 'draw', { delay: .3 }); }
+      else if (t >= COUNT.wait) { sound('play', 'count', { seed: state.seed, progress: c }); sound('startLoop', 'count'); }
+    }
     const top = Math.max(r.playerVotes, r.lastSeat) * 1.12 || 1, width = v => Math.min(100, v / top * 100).toFixed(1) + '%';
     $('count-stage').textContent = t < COUNT.wait ? '投票結束，開票開始' : !revealed ? (tie && t >= pauseAt ? '同票，依法抽籤' : '開票中・已開 ' + Math.round(c * 100) + '%') : '開票結果・第 ' + r.rank + ' 名';
     $('count-you-name').textContent = state.player.name;
@@ -936,6 +977,7 @@
   }
   function finishCounting() {
     if (state.phase !== 'result' || counting?.status !== 'inprogress') return;
+    sound('stopLoop', 'count'); sound('stopLoop', 'draw'); soundOnce('reveal', state.result.outcome === 'elected' ? 'win' : 'lose');
     counting = { status: 'seen', elapsed: COUNT.end }; save(); render(); announce('開票完成，得票 ' + num(state.result.playerVotes) + ' 票，第 ' + state.result.rank + ' 名。');
   }
   function renderTeam() {
@@ -958,7 +1000,7 @@
   }
   function render() {
     if (selectedAction === 'prepare' && selectedTopic && (!G.availableTopics(state).some(t => t.id === selectedTopic) || state.player.studied?.[selectedTopic])) selectedTopic = null;
-    dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport(); renderEvents();
+    dress(); header(); renderTeam(); renderWorld(); renderCounting(); renderReport(); renderEvents(); syncSound();
     document.body.dataset.art = Art?.getPack?.() || 'original';
     document.body.dataset.map = Art?.isToy?.() ? Art.getMap?.() || '' : '';
     $('art-switch').textContent = Art?.isToy?.() ? '霧面玩具 ▾' : '原版方塊 ▾';
@@ -1022,7 +1064,7 @@
     if (!G.next(state)) return false;
     selectedAction = null; selectedTopic = null; selectedVenue = null; resetToggles();
     if (state.phase === 'plan') { position = { ...anchors.start }; setPosition(); afterglow = null; for (const id of ['world', 'scene', 'map-hotspots', 'venue-scene']) { $(id).scrollLeft = 0; $(id).scrollTop = 0; } }
-    else if (state.phase === 'result') { rememberBestResult(); afterglow = null; counting = { status: reduced.matches ? 'seen' : 'inprogress', elapsed: reduced.matches ? COUNT.end : 0 }; saveLast(); }
+    else if (state.phase === 'result') { if (reduced.matches) soundOnce('reveal', state.result.outcome === 'elected' ? 'win' : 'lose'); rememberBestResult(); afterglow = null; counting = { status: reduced.matches ? 'seen' : 'inprogress', elapsed: reduced.matches ? COUNT.end : 0 }; saveLast(); }
     return true;
   }
   function roundNews(r) { const main = recapItems(r).items.find(x => x.main); return '第 ' + r.day + ' 回合' + (main ? main.label + ' ' + signedVotes(main.v) + '，' : '') + '合計 ' + signedVotes(r.totalVotes) + ' 票。'; }
@@ -1076,7 +1118,7 @@
     if (config.booth && !p.booth) { error = '人手已用完，請先調整研究或募款攤。'; render(); return; }
     if (!p.allowed) { error = p.reason; render(); return; }
     locked = true;
-    if (G.begin(state, id, config)) { error = ''; resetToggles(); save(); announce('第 ' + state.day + ' 回合：' + p.title + '，花費 ' + money(p.totalCost) + '。'); startMotion(); focusDock(); }
+    if (G.begin(state, id, config)) { sound('play', 'depart', { seed: state.seed }); error = ''; resetToggles(); save(); announce('第 ' + state.day + ' 回合：' + p.title + '，花費 ' + money(p.totalCost) + '。'); startMotion(); focusDock(); }
     locked = false;
   }
   // Each other answer replayed on a copy with the same draws, so the recap can say what a better answer was worth.
@@ -1154,7 +1196,7 @@
     modal = { type, extra }; lastFrame = null;
     $('dialog-title').textContent = content[0]; $('dialog-body').innerHTML = content[1](); $('dialog-overlay').hidden = false;
     document.querySelector('main').inert = true; document.querySelector('.masthead').inert = true;
-    $('world').classList.add('motion-paused'); $('dialog').focus({ preventScroll: true });
+    $('world').classList.add('motion-paused'); syncSound(); $('dialog').focus({ preventScroll: true });
   }
   function closeDialog() {
     if (!modal) return;
@@ -1162,6 +1204,7 @@
     document.querySelector('main').inert = false; document.querySelector('.masthead').inert = false;
     $('world').classList.remove('motion-paused'); lastFrame = null;
     const focus = lastFocus && document.contains(lastFocus) ? lastFocus : $('dock'); focus.focus?.({ preventScroll: true }); lastFocus = null;
+    syncSound();
     if (motion && reduced.matches) finishTravel();
     if (counting?.status === 'inprogress' && reduced.matches) finishCounting();
   }
@@ -1193,6 +1236,7 @@
   }
   function dispatch(data) {
     endAfterglow();
+    if (data.action === 'sound-toggle') { sound('setEnabled', !sound('enabled')); syncSound(); return; }
     if (data.action === 'art-switch' && !modal && state.phase !== 'travel' && counting?.status !== 'inprogress') { Art?.setPack?.(Art.isToy() ? 'original' : 'matte-toy-v1'); dressed=''; $('venue-scene').dataset.key=''; scene(); render(); return; }
     if (data.action === 'dismiss-event' && !modal) { dismissedFeedback = state.crisis ? crisisKey(state.crisis) : ''; save(); renderEvents(); focusDock(); return; }
     if (data.action === 'expand-event' && !modal) { dismissedFeedback = ''; save(); renderEvents(); return; }
@@ -1273,7 +1317,7 @@
 
   document.addEventListener('change', event => { const field = event.target?.dataset?.network; if (field) dispatch({ action: 'network-order', field, value: event.target.value }); });
   $('world').addEventListener('click', endAfterglow);
-  document.addEventListener('click', event => { const el = event.target.closest('[data-action],[data-answer]'); if (el && !el.disabled && !(el.dataset.action === 'restart' && event.detail > 1)) dispatch(el.dataset); });
+  document.addEventListener('click', event => { const button = event.target.closest('button'); if (button && !button.disabled && button.dataset.action !== 'sound-toggle') sound('play', 'click', { seed: state.seed }); const el = event.target.closest('[data-action],[data-answer]'); if (el && !el.disabled && !(el.dataset.action === 'restart' && event.detail > 1)) dispatch(el.dataset); });
   document.addEventListener('toggle', event => { if (event.target?.isConnected === false) return; if (event.target?.classList?.contains('research-disclosure')) researchOpen = event.target.open; if (event.target?.classList?.contains('extras-disclosure')) extrasOpen = event.target.open; if (event.target?.classList?.contains('topic-disclosure')) topicOpen = event.target.open; }, true);
   // One recap capsule open at a time in a row.
   document.addEventListener('toggle', event => { const d = event.target; if (d?.classList?.contains('cap') && d.open) for (const x of d.parentNode?.querySelectorAll?.('details.cap[open]') || []) if (x !== d) x.open = false; }, true);

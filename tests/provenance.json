@@ -6,11 +6,11 @@
     "dist/day-art.js": "3281fe8450b0ad15d7936ece971c5ec24d85356ea4eda1837f68040bf6e23b95",
     "dist/day-engine.js": "d2f546957c9c0fa881eb0d5f43b11e59931220831e6aa070e575970194bde756",
     "dist/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
-    "dist/day-ui.js": "db24da57e38126f374c44952f0a0cb36b546cf63f35fb463540920cc20839b51",
+    "dist/day-ui.js": "7066f430f3d09452aa5c9ced8596d79686ddd2fc29963a5235cb906099b3e1e3",
     "dist/day.css": "6f16c1ab9f87d58c68fcec746745b2857f39cc8743d96ad5dacaab145369e337",
     "dist/engine.js": "a36e44f51e476fcd2452b638fd7aaccbd503f0c471d050d5bb9832ec7c78af31",
     "dist/game.js": "ab2b8f918704348fcc5b172753c6d59a18148296b8feeba4eedd8191c157ce37",
-    "dist/index.html": "38dd24a119f8b6c08a0fe0531f6f8b33f1a1d9fa382331d7a93cc1b03d5d3179",
+    "dist/index.html": "b83cfd8c53b668496317770c4ef3c56cbe0101ec7fec232d3e895661193a2878",
     "dist/legacy-v10/day-art.js": "6702ca51a082b417ebe7dfeeea4eabd69c2a891697a9012e8ff2522dd34b6b92",
     "dist/legacy-v10/day-engine.js": "6001069f1544b04d873d10f4acce57bfef46994d45c36b283bbe6ad6ba41cde5",
     "dist/legacy-v10/day-team-art.js": "3711a731f95062c159afa69b72a385a0796f312445280e1984691afe1d417d80",
@@ -172,7 +172,8 @@
     "dist/day-advisor.js": "1686dfedea2cf8061880df9ba6674ff711e4621dfdec633ba2b9a541530ea1a5",
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa",
-    "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e"
+    "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e",
+    "dist/day-sound.js": "d53cc4eb8d9c1cfd01e1090c50b31ba76b1832bcb917ea9cf4464f63c4b1e688"
   },
   "export_only_changes": [
     "v10.2.0 export: local README, GAME_DESIGN, launch scripts, export integrity test and package scripts were added.",
