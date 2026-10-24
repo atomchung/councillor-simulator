@@ -271,17 +271,20 @@
                 </svg>
               </g>
             </g>
-            <rect
-              class="name-bg"
-              x="44"
-              y="279"
-              width="111"
-              height="34"
-              rx="6"
-            />
-            <text class="person-label" x="99" y="303" text-anchor="middle">
-              小葉 · 幕僚
-            </text>
+            <g class="name-tag">
+              <rect
+                class="name-bg"
+                x="48"
+                y="252"
+                width="104"
+                height="34"
+                rx="17"
+              />
+              <text class="person-label" x="100" y="276" text-anchor="middle">
+                <tspan class="tag-name">小葉</tspan
+                ><tspan class="tag-role"> 幕僚</tspan>
+              </text>
+            </g>
           </g>
           <g
             id="visitor"
@@ -314,17 +317,24 @@
                 />
               </svg>
             </g>
-            <rect
-              class="name-bg"
-              x="25"
-              y="297"
-              width="132"
-              height="34"
-              rx="6"
-            />
-            <text class="person-label" x="91" y="321" text-anchor="middle">
-              來訪代表
-            </text>
+            <g class="name-tag">
+              <rect
+                class="name-bg"
+                x="30"
+                y="284"
+                width="122"
+                height="34"
+                rx="17"
+              />
+              <text class="person-label" x="91" y="308" text-anchor="middle">
+                <tspan class="tag-name">來訪代表</tspan
+                ><tspan class="tag-role"></tspan>
+              </text>
+            </g>
+            <g class="wait-cue" aria-hidden="true">
+              <path d="M128 18h70a14 14 0 0 1 14 14v26a14 14 0 0 1-14 14h-46l-16 14v-14h-8a14 14 0 0 1-14-14V32a14 14 0 0 1 14-14z" />
+              <text x="163" y="56" text-anchor="middle">等你</text>
+            </g>
           </g>
           <g
             id="poll-folder"
@@ -354,6 +364,7 @@
             <rect x="290" y="285" width="195" height="60" rx="12" />
             <text x="387" y="323" text-anchor="middle">來客的消息 ▸</text>
           </g>
+          <g id="reaction-layer" class="reaction" pointer-events="none"></g>
           <g class="office-prop">
             <rect
               x="609"
@@ -386,7 +397,10 @@
         <section class="dialogue hidden" id="dialogue" aria-label="人物對話">
           <button class="close" id="dismiss" aria-label="收起對話">×</button>
           <div class="speaker">
-            <span class="dot"></span><span id="speaker"></span>
+            <span class="talk-tag" id="talk-tag"></span
+            ><span class="who"
+              ><b id="speaker"></b><small id="speaker-role"></small
+            ></span>
           </div>
           <h1 id="line"></h1>
           <p class="sub" id="sub"></p>

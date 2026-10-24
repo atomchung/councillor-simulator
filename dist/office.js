@@ -65,7 +65,6 @@ let s,
   travelFrame = 0,
   soundedRecap = 0,
   soundedEnding = false,
-  soundedCrisis = "",
   selectingCharacter = false;
 function later(fn, delay) {
   const e = epoch;
@@ -113,7 +112,6 @@ function fresh(settings = newSettings) {
   seenVisits = [];
   soundedRecap = 0;
   soundedEnding = false;
-  soundedCrisis = "";
   save();
   office();
   tutorial(0);
@@ -236,17 +234,24 @@ function button(text, fn, note = "", primary = false, disabled = false) {
   b.onclick = fn;
   return b;
 }
+// Actor walks keep their own token: a walk-out still ends hidden after the round's timers are cleared.
+const walkToken = {};
 function move(id, x, y, scale = 1, away = false) {
-  const el = $(id);
+  const el = $(id),
+    token = (walkToken[id] = (walkToken[id] || 0) + 1);
   el.classList.remove("gone");
   el.classList.add("walking");
   el.style.setProperty("--x", x + "px");
   el.style.setProperty("--y", y + "px");
   el.style.setProperty("--scale", scale);
-  later(() => {
-    el.classList.remove("walking");
-    if (away) el.classList.add("gone");
-  }, 650);
+  setTimeout(
+    () => {
+      if (walkToken[id] !== token) return;
+      el.classList.remove("walking");
+      if (away) el.classList.add("gone");
+    },
+    matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 650,
+  );
 }
 function toast(text) {
   if ($("sheet").open) {
@@ -261,29 +266,92 @@ function toast(text) {
   later(() => $("toast").classList.remove("show"), 2400);
 }
 function hideTalk() {
-  const kind = dialogueKind;
   $("dialogue").classList.add("hidden");
+  $("dialogue").classList.remove("alarm");
   dialogueKind = "";
-  if (kind === "visitor") move("visitor", 80, 260, 0.7, true);
+  settleVisitor();
   if (s.phase === "plan") move("staff", 1120, 315, 0.7);
   $("staff").focus();
   if (s.phase === "plan" && !$("sheet").open) queueVisitor();
 }
-function say(kind, who, line, sub, choices, closable = true) {
+// Dialogue types: who is talking and what kind of event it is read at a glance (tag, frame, name and role).
+const TALK = {
+  staff: "幕僚建議",
+  resident: "街坊",
+  host: "節目提問",
+  rival: "對手小馬",
+  offer: "合作邀約",
+  invite: "行程邀約",
+  crisis: "突發事件",
+};
+const talkType = (kind, who) =>
+  kind === "staff"
+    ? "staff"
+    : /小馬/.test(who)
+      ? "rival"
+      : /主持人/.test(who)
+        ? "host"
+        : "resident";
+const splitWho = (who) => {
+  const [name, ...role] = String(who || "").split(/\s*[｜|·・]\s*/);
+  return [name, role.join(" · ")];
+};
+// rows: [label, value, tone] facts shown under the line, e.g. what a deal asks and gives.
+function factRows(rows) {
+  const el = document.createElement("div");
+  el.className = "facts";
+  el.innerHTML = rows
+    .filter((r) => r && r[1])
+    .map(
+      ([k, v, tone]) =>
+        `<p class="${tone || ""}"><b>${esc(k)}</b><span>${esc(v)}</span></p>`,
+    )
+    .join("");
+  return el;
+}
+function say(kind, who, line, sub, choices, closable = true, opts = {}) {
+  const type = opts.type || talkType(kind, who),
+    [name, role] = splitWho(who),
+    d = $("dialogue");
   $("knock").style.display =
     kind === "visitor" ? "none" : pending() ? "block" : "none";
   $("candidate").classList.toggle("direction-left", kind === "visitor");
   if ($("sheet").open) $("sheet").close();
   dialogueKind = kind;
-  $("speaker").textContent = who;
+  d.dataset.type = type;
+  d.dataset.state = opts.resolved ? "resolved" : "";
+  d.classList.remove("alarm");
+  $("talk-tag").textContent = opts.tag || TALK[type];
+  $("speaker").textContent = name;
+  $("speaker-role").textContent = opts.role ?? role;
   $("line").textContent = line;
   $("sub").textContent = sub || "";
-  $("details").replaceChildren();
+  $("details").replaceChildren(...(opts.rows ? [factRows(opts.rows)] : []));
   $("actions").replaceChildren(
     ...choices.map((x) => button(x.text, x.fn, x.note, x.primary, x.disabled)),
   );
   $("dismiss").hidden = !closable;
-  $("dialogue").classList.remove("hidden");
+  d.classList.remove("hidden");
+  if (opts.alarm) alarm();
+}
+// A crisis arrives with a jolt: the panel shakes, the room flashes once and the alert sound plays if available.
+function alarm() {
+  const d = $("dialogue"),
+    room = $("room");
+  d.classList.remove("alarm");
+  room.classList.remove("crisis-alert");
+  void d.offsetWidth;
+  d.classList.add("alarm");
+  room.classList.add("crisis-alert");
+  try {
+    window.DaySound?.play?.("crisis");
+  } catch {
+    /* Sound is optional. */
+  }
+  later(() => {
+    d.classList.remove("alarm");
+    room.classList.remove("crisis-alert");
+  }, 900);
 }
 function showPanel(title, html, footer) {
   $("sheet-status").textContent = "";
@@ -392,6 +460,7 @@ function sync() {
   $("poll-glance").textContent =
     (e.poll ? "民調" : "估計") + " · 第 " + rank + " 名";
   $("knock").style.display = pending() ? "block" : "none";
+  doorCue();
   $("paper").setAttribute("opacity", s.journal.length ? "1" : "0");
   renderPins();
   sceneStatus();
@@ -409,6 +478,9 @@ function office() {
   $("room").classList.remove("field", "arriving");
   $("field-backdrop").style.display = "none";
   $("visitor").classList.add("gone");
+  $("visitor").classList.remove("waiting");
+  visitorFor = "";
+  clearReaction();
   move("staff", 1010, 300, 0.75);
   $("dialogue").classList.add("hidden");
   sync();
@@ -797,6 +869,25 @@ function files() {
     { text: "收好檔案", fn: closePanel },
   );
 }
+const CRISIS_KIND = {
+  family: "家族土地爭議",
+  car: "名車違停",
+  fees: "助理費疑雲",
+  kickback: "回扣錄音",
+  driver: "主任酒駕關說",
+  lounge: "建商招待所",
+  romance: "深夜約會",
+  past: "舊貼文",
+  volunteer: "志工失言",
+};
+const crisisChoice = (c) =>
+  ({
+    pay: "發澄清文宣",
+    apologize: "公開道歉切割",
+    fight: c.won ? "硬槓反控成功" : "硬槓反控炎上",
+  })[c.choice] || "等待處理";
+const groupTitle = (g) => G.GROUPS?.[g]?.title || ["長輩", "中年", "青年"][g];
+let alarmed = "";
 function inbox() {
   if (s.phase !== "plan") return resume();
   closePanel();
@@ -804,77 +895,99 @@ function inbox() {
     o = G.offerView(s),
     cr = s.crisis;
   if (cr?.status === "pending") {
-    move("staff", 1010, 300, 0.75);
-    crisisCue();
+    // Whoever came to the door waits there while the crisis is handled.
+    if (visitorFor) visitorWait();
+    move("staff", 930, 300, 0.75);
+    const key = cr.round + ":" + cr.kind,
+      first = alarmed !== key;
+    alarmed = key;
     say(
       "staff",
-      "小葉 · 出發前必須處理",
+      "選戰快報",
       cr.text,
-      "這些選擇會影響支持；危機不會因關掉對話而消失。",
+      "出發前必須處理；關掉對話也不會消失，三種做法都可能掉票。",
       [
         {
           text: "發澄清文宣",
-          note: wan(G.COSTS.crisis),
+          note:
+            wan(G.COSTS.crisis) +
+            " · 救回一部分" +
+            (s.budget.available < G.COSTS.crisis ? "（錢不夠）" : ""),
           fn: () => handleCrisis("pay"),
           disabled: s.budget.available < G.COSTS.crisis,
         },
-        { text: "公開道歉切割", fn: () => handleCrisis("apologize") },
         {
-          text: "硬槓反控",
-          note: "可能反彈，也可能炎上",
+          text: "公開道歉切割",
+          note: "免費 · 你票最多的那群掉票",
+          fn: () => handleCrisis("apologize"),
+        },
+        {
+          text: "硬槓反控" + (cr.by === "rival" ? "小馬" : ""),
+          note: "免費 · 五五波：有人力挺，或炎上掉更多",
           fn: () => handleCrisis("fight"),
         },
       ],
+      true,
+      {
+        type: "crisis",
+        tag: "突發事件 · " + (CRISIS_KIND[cr.kind] || "爆料"),
+        role: (cr.byName || "其他候選人") + "陣營爆料",
+        alarm: first,
+      },
     );
     return;
   }
   if (o) {
-    move("visitor", 350, 300, 0.8);
+    visitorEnter(visitorItem());
     say(
       "visitor",
       o.name,
-      o.pitch,
-      `得到：${o.gives}${o.money ? "、" + wan(o.money) : ""}。代價：公開承諾「${o.planText}」。合作不占主行程。`,
+      dealLine(o),
+      "答應就公開這個立場；之後改口，對方撤回支持。",
       [
         {
-          text: "答應這個合作",
+          text: "答應合作",
           fn: () => handleOffer("accept"),
           primary: true,
         },
         {
           text: "婉拒",
-          note: "對方可能找小馬",
+          note: "小馬可能接下",
           fn: () => handleOffer("decline"),
         },
       ],
+      true,
+      { type: "offer", role: o.org + " · 不占回合", rows: offerRows(o) },
     );
     return;
   }
   if (c.opportunity?.status === "open" && !cfg.campaignOpportunity) {
-    move("visitor", 350, 300, 0.8);
+    visitorEnter(visitorItem());
     say(
       "visitor",
-      "來客 · 兩場行程撞期",
+      "地方幹部",
       c.opportunity.text,
-      "選一場就會取代今天原本的主行程；也可以關掉，照自己的計畫走。",
+      "選一場就取代今天的主行程；也可以關掉，照自己的計畫走。",
       c.opportunity.choices.map((x) => ({
         text: x.title,
         note: x.gain + " " + x.cost,
         fn: () => {
-          move("visitor", 80, 260, 0.7, true);
+          visitorLeave();
           choose(x.action, x.config);
         },
         disabled: !x.allowed,
         primary: x.id === "organization",
       })),
+      true,
+      { type: "invite", role: "兩場行程撞期" },
     );
     return;
   }
   if (c.followup && !cfg.campaignFollowup) {
-    move("visitor", 350, 300, 0.8);
+    // A phone call: nobody walks in.
     say(
-      "visitor",
-      "製作人來電",
+      "staff",
+      "製作人",
       c.followup.text,
       "接下會改成本回合主行程，助手要留人控場。",
       [
@@ -886,6 +999,8 @@ function inbox() {
         },
         { text: "先照自己的安排", fn: hideTalk },
       ],
+      true,
+      { type: "invite", role: "來電 · 接續直播" },
     );
     return;
   }
@@ -941,22 +1056,248 @@ function queueVisitor() {
     inbox();
   }, 1200);
 }
+// Option-specific reactions in the office scene; each one matches what the candidate actually chose.
+const REACTIONS = {
+  pay: "react-leaflets",
+  apologize: "react-bow",
+  "fight-won": "react-counter",
+  "fight-lost": "react-flame",
+};
+const REACT_MS = 1700;
+function reactionMarkup(id, caption) {
+  const cap = `<g class="react-cap"><rect x="${752 - 20 - caption.length * 15}" y="96" width="${40 + caption.length * 30}" height="48" rx="24"/><text x="752" y="130" text-anchor="middle">${esc(caption)}</text></g>`;
+  if (id === "pay")
+    return (
+      [
+        [-330, -40, -24, 0],
+        [-250, -150, 18, 0.12],
+        [-120, -210, -10, 0.24],
+        [130, -200, 14, 0.18],
+        [260, -120, -18, 0.3],
+        [-400, 60, 26, 0.36],
+      ]
+        .map(
+          ([dx, dy, r, d]) =>
+            `<g class="leaf" style="--dx:${dx}px;--dy:${dy}px;--r:${r}deg;--d:${d}s"><rect x="728" y="380" width="48" height="62" rx="4"/><path d="M738 398H766M738 410H766M738 422H758"/><text x="752" y="394" text-anchor="middle">澄清</text></g>`,
+        )
+        .join("") + cap
+    );
+  if (id === "apologize")
+    return (
+      `<g class="bow-lines"><path d="M690 250q-18 10-26 28M814 250q18 10 26 28"/><path d="M700 300q-14 6-20 18M804 300q14 6 20 18"/></g>` +
+      cap
+    );
+  if (id === "fight-won")
+    return (
+      `<g class="burst">${Array.from({ length: 10 }, (_, i) => {
+        const a = (i / 10) * Math.PI * 2;
+        return `<path d="M${752 + Math.cos(a) * 120} ${270 + Math.sin(a) * 120}L${752 + Math.cos(a) * 175} ${270 + Math.sin(a) * 175}"/>`;
+      }).join("")}</g><text class="bang" x="840" y="250">!</text>` + cap
+    );
+  return (
+    [
+      [640, 0],
+      [700, 0.15],
+      [760, 0.05],
+      [820, 0.2],
+      [870, 0.1],
+    ]
+      .map(
+        ([x, d]) =>
+          `<path class="flame" style="--d:${d}s" d="M${x} 430c-26-30-20-62 4-92c4 22 18 30 26 14c14 34 10 60-10 78c-6 4-14 4-20 0z"/>`,
+      )
+      .join("") +
+    `<g class="smoke"><circle cx="700" cy="230" r="26"/><circle cx="790" cy="210" r="32"/><circle cx="840" cy="250" r="22"/></g>` +
+    cap
+  );
+}
+function clearReaction() {
+  $("reaction-layer").innerHTML = "";
+  $("reaction-layer").setAttribute("class", "reaction");
+  for (const c of Object.values(REACTIONS))
+    $("candidate").classList.remove(c);
+}
+function react(id, caption) {
+  const cls = REACTIONS[id];
+  clearReaction();
+  if (!cls) return;
+  $("reaction-layer").innerHTML = reactionMarkup(id, caption);
+  $("reaction-layer").setAttribute("class", "reaction " + cls);
+  $("candidate").classList.add(cls);
+  if (id === "pay") move("staff", 420, 300, 0.75);
+  later(clearReaction, REACT_MS);
+}
 function handleCrisis(choice) {
   if (!G.respondCrisis(s, choice)) return toast("目前不能這樣回應。");
   sync();
-  hideTalk();
-  toast("危機已處理，結果記入本回合。");
+  const c = s.crisis,
+    id = choice === "fight" ? (c.won ? "fight-won" : "fight-lost") : choice;
+  $("dialogue").classList.add("hidden");
+  dialogueKind = "";
+  react(id, crisisChoice(c));
+  later(() => crisisResult(c), REACT_MS);
+}
+// What the crisis response changed, straight from the engine's effect.
+function crisisResult(c) {
+  const e = c.effect || {};
+  if (s.phase !== "plan" || $("sheet").open)
+    return toast(crisisChoice(c) + " · 你 " + signed(e.votes) + " 票");
+  say(
+    "staff",
+    "選戰快報",
+    crisisChoice(c) + "。",
+    "結果已記入本回合，出發前不用再處理。",
+    [{ text: "回到辦公室", fn: hideTalk, primary: true }],
+    true,
+    {
+      type: "crisis",
+      resolved: true,
+      tag: "突發事件 · 已處理",
+      role: CRISIS_KIND[c.kind] || "",
+      rows: [
+        ["你的支持", signed(e.votes) + " 票（估計）", e.votes < 0 ? "loss" : "gain"],
+        Math.abs(e.rival || 0) >= 1
+          ? ["小馬", signed(e.rival) + " 票（估計）"]
+          : null,
+        ["處理支出", c.choice === "pay" ? wan(G.COSTS.crisis) : "免費"],
+        [
+          "各群",
+          (e.byGroup || [])
+            .map((v, g) => groupTitle(g) + " " + signed(v))
+            .join("　"),
+        ],
+      ],
+    },
+  );
+}
+const dealLine = (o) =>
+  String(o.pitch || "").replace(/^[^「]*(?=「)/, "") ||
+  "「請你公開支持" + o.planText + "。」";
+// The line says who asks for what; these rows say what you get and what it costs, as on the original deal card.
+function offerRows(o) {
+  const down = (o.faces || [])
+      .map((f, g) => (f === "down" ? groupTitle(g) : ""))
+      .filter(Boolean),
+    known = (o.faces || []).some((f) => f !== "unknown"),
+    gets = [
+      o.money ? "捐款 " + wan(o.money) : "",
+      o.bloc ? "組織票約 " + num(o.bloc) + " 票" : "",
+      o.perk === "tv" ? "一次免費上節目" : "",
+    ].filter(Boolean),
+    costs = [
+      G.BROKERS?.[o.id]?.cost ||
+        (down.length
+          ? "可能得罪" + down.join("、")
+          : known
+            ? ""
+            : "可能得罪反對這個做法的人"),
+      o.id === "developer" ? "之後容易爆黑料" : "",
+      o.partyLine && !o.partyLine.keeps ? "違反黨的立場" : "",
+      o.flip ? "等於改口（你說過「" + o.flip + "」）" : "",
+    ].filter(Boolean);
+  return [
+    ["你得到", gets.join("、") || "對方支持"],
+    ["代價", costs.join("；") || "看不出誰會不滿", "loss"],
+  ];
 }
 function handleOffer(choice) {
-  if (!G.respondOffer(s, choice)) return;
+  const o = G.offerView(s);
+  if (!o || !G.respondOffer(s, choice)) return;
   sync();
-  move("visitor", 80, 260, 0.7, true);
-  hideTalk();
-  toast(
+  const rec = (s.offers || []).find(
+      (x) => x.id === o.id && x.respondedDay === s.day,
+    ),
+    e = rec?.effect;
+  visitorLeave();
+  const rows =
     choice === "accept"
-      ? "合作承諾已留下，今天還能跑主行程。"
-      : "已婉拒，來客離開。",
+      ? [
+          ["入帳", e?.money ? "+" + wan(e.money) : ""],
+          ["組織票", e?.bloc ? "約 " + num(e.bloc) + " 票（守約才保得住）" : ""],
+          ["上節目", o.perk === "tv" ? "多一次免費機會" : ""],
+          ["估計支持", e ? signed(e.votes) + " 票" + (e.bloc ? "（含組織票）" : "") : "", e?.votes < 0 ? "loss" : "gain"],
+          e?.cost?.text
+            ? ["代價", e.cost.text + " " + signed(e.cost.votes) + " 票", "loss"]
+            : null,
+          e?.flip ? ["改口", signed(e.flip.votes) + " 票", "loss"] : null,
+          e?.partyLine && !e.partyLine.kept
+            ? ["黨的立場", "違反 " + signed(e.partyLine.votes) + " 票", "loss"]
+            : null,
+        ]
+      : [
+          [
+            "對方",
+            rec?.taker === 1
+              ? "轉去找小馬：小馬多了組織票約 " + num(rec.bloc) + " 票"
+              : "離開了，沒有找上小馬",
+            rec?.taker === 1 ? "loss" : "",
+          ],
+          ["你", "立場不受約束，也沒有拿到捐款或組織票"],
+        ];
+  say(
+    "staff",
+    o.name,
+    choice === "accept"
+      ? "說定了：公開支持「" + o.planText + "」。"
+      : "婉拒了" + o.org + "。",
+    choice === "accept"
+      ? "合作不占主行程，今天還能照常出門。"
+      : "今天照原本的安排走。",
+    [{ text: "知道了", fn: hideTalk, primary: true }],
+    true,
+    {
+      type: "offer",
+      resolved: true,
+      tag: "合作邀約 · " + (choice === "accept" ? "已答應" : "已婉拒"),
+      role: o.org,
+      rows,
+    },
   );
+}
+// The person at the door: who they are follows the pending item they came for.
+let visitorFor = "";
+function visitorItem() {
+  if (s.phase !== "plan") return null;
+  const o = G.offerView(s);
+  if (o) {
+    const m = o.name.match(/(老K|\S(?:董|主委|會長|理事長))$/),
+      short = m ? m[1] : o.name;
+    return {
+      key: "offer:" + o.id,
+      look: o.id,
+      label: [short, m ? o.name.slice(0, -short.length) : o.org],
+    };
+  }
+  const c = G.campaignView(s);
+  if (c.opportunity?.status === "open" && !cfg.campaignOpportunity)
+    return {
+      key: "opportunity",
+      look: "地方幹部",
+      label: ["地方幹部", "邀你組隊"],
+    };
+  return null;
+}
+function visitorEnter(item) {
+  if (!item) return;
+  visitorArt(item.look, item.label);
+  visitorFor = item.key;
+  $("visitor").classList.remove("waiting");
+  move("visitor", 350, 300, 0.8);
+}
+function visitorWait() {
+  $("visitor").classList.add("waiting");
+  move("visitor", 80, 262, 0.7);
+}
+function visitorLeave() {
+  visitorFor = "";
+  $("visitor").classList.remove("waiting");
+  if (!$("visitor").classList.contains("gone"))
+    move("visitor", -140, 262, 0.7, true);
+}
+// Handled visitors walk out; one still waiting for an answer stays at the door with a cue.
+function settleVisitor() {
+  if (visitorFor && visitorItem()?.key === visitorFor) visitorWait();
+  else visitorLeave();
 }
 function depart() {
   if (s.phase !== "plan" || !action) return;
@@ -1055,36 +1396,73 @@ function finishTravel() {
   resume();
 }
 
-function visitorArt(name) {
-  const frames = {
-    林伯: ["support-v3", 186, 74, 253, 418],
-    月娥阿嬤: ["support-v3", 650, 72, 296, 422],
-    秀琴阿姨: ["support-v3", 1136, 96, 230, 398],
-    陳伯: ["support", 162, 13, 280, 351],
-    阿桃姨: ["support", 656, 18, 209, 346],
-    美姐: ["support", 1088, 16, 285, 347],
-    阿仁: ["support-v2", 654, 120, 273, 359],
-    許晴: ["support-v2", 1168, 126, 245, 355],
-    淑芬: ["support-v2", 1168, 126, 245, 355],
-    建志: ["support-v2", 114, 128, 239, 352],
-    小汀: ["support-v2", 134, 587, 215, 344],
-    阿寧: ["support-v3", 649, 563, 220, 416],
-    佳穎: ["support", 641, 373, 239, 332],
-    阿祺: ["support-v3", 176, 563, 231, 416],
-    小禾: ["support-v3", 1107, 566, 359, 411],
-    小馬: ["support-v2", 646, 588, 297, 342],
-    主持人: ["support", 1130, 711, 224, 311],
+// Visitors use the original clay-toy looks: named residents keep their own look, brokers the look the original deal card gives them.
+const BROKER_LOOK = {
+    developer: "middle-office",
+    temple: "elder-hat",
+    chiefs: "elder-cart",
+    merchants: "middle-polo",
+    faction: "middle-mom",
+    media: "host",
+  },
+  ROLE_LOOK = {
+    小馬: ["rival", "對手"],
+    主持人: ["host", "節目"],
+    地方幹部: ["middle-polo", "地方"],
   };
-  const a = frames[name] || frames["林伯"],
+function visitorArt(key, label) {
+  const A = window.DayArt,
+    look =
+      BROKER_LOOK[key] ||
+      A?.speakerLooks?.[key] ||
+      ROLE_LOOK[key]?.[0] ||
+      "middle-apron",
+    [sheet, row, col] = A?.looks?.[look] || ["support3", 0, 0],
+    f = A?.sheets?.[sheet]?.[row]?.[col] || { x: 186, y: 74, w: 253, h: 418 },
     el = document.querySelector("#visitor .body svg");
-  el.setAttribute("viewBox", a.slice(1).join(" "));
+  el.setAttribute("viewBox", [f.x, f.y, f.w, f.h].join(" "));
   el.querySelector("image").setAttribute(
     "href",
-    "assets/matte-toy-v1/game/" + a[0] + ".webp",
+    "assets/matte-toy-v1/" + (A?.files?.[sheet] || "game/support-v3.webp"),
   );
-  document.querySelector("#visitor .person-label").textContent = frames[name]
-    ? name
-    : "來訪代表";
+  $("visitor").dataset.look = look;
+  const [name, role] = label || [key, ROLE_LOOK[key]?.[1] || ""];
+  nameTag("visitor", name, role);
+}
+// Name tags sit on the character's feet: name, then a smaller role, on a pill sized to the text.
+function nameTag(id, name, role) {
+  document.querySelector("#" + id + " .tag-name").textContent = name;
+  document.querySelector("#" + id + " .tag-role").textContent = role
+    ? " " + role
+    : "";
+  $(id).setAttribute(
+    "aria-label",
+    id === "staff"
+      ? "幕僚小葉：報告與助手分工"
+      : "門口訪客 " + name + (role ? "（" + role + "）" : ""),
+  );
+  fitTag(id);
+}
+function fitTag(id) {
+  const t = document.querySelector("#" + id + " .person-label"),
+    bg = document.querySelector("#" + id + " .name-bg"),
+    w = t.getComputedTextLength?.();
+  if (!w) return;
+  const cx = Number(t.getAttribute("x"));
+  bg.setAttribute("x", cx - w / 2 - 12);
+  bg.setAttribute("width", w + 24);
+}
+matchMedia("(max-width:900px)").addEventListener("change", () => {
+  fitTag("staff");
+  fitTag("visitor");
+});
+// The door shows what is waiting: a crisis is flagged differently from a visitor.
+function doorCue() {
+  const crisis = s.crisis?.status === "pending";
+  $("knock").classList.toggle("alert", crisis);
+  $("knock").querySelector("text").textContent = crisis
+    ? "突發事件 ▸"
+    : "來客的消息 ▸";
 }
 function knowledge() {
   const known = G.availableTopics(s).filter(
@@ -1782,14 +2160,14 @@ function resume() {
   if (s.phase === "plan") {
     office();
     if (pending() && s.day > 1 && !seenVisits.includes(s.day)) {
-      move("visitor", 350, 300, 0.8);
+      if (s.crisis?.status !== "pending") visitorEnter(visitorItem());
       later(() => {
         if (
           s.phase !== "plan" ||
           $("sheet").open ||
           !$("dialogue").classList.contains("hidden")
         )
-          return;
+          return settleVisitor();
         seenVisits.push(s.day);
         save();
         inbox();
@@ -2018,12 +2396,6 @@ function playEndingSound(r) {
   soundedEnding = true;
   sfx.play(r.outcome === "elected" ? "win" : "lose", { seed: s.seed });
 }
-function crisisCue() {
-  const key = s.day + ":" + (s.crisis?.id || s.crisis?.text || "");
-  if (soundedCrisis === key) return;
-  soundedCrisis = key;
-  sfx.play("crisis");
-}
 function settingsOpen() {
   syncSettings();
   if (!$("settings").open) $("settings").showModal();
@@ -2088,6 +2460,11 @@ $("sound-toggle").onclick = () => {
 // Tap feedback; DaySound unlocks its AudioContext in its own trusted click handler.
 document.addEventListener("click", (e) => {
   if (e.target.closest?.("button") && e.isTrusted !== false) sfx.play("click");
+});
+nameTag("staff", "小葉", "幕僚");
+document.fonts?.ready?.then(() => {
+  fitTag("staff");
+  fitTag("visitor");
 });
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || "null");

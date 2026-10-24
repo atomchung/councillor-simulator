@@ -173,9 +173,9 @@
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa",
     "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e",
-    "dist/office.html": "2a1db97b2ab2d33e35a6d13a7d7ac1832a021d64ecb8ddf8702e30a688acb807",
-    "dist/office.js": "9fb086ad21a217e7526a18574e8d97321c7c6b25173616fd8415bc52f353ba0c",
-    "dist/office.css": "3b94d3c117945d183f3287c8b2d415e9761092553c539eee29a8b834ff69d7b1",
+    "dist/office.html": "df3bdb79ac31a7c16f1cf2dc98afc3c0057a901ef6d9b7dd293bd6b3cfa58d52",
+    "dist/office.js": "d8f57dcd0816ec1a3557a4dc6a92fe421267b4630dd8b96b4fdea0c25ba2d5f3",
+    "dist/office.css": "c88274bb30029b97c06b0bb89f15e9b22f92dc6456361f7c559c3823005df02a",
     "dist/office-result.css": "516437d232aa5f2215cedab49102951a38d20e7c2faa5a7f753291846a976fed",
     "dist/assets/office/office-windows.png": "a370964585bb33d44462a12f038ba99226703c5b9c1820c6d74f2da321b77833"
   },

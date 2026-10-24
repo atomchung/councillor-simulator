@@ -433,11 +433,131 @@ function harness(initial, opts = {}) {
     !h.nodes.dialogue.classList.contains("hidden"),
     "automatic visitor dialogue",
   );
+  const offer = G.offerView(s);
   ok(
-    h.nodes.line.textContent.includes(G.offerView(s).pitch),
+    h.nodes.line.textContent.includes(offer.planText),
     "actual current invitation only",
   );
+  eq(h.nodes.dialogue.dataset.type, "offer", "offer dialogue is typed");
+  eq(h.nodes["talk-tag"].textContent, "合作邀約", "offer tag");
+  ok(
+    h.nodes.details.children[0].innerHTML.includes("你得到") &&
+      h.nodes.details.children[0].innerHTML.includes("代價"),
+    "offer lists what they ask and what you get",
+  );
+  ok(
+    h.nodes["#visitor .tag-name"].textContent !== "來訪代表",
+    "visitor tag names the broker",
+  );
   eq(h.state().day, 2, "hearing invitation does not spend a turn");
+  // Closing without answering: the visitor waits at the door with a cue.
+  h.run("hideTalk()");
+  h.flush();
+  ok(
+    h.nodes.visitor.classList.contains("waiting") &&
+      !h.nodes.visitor.classList.contains("gone"),
+    "unanswered visitor waits at the door",
+  );
+  // Answering: the result shows the engine's change, then the visitor walks out.
+  h.run("inbox()");
+  const money = h.state().budget.available;
+  h.run("handleOffer('accept')");
+  const rec = h.state().offers.find((x) => x.id === offer.id);
+  eq(rec.status, "accepted", "accept goes through the engine");
+  ok(
+    h.nodes.details.children[0].innerHTML.includes(
+      "+" + (rec.effect.money / 10000).toLocaleString("zh-TW"),
+    ) || !rec.effect.money,
+    "accepted deal shows the engine's money",
+  );
+  eq(
+    h.state().budget.available - money,
+    rec.effect.money,
+    "shown money matches the budget change",
+  );
+  h.flush();
+  ok(
+    h.nodes.visitor.classList.contains("gone"),
+    "handled visitor leaves the office",
+  );
+  h.run("hideTalk()");
+  h.flush();
+  ok(h.nodes.visitor.classList.contains("gone"), "visitor stays gone");
+}
+// A crisis is a different tier: its own type, tag, alarm, option reaction and engine-sourced result.
+{
+  let s;
+  for (let seed = 1; seed < 200 && !s; seed++) {
+    const x = state(seed, "heir");
+    for (let r = 1; r < G.DAYS && x.phase === "plan"; r++) {
+      if (x.crisis?.status === "pending") {
+        s = x;
+        break;
+      }
+      G.begin(x, "fundraise", {});
+      G.arrive(x);
+      G.next(x);
+    }
+  }
+  ok(s, "real crisis fixture");
+  const h = harness({
+    s,
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: true,
+    seenVisits: [s.day],
+  });
+  h.run("inbox()");
+  eq(h.nodes.dialogue.dataset.type, "crisis", "crisis dialogue is typed");
+  ok(
+    h.nodes["talk-tag"].textContent.startsWith("突發事件"),
+    "crisis carries the alert tag",
+  );
+  ok(h.nodes.dialogue.classList.contains("alarm"), "crisis entry alarms");
+  eq(h.nodes.line.textContent, s.crisis.text, "crisis text from engine");
+  h.run("hideTalk();inbox()");
+  ok(
+    !h.nodes.dialogue.classList.contains("alarm"),
+    "reopening the same crisis does not alarm again",
+  );
+  ok(h.nodes.knock.classList.contains("alert"), "door flags a pending crisis");
+  h.run("handleCrisis('apologize')");
+  ok(
+    h.nodes["reaction-layer"].getAttribute("class").includes("react-bow"),
+    "apology plays the bow reaction",
+  );
+  h.flush();
+  const c = h.state().crisis;
+  eq(c.status, "resolved", "crisis resolved through the engine");
+  eq(h.nodes.dialogue.dataset.state, "resolved", "result shown after reaction");
+  ok(
+    h.nodes.details.children[0].innerHTML.includes(
+      Math.abs(Math.round(c.effect.votes)).toLocaleString("zh-TW"),
+    ),
+    "result shows the engine's vote change",
+  );
+  // Each crisis option has its own reaction class.
+  const classes = new Set();
+  for (const choice of ["pay", "apologize", "fight"]) {
+    const x = clone(s);
+    x.budget.available = Math.max(x.budget.available, G.COSTS.crisis);
+    const k = harness({ s: x, cfg: {}, action: null, tutorialDone: true });
+    k.run("handleCrisis(" + JSON.stringify(choice) + ")");
+    classes.add(k.nodes["reaction-layer"].getAttribute("class"));
+  }
+  eq(classes.size, 3, "three options, three different reactions");
+}
+// Ordinary talk keeps its own types.
+{
+  const h = harness({ s: state(), cfg: {}, action: null, tutorialDone: true });
+  h.run("brief()");
+  eq(h.nodes.dialogue.dataset.type, "staff", "staff advice is typed");
+  eq(h.nodes.speaker.textContent, "小葉", "staff name");
+  h.run('say("field","小馬｜對手","q","",[])');
+  eq(h.nodes.dialogue.dataset.type, "rival", "rival talk is typed");
+  h.run('say("field","秀琴阿姨｜退休老師","q","",[])');
+  eq(h.nodes.dialogue.dataset.type, "resident", "resident talk is typed");
+  eq(h.nodes["speaker-role"].textContent, "退休老師", "role shown apart");
 }
 // Settings entry, single sound switch and shared-audio wiring.
 const rainState = Array.from({ length: 100 }, (_, i) => state(i)).find(
