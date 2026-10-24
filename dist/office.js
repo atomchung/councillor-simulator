@@ -2006,20 +2006,23 @@ function sameTopicMemory(q) {
   return m ? `${m.name}記得你上次說：「${m.lastQuote}」` : "";
 }
 // Residents speak their opinion, not the issue's name, so the dialogue names the issue and what is being decided.
-function issueLine(q) {
+// What the resident asks, as a plain question; their opinion stays underneath in their own words.
+function askLine(q) {
   const t = G.TOPICS[s.pending?.topic];
-  return t ? `議題：${t.title}。${t.ask || ""}` : "";
+  return /[？?]\s*$/.test(q.text) || !t?.ask ? [q.text, ""] : [t.ask, `「${q.text}」`];
 }
 function ask() {
   field();
   sfx.play("question");
   const q = G.question(s);
   visitorArt(q.speaker?.includes("小馬") ? "小馬" : q.speakerName || "主持人");
+  const [line, voice] = askLine(q),
+    memory = sameTopicMemory(q);
   say(
     "field",
     q.speaker,
-    q.text,
-    issueLine(q) + (sameTopicMemory(q) ? "\n" + sameTopicMemory(q) : ""),
+    line,
+    [voice, memory].filter(Boolean).join("\n"),
     q.options.map((o) => ({
       text: o.text,
       note:

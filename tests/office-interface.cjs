@@ -788,8 +788,8 @@ const stubFor = (calls, on = { v: true }) => ({
   h.footer();
   h.run("finishTravel()");
   eq(h.state().phase, "question", "question reached");
-  const title = h.run("G.TOPICS[s.pending.topic].title");
-  ok(h.nodes.sub.textContent.includes("議題：" + title), "question names its issue");
+  const ask = h.run("G.TOPICS[s.pending.topic].ask");
+  ok(h.nodes.line.textContent === ask || /[？?]\s*$/.test(h.nodes.line.textContent), "the resident asks a plain question");
   h.run("s.player.residents={x:{name:G.question(s).speakerName,topic:'__other__',lastQuote:'別的題'}}");
   eq(h.run("sameTopicMemory(G.question(s))"), "", "memory of another issue is not shown");
 }
