@@ -760,10 +760,16 @@ const stubFor = (calls, on = { v: true }) => ({
   // Players learn chiefs exist: maps label them and 小葉 explains the mechanic without ordering it.
   const h = harness({ s: state(24, "newcomer"), cfg: { research: [] }, action: null, tutorialDone: true });
   h.run("s.day=2");
-  ok(/里長/.test(h.run("mechanicHint()")), "小葉 explains village chiefs");
+  ok(h.run("guideHints().some(g=>g.id==='chief')"), "小葉 explains village chiefs");
   ok(/里長 \d+\/\d+|里長挺你/.test(h.run("mapMarkup()")), "wall map labels chief progress");
   h.run("s.day=3");
-  ok(/挖小馬的料|里長/.test(h.run("mechanicHint()")), "小葉 mentions digging from round three");
+  ok(h.run("guideHints().some(g=>g.id==='dig')"), "小葉 introduces digging from round three");
+  h.run("s.budget.available=9e6");
+  const ids = h.run("guideHints().map(g=>g.id)");
+  ok(["rally", "tv", "billboard"].every((id) => ids.includes(id)), "with money 小葉 introduces rallies, TV and billboards");
+  ok(h.run("guideHints().every(g=>g.label&&typeof g.fn==='function')"), "every guide line opens the feature it names");
+  h.run("s.journal.push({day:2,totalVotes:0,player:{action:'rally',venue:'market',teamReports:[]},summary:{headline:''}})");
+  ok(!h.run("guideHints().some(g=>g.id==='rally')"), "a feature already used is not introduced again");
 }
 {
   // 小葉 does not send the player to the same venue round after round.
