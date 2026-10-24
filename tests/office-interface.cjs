@@ -756,6 +756,15 @@ const stubFor = (calls, on = { v: true }) => ({
   const foot = h.nodes["sheet-foot"];
   ok(JSON.stringify(foot.children?.map?.((b) => b.textContent) || foot.innerHTML || "").includes("換行程"), "換行程 sits beside the departure button");
 }
+{
+  // Players learn chiefs exist: maps label them and 小葉 explains the mechanic without ordering it.
+  const h = harness({ s: state(24, "newcomer"), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("s.day=2");
+  ok(/里長/.test(h.run("mechanicHint()")), "小葉 explains village chiefs");
+  ok(/里長 \d+\/\d+|里長挺你/.test(h.run("mapMarkup()")), "wall map labels chief progress");
+  h.run("s.day=3");
+  ok(/挖小馬的料|里長/.test(h.run("mechanicHint()")), "小葉 mentions digging from round three");
+}
 // Full nine-round controller journeys preserve the shared engine outcome for every identity.
 for (const background of ["newcomer", "heir", "incumbent"]) {
   for (const seed of [1, 7, 24]) {

@@ -519,6 +519,9 @@ function syncDock() {
   $("dock-helpers").hidden = !cfg.research?.length;
   $("dock-helpers").textContent = cfg.research?.length ? `小葉已排助手查：${cfg.research.map(TOPIC).join("、")}（點此更換）` : "";
   $("dock-helpers").onclick = team;
+  const hint = mechanicHint();
+  $("dock-hint").hidden = !hint;
+  $("dock-hint").textContent = hint ? "小葉提醒：" + hint : "";
   $("dock-pick").textContent = a.pick.text;
   $("dock-pick").onclick = a.pick.fn;
   $("dock-own").textContent = action ? "回到我排的行程" : "自己排行程";
@@ -723,7 +726,9 @@ function brief() {
   } else {
     const a = advice();
     title = a.title;
-    sub = a.sub;
+    // Round two is when 小葉 first explains a hidden mechanic in person; later rounds keep it in the dock.
+    const hint = s.day === 2 ? mechanicHint() : "";
+    sub = a.sub + (hint ? "\n" + hint : "");
     choices = [
       { ...a.pick, primary: true },
       {
@@ -842,6 +847,33 @@ function chiefText(c) {
     gain +
     "）"
   );
+}
+// Short chief label for maps: progress toward winning them over, or that they back you.
+const chiefShort = (c) => (c.broken ? "里長挺你" : `里長 ${c.visits}/${c.need}`);
+function mapChiefBadges(A) {
+  return G.chiefView(s)
+    .filter((c) => c && c.venue)
+    .map((c) => {
+      const p = A.spot?.(c.venue);
+      return p
+        ? `<span class="map-chief${c.broken ? " won" : ""}" style="left:${(p.x / 12).toFixed(2)}%;top:${(p.y / 6.5).toFixed(2)}%" title="${esc(chiefText(c))}">${chiefShort(c)}</span>`
+        : "";
+    })
+    .join("");
+}
+// 小葉 explains mechanics nobody would find alone; information, not an instruction.
+function mechanicHint() {
+  const chiefs = G.chiefView(s).filter(Boolean),
+    tip = s.events?.tip,
+    digOpen = s.day >= 3 && tip && !tip.history?.length && !tip.evidenceLevel;
+  const chiefHint =
+    chiefs.length && !chiefs.some((c) => c.broken) && s.day >= 2
+      ? `有些地點有里長，同一個地點去滿次數就會破冰：拿到約 ${num(G.TUNING?.chief?.bloc || 400)} 張組織票，之後在那裡街訪的效果將近加倍。牆上地圖看得到進度。`
+      : "";
+  const digHint = digOpen
+    ? "「做情報」可以挖小馬的料：查證夠了再爆料。料可能是假的，指控錯了傷的是自己。"
+    : "";
+  return s.day % 2 ? digHint || chiefHint : chiefHint || digHint;
 }
 const chiefNote = (c) =>
   c ? `<small class="chief-note${c.broken ? " won" : ""}">${esc(chiefText(c))}</small>` : "";
@@ -1028,8 +1060,10 @@ function mapMarkup() {
     '<svg class="mini-map" viewBox="0 0 560 290" role="group" aria-label="選區足跡地圖"><path d="M35 245Q210 250 525 265" stroke="#9fc6bf" stroke-width="22" fill="none"/><path d="M50 55Q240 95 470 60M90 155L455 150M160 70L160 200L320 225L410 145L390 65" fill="none" stroke="#d3c398" stroke-width="16"/>' +
     Object.entries(POINTS)
       .map(([id, [x, y]]) => {
-        const n = journals.filter((j) => j.player.venue === id).length;
-        return `<g class="map-site ${n ? "visited" : ""}" role="button" tabindex="0" data-action="map-venue" data-id="${id}" aria-label="${G.VENUES[id].title}，跑過 ${n} 次"><rect x="${x - 57}" y="${y - 33}" width="114" height="65" rx="10"/><circle cx="${x}" cy="${y - 15}" r="12"/><text class="count" x="${x}" y="${y - 11}" text-anchor="middle">${n || "·"}</text><text x="${x}" y="${y + 20}" text-anchor="middle">${G.VENUES[id].title}</text></g>`;
+        const n = journals.filter((j) => j.player.venue === id).length,
+          ch = G.chiefPreview(s, id),
+          chiefTag = ch ? `<text class="map-chief-label${ch.broken ? " won" : ""}" x="${x}" y="${y - 38}" text-anchor="middle">${chiefShort(ch)}</text>` : "";
+        return `<g class="map-site ${n ? "visited" : ""}" role="button" tabindex="0" data-action="map-venue" data-id="${id}" aria-label="${G.VENUES[id].title}，跑過 ${n} 次"><rect x="${x - 57}" y="${y - 33}" width="114" height="65" rx="10"/><circle cx="${x}" cy="${y - 15}" r="12"/><text class="count" x="${x}" y="${y - 11}" text-anchor="middle">${n || "·"}</text><text x="${x}" y="${y + 20}" text-anchor="middle">${G.VENUES[id].title}</text>${chiefTag}</g>`;
       })
       .join("") +
     "</svg>"
@@ -1576,7 +1610,8 @@ function travel() {
   $("travel-scene").hidden = false;
   $("world-map").innerHTML =
     A.scene() +
-    '<svg class="travel-path" viewBox="0 0 1200 650"></svg><div class="travel-player" id="map-walker"></div>';
+    '<svg class="travel-path" viewBox="0 0 1200 650"></svg><div class="travel-player" id="map-walker"></div>' +
+    mapChiefBadges(A);
   $("travel-caption").textContent = "從辦公室出發 · " + placeLabel(p);
   const route = A.visualRoute(p.id, p.venue),
     lengths = route
