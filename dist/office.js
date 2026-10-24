@@ -61,9 +61,11 @@ let s,
   storageOK = true,
   tutorialDone = false,
   newSettings = { background: "newcomer", affiliation: "independent" },
-  soundEnabled = true,
   seenVisits = [],
   travelFrame = 0,
+  soundedRecap = 0,
+  soundedEnding = false,
+  soundedCrisis = "",
   selectingCharacter = false;
 function later(fn, delay) {
   const e = epoch;
@@ -91,7 +93,6 @@ function save() {
         action,
         cfg,
         tutorialDone,
-        soundEnabled,
         seenVisits,
         ending,
       }),
@@ -110,6 +111,9 @@ function fresh(settings = newSettings) {
   ending = null;
   tutorialDone = false;
   seenVisits = [];
+  soundedRecap = 0;
+  soundedEnding = false;
+  soundedCrisis = "";
   save();
   office();
   tutorial(0);
@@ -801,6 +805,7 @@ function inbox() {
     cr = s.crisis;
   if (cr?.status === "pending") {
     move("staff", 1010, 300, 0.75);
+    crisisCue();
     say(
       "staff",
       "小葉 · 出發前必須處理",
@@ -970,10 +975,12 @@ function begin() {
   hideTalk();
   sync();
   save();
+  sfx.play("depart");
   travel();
 }
 function travel() {
   clearTimers();
+  audioScene();
   $("dialogue").classList.add("hidden");
   $("toast").classList.remove("show");
   $("room").classList.remove("field");
@@ -1044,6 +1051,7 @@ function finishTravel() {
   $("travel-scene").hidden = true;
   G.arrive(s);
   save();
+  audioScene();
   resume();
 }
 
@@ -1151,6 +1159,7 @@ function field() {
 
 function ask() {
   field();
+  sfx.play("question");
   const q = G.question(s);
   visitorArt(q.speaker?.includes("小馬") ? "小馬" : q.speakerName || "主持人");
   say(
@@ -1427,6 +1436,7 @@ function recap() {
   if (s.phase !== "recap") return;
   const r = s.recap;
   if (!r) return advance();
+  playResultSound(r);
   office();
   const v = resultView(r);
   if (v.kind) {
@@ -1557,6 +1567,8 @@ function renderCounting() {
     pauseAt = COUNT.reveal - 1.5,
     revealed = t >= COUNT.reveal,
     stage = revealed ? r.outcome : "count";
+  sfx.loop("count", t >= COUNT.wait && !revealed && !(tie && t >= pauseAt));
+  if (revealed) playEndingSound(r);
   if (el.dataset.view !== "count") {
     el.dataset.view = "count";
     el.innerHTML = `<div class="oc-stage"><div class="oc-scene" id="oc-scene"></div><div class="count-screen"><h2 class="count-stage" id="oc-stage"></h2><div class="count-board" aria-hidden="true"><b>${esc(name)}</b><span class="count-track"><i id="oc-meter"></i></span><strong id="oc-votes">0</strong><i class="count-line" id="oc-line"><span id="oc-line-label"></span></i></div></div><strong class="count-verdict" id="oc-verdict" hidden></strong></div><button class="oc-skip" data-action="skip-count">略過開票 →</button>`;
@@ -1630,6 +1642,8 @@ function counting() {
 function finishCounting() {
   if (s.phase !== "result" || ending?.status !== "inprogress") return;
   cancelAnimationFrame(countFrame);
+  sfx.loop("count", false);
+  playEndingSound(s.result);
   ending = { status: "seen", elapsed: COUNT.end };
   save();
   report();
@@ -1946,7 +1960,10 @@ $("staff").onclick = () => {
 };
 $("visitor").onclick = inbox;
 $("knock").onclick = inbox;
-$("restart").onclick = newGame;
+$("restart").onclick = () => {
+  $("settings").close();
+  newGame();
+};
 $("skip-travel").onclick = finishTravel;
 $("paper").onclick = recapDetail;
 
@@ -1964,70 +1981,70 @@ function frame() {
 compact.addEventListener("change", frame);
 frame();
 
-let rainContext = null,
-  rainGain = null,
-  rainSource = null;
-function rainAudio(unlock = false) {
-  try {
-    const AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC) return;
-    if (unlock && soundEnabled && !rainContext) {
-      rainContext = new AC();
-      const buf = rainContext.createBuffer(
-          1,
-          rainContext.sampleRate * 3,
-          rainContext.sampleRate,
-        ),
-        data = buf.getChannelData(0);
-      let v = 0;
-      for (let i = 0; i < data.length; i++) {
-        v = (v + (Math.random() * 2 - 1) * 0.025) / 1.025;
-        data[i] = v * 4;
-      }
-      rainSource = rainContext.createBufferSource();
-      rainSource.buffer = buf;
-      rainSource.loop = true;
-      const filter = rainContext.createBiquadFilter();
-      filter.type = "lowpass";
-      filter.frequency.value = 1600;
-      rainGain = rainContext.createGain();
-      rainGain.gain.value = 0;
-      rainSource
-        .connect(filter)
-        .connect(rainGain)
-        .connect(rainContext.destination);
-      rainSource.start();
+/* Audio: one shared module (day-sound.js). Missing module or AudioContext
+   leaves every helper a silent no-op, so the round stays playable. */
+const sfx = {
+  play(name, opts) {
+    try {
+      window.DaySound?.play(name, opts);
+    } catch {}
+  },
+  loop(name, on) {
+    try {
+      on ? window.DaySound?.startLoop(name) : window.DaySound?.stopLoop(name);
+    } catch {}
+  },
+  enabled() {
+    try {
+      return window.DaySound ? window.DaySound.enabled() : false;
+    } catch {
+      return false;
     }
-    if (!rainContext) return;
-    if (unlock && soundEnabled && rainContext.state === "suspended")
-      rainContext.resume().catch(() => {});
-    const audible =
-      s &&
-      G.weather(s).id === "rain" &&
-      soundEnabled &&
-      !document.hidden &&
-      s.phase !== "result";
-    rainGain.gain.setTargetAtTime(
-      audible ? 0.2 : 0,
-      rainContext.currentTime,
-      0.3,
-    );
-  } catch {
-    /* Audio unavailable: the round remains playable. */
-  }
+  },
+};
+function audioScene() {
+  if (!s) return;
+  sfx.loop("steps", s.phase === "travel");
+  sfx.loop("rain", G.weather(s).id === "rain" && s.phase !== "result");
+}
+function playResultSound(r) {
+  if (!r || soundedRecap === r.day) return;
+  soundedRecap = r.day;
+  sfx.play(r.totalVotes >= 0 ? "positive" : "negative");
+  if (r.rival?.attack || r.rival?.challenge) sfx.play("rival", { delay: 0.4 });
+}
+function playEndingSound(r) {
+  if (!r || soundedEnding) return;
+  soundedEnding = true;
+  sfx.play(r.outcome === "elected" ? "win" : "lose", { seed: s.seed });
+}
+function crisisCue() {
+  const key = s.day + ":" + (s.crisis?.id || s.crisis?.text || "");
+  if (soundedCrisis === key) return;
+  soundedCrisis = key;
+  sfx.play("crisis");
+}
+function settingsOpen() {
+  syncSettings();
+  if (!$("settings").open) $("settings").showModal();
+}
+function syncSettings() {
+  const on = sfx.enabled();
+  $("sound-toggle").setAttribute("aria-pressed", String(on));
+  $("sound-state").textContent = on ? "開" : "關";
 }
 function sceneStatus() {
   const weather = G.weather(s),
     rain = weather.id === "rain";
   $("room").classList.toggle("rainy", rain);
-  $("weather-label").textContent = rain ? "午後陣雨" : "晴朗";
   $("office-sign").textContent = G.candidateName(s.settings) + "競選辦公室";
   $("scene").setAttribute(
     "aria-label",
     G.candidateName(s.settings) + "坐在競選辦公室，小葉在桌旁協助",
   );
-  $("calendar-round").textContent = "第 " + s.day + " / " + G.DAYS + " 回合";
-  $("ledger-money").textContent = wan(s.budget.available);
+  $("hud-round").textContent =
+    "第 " + s.day + " / " + G.DAYS + " 回合" + (rain ? " · 雨" : "");
+  $("hud-funds").textContent = "競選經費 " + wan(s.budget.available);
   $("desk-plan").textContent = action
     ? NAMES[action] + " · 查看行程"
     : "今天做什麼？";
@@ -2053,27 +2070,30 @@ function sceneStatus() {
       ).split("。")[0];
     $("round-change").onclick = recapDetail;
   }
-  $("sound-toggle").textContent = soundEnabled ? "雨聲 開" : "雨聲 關";
-  $("sound-toggle").setAttribute("aria-pressed", String(soundEnabled));
-  rainAudio();
+  syncSettings();
+  audioScene();
 }
-$("sound-toggle").onclick = () => {
-  soundEnabled = !soundEnabled;
-  rainAudio(true);
-  sceneStatus();
-  save();
-};
-document.addEventListener("pointerdown", () => rainAudio(true), {
-  passive: true,
+$("settings-open").onclick = settingsOpen;
+$("settings-close").onclick = () => $("settings").close();
+$("settings").addEventListener("click", (e) => {
+  if (e.target === $("settings")) $("settings").close();
 });
-document.addEventListener("keydown", () => rainAudio(true));
-document.addEventListener("visibilitychange", () => rainAudio());
+$("sound-toggle").onclick = () => {
+  try {
+    window.DaySound?.setEnabled(!sfx.enabled());
+  } catch {}
+  syncSettings();
+  audioScene();
+};
+// Tap feedback; DaySound unlocks its AudioContext in its own trusted click handler.
+document.addEventListener("click", (e) => {
+  if (e.target.closest?.("button") && e.isTrusted !== false) sfx.play("click");
+});
 try {
   const saved = JSON.parse(localStorage.getItem(STORE) || "null");
   if (saved?.s?.version === G.VERSION && saved.s.started) {
     s = saved.s;
     tutorialDone = saved.tutorialDone ?? s.day > 1;
-    soundEnabled = saved.soundEnabled !== false;
     seenVisits = saved.seenVisits || [];
     action = saved.action;
     cfg = saved.cfg || {};
