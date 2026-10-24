@@ -172,7 +172,11 @@
     "dist/day-advisor.js": "1686dfedea2cf8061880df9ba6674ff711e4621dfdec633ba2b9a541530ea1a5",
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa",
-    "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e"
+    "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e",
+    "dist/office.html": "e2670ded6331cabd790824df4219053ed8aa901a2d8384cb8f6d0e993ee712af",
+    "dist/office.js": "845a33a5d845589d010fee07ceb637c99e62d66bf007dc33a1ec92cfd244c45e",
+    "dist/office.css": "0cdf76b705c7d9bdeb68b6733bc7042a3d8344d38479add16b40b6aec8f8b29e",
+    "dist/assets/office/office-windows.png": "a370964585bb33d44462a12f038ba99226703c5b9c1820c6d74f2da321b77833"
   },
   "export_only_changes": [
     "v10.2.0 export: local README, GAME_DESIGN, launch scripts, export integrity test and package scripts were added.",
