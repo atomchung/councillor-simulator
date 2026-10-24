@@ -26,11 +26,11 @@ function state(seed = 24, background = "heir") {
   return s;
 }
 function harness(initial, opts = {}) {
-  const saved = initial ? { [KEY]: JSON.stringify(initial) } : {},
+  const saved = { ...(initial ? { [KEY]: JSON.stringify(initial) } : {}), ...(opts.extraSaved || {}) },
     nodes = {},
     timers = new Map(),
     events = {},
-    audio = { starts: 0, gain: 0, resumes: 0 };
+    audio = { starts: 0, contexts: 0, resumes: 0 };
   let serial = 0,
     doc;
   function element(id = "") {
@@ -114,8 +114,18 @@ function harness(initial, opts = {}) {
       (events[k] ??= []).push(f);
     },
   };
+  // Minimal Web Audio mock; real day-sound.js runs against it when opts.realSound is set.
+  const audioNode = () => ({
+    gain: { value: 0, setValueAtTime() {}, linearRampToValueAtTime() {}, exponentialRampToValueAtTime() {}, cancelScheduledValues() {} },
+    frequency: { value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+    connect() {},
+    disconnect() {},
+    start() { audio.starts++; },
+    stop() {},
+  });
   class AudioContext {
     constructor() {
+      audio.contexts++;
       this.sampleRate = 100;
       this.currentTime = 0;
       this.state = "suspended";
@@ -125,40 +135,17 @@ function harness(initial, opts = {}) {
       const data = new Float32Array(300);
       return { getChannelData: () => data };
     }
-    createBufferSource() {
-      return {
-        connect(x) {
-          return x;
-        },
-        start() {
-          audio.starts++;
-        },
-      };
-    }
-    createBiquadFilter() {
-      return {
-        frequency: { value: 0 },
-        connect(x) {
-          return x;
-        },
-      };
-    }
-    createGain() {
-      return {
-        gain: {
-          value: 0,
-          setTargetAtTime(v) {
-            audio.gain = v;
-          },
-        },
-        connect(x) {
-          return x;
-        },
-      };
-    }
+    createGain() { return audioNode(); }
+    createOscillator() { return audioNode(); }
+    createBufferSource() { return audioNode(); }
+    createBiquadFilter() { return audioNode(); }
     resume() {
       this.state = "running";
       audio.resumes++;
+      return Promise.resolve();
+    }
+    suspend() {
+      this.state = "suspended";
       return Promise.resolve();
     }
   }
@@ -170,7 +157,20 @@ function harness(initial, opts = {}) {
     },
   };
   const ctx = {
-    window: { DayGame: G, AudioContext },
+    window: {
+      DayGame: G,
+      ...(opts.realSound
+        ? {
+            AudioContext,
+            localStorage: undefined,
+            navigator: { audioSession: { type: "auto" } },
+            setTimeout: (f, ms) => timers.set(++serial, { f, ms }) && serial,
+            clearTimeout: (id) => timers.delete(id),
+            addEventListener() {},
+          }
+        : {}),
+      ...(opts.soundStub ? { DaySound: opts.soundStub } : {}),
+    },
     document: doc,
     localStorage: storage,
     console,
@@ -186,8 +186,11 @@ function harness(initial, opts = {}) {
     Math,
     Float32Array,
   };
+  ctx.window.localStorage ??= opts.realSound ? storage : undefined;
   vm.createContext(ctx);
   vm.runInContext(fs.readFileSync(root + "/day-art.js", "utf8"), ctx);
+  if (opts.realSound)
+    vm.runInContext(fs.readFileSync(root + "/day-sound.js", "utf8"), ctx, { filename: "day-sound.js" });
   vm.runInContext(source, ctx, { filename: "office.js" });
   const run = (code) => vm.runInContext(code, ctx);
   return {
@@ -206,7 +209,7 @@ function harness(initial, opts = {}) {
     click(data) {
       const b = element();
       b.dataset = data;
-      for (const f of events.click || []) f({ target: b });
+      for (const f of events.click || []) f({ target: b, isTrusted: true });
     },
     footer() {
       const b = nodes["sheet-foot"].children[0];
@@ -391,29 +394,113 @@ function harness(initial, opts = {}) {
   );
   eq(h.state().day, 2, "hearing invitation does not spend a turn");
 }
-// Weather uses the shared engine and a single synthesised source, with mute and background silence.
+// Settings entry, single sound switch and shared-audio wiring.
+const rainState = Array.from({ length: 100 }, (_, i) => state(i)).find(
+  (s) => G.weather(s).id === "rain",
+);
+ok(rainState, "rain fixture");
+const stubFor = (calls, on = { v: true }) => ({
+  enabled: () => on.v,
+  play: (...a) => calls.push(["play", ...a]),
+  startLoop: (n) => calls.push(["startLoop", n]),
+  stopLoop: (n) => calls.push(["stopLoop", n]),
+  setEnabled: (v) => {
+    on.v = !!v;
+    calls.push(["setEnabled", !!v]);
+  },
+});
 {
-  const rain = Array.from({ length: 100 }, (_, i) => state(i)).find(
-    (s) => G.weather(s).id === "rain",
-  );
-  ok(rain, "rain fixture");
-  const h = harness({ s: rain, cfg: {}, action: null, tutorialDone: true });
-  const beforeAudio = h.state();
-  ok(
-    h.nodes.room.classList.contains("rainy"),
-    "actual rain switches glass overlay",
-  );
-  eq(h.audio.starts, 0, "no audio before gesture");
-  h.run("rainAudio(true);rainAudio(true)");
-  eq(h.audio.starts, 1, "one loop for repeated gestures");
-  ok(h.audio.gain > 0, "rain gain enabled");
+  const h = harness({ s: rainState, cfg: {}, action: null, tutorialDone: true });
+  ok(h.nodes.room.classList.contains("rainy"), "actual rain switches glass overlay");
+  eq(h.audio.contexts, 0, "office never creates its own AudioContext");
+  ok(!/new\s+AC\b|window\.AudioContext|createBufferSource/.test(source), "office.js has no private rain synth");
+}
+{
+  const calls = [];
+  const h = harness({ s: rainState, cfg: {}, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  ok(calls.some((c) => c[0] === "startLoop" && c[1] === "rain"), "rainy round starts the shared rain loop");
+  // HUD: round and funds together, no calendar/ledger text props left.
+  eq(h.nodes["hud-round"].textContent, "第 " + rainState.day + " / " + G.DAYS + " 回合 · 雨", "HUD round shows rain");
+  ok(h.nodes["hud-funds"].textContent.startsWith("競選經費 "), "HUD funds label");
+  ok(!/id="calendar-round"|id="ledger-money"|id="weather-label"/.test(html), "calendar and ledger text props removed");
+  ok(html.includes('id="settings-open"') && html.indexOf('id="settings-open"') < html.indexOf('id="scene"'), "gear in top bar");
+  // Settings: main screen no longer carries the controls.
+  const main = html.slice(0, html.indexOf('<dialog class="sheet settings"'));
+  ok(!main.includes('id="sound-toggle"') && !main.includes('id="restart"'), "controls moved out of main screen");
+  ok(html.indexOf('id="sound-toggle"') > html.indexOf('id="settings"'), "sound switch lives in settings");
+  h.nodes["settings-open"].onclick();
+  ok(h.nodes.settings.open, "gear opens settings");
+  eq(h.nodes["sound-state"].textContent, "開", "sound defaults on");
   h.nodes["sound-toggle"].onclick();
-  eq(h.audio.gain, 0, "mute fades rain");
+  ok(calls.some((c) => c[0] === "setEnabled" && c[1] === false), "toggle mutes shared module");
+  eq(h.nodes["sound-state"].textContent, "關", "label follows");
+  eq(h.nodes["sound-toggle"].attributes["aria-pressed"], "false", "pressed state follows");
+  h.nodes["settings-close"].onclick();
+  ok(!h.nodes.settings.open, "settings close");
+  // New game stays confirm-first: restart closes settings, opens picker, cancel keeps the campaign.
+  const before = h.state();
+  h.nodes["settings-open"].onclick();
+  h.nodes.restart.onclick();
+  ok(!h.nodes.settings.open && h.nodes.sheet.open, "new game opens the character picker");
+  h.run("closePanel()");
+  eq(h.state(), before, "cancelling new game keeps the campaign");
+}
+{
+  // Real shared module: preference persists in the same key as the main game; first click unlocks.
+  const h = harness({ s: rainState, cfg: {}, action: null, tutorialDone: true }, { realSound: true });
+  eq(h.audio.contexts, 0, "no AudioContext before a trusted click");
+  h.click({ action: "x" });
+  eq(h.audio.contexts, 1, "first trusted click creates the context");
+  ok(h.audio.starts >= 1, "silent unlock buffer started inside the same click");
   h.nodes["sound-toggle"].onclick();
-  h.doc.hidden = true;
-  h.emit("visibilitychange");
-  eq(h.audio.gain, 0, "background tab silent");
-  eq(h.state(), beforeAudio, "audio has no effect on game state");
+  eq(h.saved["wenshan-sound"], "off", "sound preference persists under the shared key");
+  eq(h.nodes["sound-state"].textContent, "關", "label shows off");
+  const reloaded = harness(
+    { s: rainState, cfg: {}, action: null, tutorialDone: true },
+    { realSound: true, extraSaved: { "wenshan-sound": "off" } },
+  );
+  eq(reloaded.nodes["sound-state"].textContent, "關", "off survives reload");
+}
+{
+  // Event wiring: departure, steps, question, result, ending, crisis, rival; each once.
+  const calls = [];
+  const h = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  const count = (n) => calls.filter((c) => c[0] === "play" && c[1] === n).length;
+  h.click({ action: "noop" });
+  ok(count("click") >= 1, "button tap cue");
+  h.run("choose('canvass',{venue:'market'});depart()");
+  eq(count("depart"), 1, "departure cue once");
+  ok(calls.some((c) => c[0] === "startLoop" && c[1] === "steps"), "footsteps start while travelling");
+  h.run("finishTravel()");
+  ok(calls.filter((c) => c[0] === "stopLoop" && c[1] === "steps").length >= 1, "footsteps stop on arrival");
+  eq(count("question"), 1, "question pop once");
+  h.run("{const q=G.question(s);G.answer(s,q.options.find(o=>o.unlocked).id);recap();recap()}");
+  eq(count("positive") + count("negative"), 1, "result cue exactly once per recap");
+  const r = h.state().journal.at(-1);
+  eq(count(r.totalVotes >= 0 ? "positive" : "negative"), 1, "cue matches vote sign");
+  eq(count("rival"), r.rival?.attack || r.rival?.challenge ? 1 : 0, "rival cue only when attacked");
+  calls.length = 0;
+  const hc = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  hc.run("s.crisis={status:'pending',text:'test crisis',id:'c1'};inbox();inbox()");
+  eq(calls.filter((c) => c[0] === "play" && c[1] === "crisis").length, 1, "crisis sting once per crisis");
+  calls.length = 0;
+  const e = state(5);
+  const he = harness({ s: e, cfg: { research: [] }, action: null, tutorialDone: true }, { soundStub: stubFor(calls) });
+  for (let d = 1; d <= G.DAYS; d++) he.run("choose('fundraise');depart();finishTravel()");
+  he.run("result();result()");
+  eq(calls.filter((c) => c[0] === "play" && ["win", "lose"].includes(c[1])).length, 1, "ending cue once");
+}
+{
+  // Audio failure never blocks play.
+  const bad = { enabled() { throw Error("x"); }, play() { throw Error("x"); }, startLoop() { throw Error("x"); }, stopLoop() { throw Error("x"); }, setEnabled() { throw Error("x"); } };
+  const h = harness({ s: state(), cfg: {}, action: null, tutorialDone: true }, { soundStub: bad });
+  h.run("choose('fundraise');depart();finishTravel()");
+  eq(h.state().day, 2, "throwing audio module still plays a round");
+  const none = harness({ s: state(), cfg: {}, action: null, tutorialDone: true });
+  none.nodes["settings-open"].onclick();
+  none.nodes["sound-toggle"].onclick();
+  none.run("choose('fundraise');depart();finishTravel()");
+  eq(none.state().day, 2, "no audio module still plays a round");
 }
 {
   const h = harness(

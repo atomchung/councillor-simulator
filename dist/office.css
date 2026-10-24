@@ -1043,19 +1043,85 @@ select {
 .caption {
   display: none;
 }
-.utilities {
+.hud {
   position: absolute;
-  right: 12px;
-  bottom: 12px;
+  inset: max(8px, env(safe-area-inset-top)) 8px auto 8px;
   display: flex;
-  gap: 6px;
-  z-index: 4;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: none;
 }
-.utilities button {
-  font-size: 12px;
-  background: #fff8e8cc;
-  padding: 8px 12px;
+.hud > * {
+  pointer-events: auto;
+}
+.hud-status {
+  display: grid;
+  gap: 2px;
+  max-width: calc(100% - 64px);
+  padding: 6px 10px;
+  border: 1px solid #cdbb97;
+  border-radius: 10px;
+  background: #fff8e8e6;
   box-shadow: 0 3px 12px #59442620;
+  color: #293d3e;
+  font-size: 12px;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.hud-status strong {
+  font-size: 13px;
+}
+.hud-status span {
+  color: #4f685d;
+  font-variant-numeric: tabular-nums;
+}
+.hud-gear {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: #fff8e8e6;
+  box-shadow: 0 3px 12px #59442620;
+}
+.settings {
+  width: min(360px, calc(100% - 28px));
+}
+.settings .sheet-body {
+  display: grid;
+  gap: 10px;
+  padding-top: 12px;
+}
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  text-align: left;
+}
+.setting-row span {
+  display: grid;
+  gap: 2px;
+}
+.setting-row small {
+  color: #637065;
+  font-size: 12px;
+}
+.setting-row b {
+  min-width: 2.2em;
+  text-align: center;
+  font-size: 14px;
+}
+#sound-toggle[aria-pressed="true"] b {
+  color: #2f6b4f;
+}
+#sound-toggle[aria-pressed="false"] b {
+  color: #8a6b4a;
 }
 .dialogue {
   bottom: 66px;
@@ -1259,21 +1325,11 @@ select {
   .office-prop text {
     font-size: 28px;
   }
-  .calendar text {
-    font-size: 24px;
-  }
   .person-label {
     font-size: 25px;
   }
   .room {
     background: linear-gradient(#f4dec2, #ebc393);
-  }
-  .utilities {
-    bottom: 12px;
-    right: 10px;
-  }
-  .dialogue:not(.hidden) ~ .utilities {
-    display: flex;
   }
   .character-list svg {
     width: 42px;
@@ -1304,9 +1360,6 @@ select {
     bottom: 56px;
     max-height: 75%;
     width: min(580px, 90%);
-  }
-  .utilities {
-    bottom: 6px;
   }
 }
 #venue-scene {
@@ -1377,9 +1430,6 @@ select {
   .office-prop text {
     font-size: 30px;
   }
-  .calendar text {
-    font-size: 25px;
-  }
   .room > svg {
     height: 74%;
   }
@@ -1388,9 +1438,6 @@ select {
     max-height: 66px;
     overflow: auto;
   }
-  .utilities button {
-    min-height: 44px;
-  }
 }
 @media (max-width: 900px) {
   #poll-folder {
@@ -1398,8 +1445,5 @@ select {
   }
   #knock {
     transform: translateX(20px);
-  }
-  .calendar text {
-    font-size: 29px;
   }
 }
