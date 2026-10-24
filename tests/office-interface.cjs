@@ -753,6 +753,20 @@ const stubFor = (calls, on = { v: true }) => ({
   h.run("choose('fundraise');depart();finishTravel();continueResult()");
   eq(h.state().day, 2, "storage failure still allows play");
 }
+{
+  // Only a crisis or a cooperation offer interrupts; 小葉 speaks up only with something new.
+  const h = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("s.day=4;s.crisis=null;G.offerView=()=>null");
+  eq(h.run("urgent()"), false, "no crisis or offer: nothing interrupts");
+  h.run("s.crisis={status:'pending',text:'x'}");
+  eq(h.run("urgent()"), true, "a pending crisis interrupts");
+  h.run("s.crisis=null;s.journal=[];s.day=4");
+  eq(h.run("briefWorthShowing()"), false, "小葉 stays quiet without news");
+  h.run("s.day=1");
+  eq(h.run("briefWorthShowing()"), true, "小葉 opens round one");
+  h.run("s.day=G.DAYS-1");
+  eq(h.run("briefWorthShowing()"), true, "小葉 flags the last two rounds");
+}
 // Full nine-round controller journeys preserve the shared engine outcome for every identity.
 for (const background of ["newcomer", "heir", "incumbent"]) {
   for (const seed of [1, 7, 24]) {

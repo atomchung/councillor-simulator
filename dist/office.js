@@ -413,6 +413,16 @@ function pending() {
     Number(s.day === G.DEBATE_ROUND && action !== "debate")
   );
 }
+// Only a crisis or a cooperation offer interrupts; everything else is picked up from the door.
+function urgent() {
+  return s.crisis?.status === "pending" || !!G.offerView(s);
+}
+// 小葉 speaks up on her own only when she has something new; otherwise she is one tap away.
+function briefWorthShowing() {
+  if (s.day === 1) return true;
+  const a = advice();
+  return a.researched.length > 0 || G.DAYS - s.day + 1 === 2;
+}
 function sync() {
   const p = s.phase === "plan" ? preview() : s.pending || preview();
   $("round").textContent =
@@ -2198,7 +2208,7 @@ function result() {
 function resume() {
   if (s.phase === "plan") {
     office();
-    if (pending() && s.day > 1 && !seenVisits.includes(s.day)) {
+    if (urgent() && s.day > 1 && !seenVisits.includes(s.day)) {
       if (s.crisis?.status !== "pending") visitorEnter(visitorItem());
       later(() => {
         if (
@@ -2211,7 +2221,14 @@ function resume() {
         save();
         inbox();
       }, 1200);
-    } else brief();
+    } else {
+      // Routine news (schedule clashes, producer calls, rival challenges, the debate reminder) waits at the door.
+      if (pending() && s.day > 1) {
+        visitorEnter(visitorItem());
+        later(settleVisitor, 1200);
+      }
+      if (briefWorthShowing()) brief();
+    }
   } else if (s.phase === "travel") travel();
   else if (s.phase === "question") ask();
   else if (s.phase === "recap") recap();
