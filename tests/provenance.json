@@ -173,11 +173,12 @@
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa",
     "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e",
-    "dist/office.html": "904dce17d5f9c797d8d3677a0ada39e864f74faeac2e4cf334b8506a9a28c085",
-    "dist/office.js": "1fbdf738316a5e5d5ea839b4e0ef67a62f5adfdefafd8a4f678d0071d1133067",
-    "dist/office.css": "a198105603cf837d6dcf8cd2dedc7181a1cf5a597f964c9199a410547acee1a3",
+    "dist/office.html": "c7145452f6ffddbd90b1788294329322aa8b9029ac2f2b39a43b863a9cb5aac9",
+    "dist/office.js": "5487cd530e868342cbc597c9cdfb7215e480de15e60452e6409fcf8b76bf0c14",
+    "dist/office.css": "bc77c05189fce4bf39313d2e1e8c50a0a0a91d42bf6551a528d67327671ccb6d",
     "dist/office-result.css": "6d4c77df86a0f9a27c73b9ed6abe837dbf75fedc97fc698becfc51283c6b82ed",
-    "dist/assets/office/office-ldesk.png": "b1b37d02e0903fd0defa77a81f21f140dc00e1b9c9f9c57ff7f47dd0ee5d3947"
+    "dist/assets/office/office-ldesk-aide.png": "73732ef5b764b516152e5b4776977a3922b27ff52464b7383890dc93ec4a2b8d",
+    "dist/assets/office/office-ldesk-empty.png": "a39ec39662f229122e7b868a9010f5d14d8b29cb792bdc312f2e7737a0dff16f"
   },
   "export_only_changes": [
     "v10.2.0 export: local README, GAME_DESIGN, launch scripts, export integrity test and package scripts were added.",

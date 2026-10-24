@@ -181,7 +181,7 @@ function characterPanel() {
   );
 }
 function tutorial(step) {
-  staffHome();
+  staffTalk();
   const name = G.candidateName(s.settings),
     r = G.raceView(s),
     n = capacity();
@@ -275,22 +275,29 @@ function move(id, x, y, scale = 1, away = false) {
 }
 // 小葉 walks the office floor between fixed spots. Links only join spots with clear floor between them,
 // so a route from her post to the window goes around the front of the desk, never across it.
+// 小葉 sits at the L-desk's return wing facing the candidate (painted into the seated background). To speak she
+// stands, walks to the front of the main desk and talks; afterwards she walks back and sits down. Now and then she
+// gets up and walks the floor. Links only join spots with clear floor between them, so she never crosses the desk.
 const STAFF_SPOTS = {
-    // Standing in front of the L-desk's return wing, by her chair.
-    post: [1040, 478, 0.76],
-    frontRight: [905, 468, 0.78],
+    seat: [1080, 412, 0.76],
+    wingFront: [960, 505, 0.8],
+    talk: [763, 426, 0.78],
     frontLeft: [430, 476, 0.78],
     window: [300, 322, 0.7],
   },
   STAFF_LINKS = {
-    post: ["frontRight"],
-    frontRight: ["post", "frontLeft"],
-    frontLeft: ["frontRight", "window"],
+    seat: ["wingFront"],
+    wingFront: ["seat", "talk"],
+    talk: ["wingFront", "frontLeft"],
+    frontLeft: ["talk", "window"],
     window: ["frontLeft"],
   },
-  STAFF_STEP_MS = 1300;
-let staffSpot = "post",
-  staffRoute = 0;
+  STAFF_STEP_MS = 1300,
+  OFFICE_BG = { empty: "assets/office/office-ldesk-empty.png", seated: "assets/office/office-ldesk-aide.png" };
+let staffSpot = "seat",
+  staffRoute = 0,
+  staffSeated = true,
+  staffUpAt = 0;
 function staffPath(from, to) {
   const seen = { [from]: null },
     queue = [from];
@@ -307,12 +314,27 @@ function staffPath(from, to) {
   for (let at = to; at && at !== from; at = seen[at]) path.unshift(at);
   return path;
 }
-function staffGo(to) {
-  const route = ++staffRoute,
-    path = staffPath(staffSpot, to);
-  if (!path.length) return move("staff", ...STAFF_SPOTS[staffSpot]);
+// Seated: the painted aide shows and the sprite hides; standing: the empty chair shows and the sprite takes over.
+function staffSeat(seated) {
+  staffSeated = seated;
+  $("office-bg")?.setAttribute("href", seated ? OFFICE_BG.seated : OFFICE_BG.empty);
+  $("desk-mask")?.setAttribute("href", seated ? OFFICE_BG.seated : OFFICE_BG.empty);
+  $("aide-seat")?.classList.toggle("seated", seated);
+  $("staff").classList.toggle("gone", seated);
+  if (!seated) staffUpAt = Date.now();
+}
+function staffGo(to, done) {
+  const route = ++staffRoute;
+  if (staffSeated) {
+    staffSeat(false);
+    staffSpot = "seat";
+    $("staff").classList.remove("face-right");
+    move("staff", ...STAFF_SPOTS.seat);
+  }
+  const path = staffPath(staffSpot, to);
   const step = (i) => {
-    if (route !== staffRoute || i >= path.length) return;
+    if (route !== staffRoute) return;
+    if (i >= path.length) return done?.();
     const [x0] = STAFF_SPOTS[staffSpot],
       [x, y, k] = STAFF_SPOTS[path[i]];
     $("staff").classList.toggle("face-right", x > x0);
@@ -322,11 +344,25 @@ function staffGo(to) {
   };
   step(0);
 }
-// Back to her post whenever she has something to say or the scene changes.
-function staffHome() {
-  staffGo("post");
+// She comes to the front of the main desk to talk to the candidate.
+function staffTalk() {
+  staffGo("talk", () => $("staff").classList.remove("face-right"));
 }
-// While the player looks around the office, she wanders to a neighbouring spot every few seconds.
+// She walks back to her chair and sits down.
+function staffSit() {
+  if (staffSeated) return;
+  staffGo("seat", () => {
+    if (s?.phase === "plan" && $("dialogue").classList.contains("hidden")) staffSeat(true);
+  });
+}
+// Scene changes put her straight back in her chair.
+function staffSitNow() {
+  staffRoute++;
+  staffSpot = "seat";
+  move("staff", ...STAFF_SPOTS.seat);
+  staffSeat(true);
+}
+// While the player looks around the office, she sometimes gets up for a short walk and then sits back down.
 function staffWander() {
   setTimeout(staffWander, 4500);
   if (
@@ -336,13 +372,12 @@ function staffWander() {
     $("sheet").open ||
     !$("dialogue").classList.contains("hidden") ||
     $("room").classList.contains("field") ||
-    $("staff").classList.contains("gone") ||
     matchMedia("(prefers-reduced-motion:reduce)").matches
   )
     return;
-  if (Math.random() < 0.5) return;
-  const next = STAFF_LINKS[staffSpot];
-  staffGo(next[Math.floor(Math.random() * next.length)]);
+  if (staffSeated) {
+    if (Math.random() < 0.15) staffGo(["talk", "frontLeft", "window"][Math.floor(Math.random() * 3)]);
+  } else if (Date.now() - staffUpAt > 9000) staffSit();
 }
 setTimeout(staffWander, 4500);
 function toast(text) {
@@ -362,7 +397,7 @@ function hideTalk() {
   $("dialogue").classList.remove("alarm");
   dialogueKind = "";
   settleVisitor();
-  if (s.phase === "plan") staffHome();
+  if (s.phase === "plan") staffSit();
   $("staff").focus();
   if (s.phase === "plan" && !$("sheet").open) queueVisitor();
 }
@@ -596,7 +631,7 @@ function office() {
   $("visitor").classList.remove("waiting");
   visitorFor = "";
   clearReaction();
-  staffHome();
+  staffSitNow();
   $("dialogue").classList.add("hidden");
   sync();
 }
@@ -659,7 +694,11 @@ function advice() {
     known = s.player.known || [],
     venues = G.venueView(s),
     score = (v) => v.pool.filter((t) => known.includes(t)).length,
-    best = [...venues].sort((a, b) => score(b) - score(a))[0];
+    // Residents tire of the same visitor: a venue visited last round drops behind any other venue you can
+    // answer at, unless this visit wins its village chief over.
+    lastVenue = ["canvass", "rally"].includes(last?.player.action) ? last.player.venue : null,
+    rank = (v) => score(v) * 2 - (v.id === lastVenue && !G.chiefPreview(s, v.id)?.breaks && venues.some((x) => x.id !== v.id && score(x)) ? 3 : 0),
+    best = [...venues].sort((a, b) => rank(b) - rank(a) || score(b) - score(a))[0];
   const researched = [
     ...new Set(
       (last?.player.teamReports || [])
@@ -703,7 +742,10 @@ function advice() {
     tip = `最後衝刺，去${best.title}拉票。`;
     pick = { text: `去${best.title}街訪`, fn: canvassAt(best) };
   } else {
-    tip = `去${best.title}街訪，那裡 ${score(best)} 個議題你答得出來。`;
+    const ch = G.chiefPreview(s, best.id);
+    tip =
+      `去${best.title}街訪，那裡 ${score(best)} 個議題你答得出來` +
+      (ch?.breaks ? `，這次去就能讓${ch.name}挺你。` : lastVenue && lastVenue !== best.id ? "；換個地方，免得同一批人聽膩。" : "。");
     pick = { text: `去${best.title}街訪`, fn: canvassAt(best) };
   }
   return { title, sub: pace + tip, pick, researched, free, helpers };
@@ -715,7 +757,7 @@ function briefDue() {
 function brief() {
   if (s.phase !== "plan") return resume();
   if (s.day === 1 && !tutorialDone) return tutorial(0);
-  staffHome();
+  staffTalk();
   let title,
     sub,
     choices = [];
@@ -738,9 +780,6 @@ function brief() {
     ];
   }
   say("staff", `小葉 · 第 ${s.day} 回合`, title, sub, choices);
-  const b = button("先看看辦公室", hideTalk);
-  b.className = "optional";
-  $("details").append(b);
 }
 function choose(id, extra = {}) {
   const old = cfg;
@@ -1169,7 +1208,7 @@ function inbox() {
   if (cr?.status === "pending") {
     // Whoever came to the door waits there while the crisis is handled.
     if (visitorFor) visitorWait();
-    staffHome();
+    staffTalk();
     const key = cr.round + ":" + cr.kind,
       first = alarmed !== key;
     alarmed = key;
@@ -1880,6 +1919,17 @@ function hindsightLine(h) {
     "warn",
   ];
 }
+// A resident recalls what you said only when it was this same person on this same issue.
+function sameTopicMemory(q) {
+  const topic = s.pending?.topic,
+    m = Object.values(s.player.residents || {}).find((r) => r.name === q.speakerName && r.topic === topic && r.lastQuote);
+  return m ? `${m.name}記得你上次說：「${m.lastQuote}」` : "";
+}
+// Residents speak their opinion, not the issue's name, so the dialogue names the issue and what is being decided.
+function issueLine(q) {
+  const t = G.TOPICS[s.pending?.topic];
+  return t ? `議題：${t.title}。${t.ask || ""}` : "";
+}
 function ask() {
   field();
   sfx.play("question");
@@ -1889,7 +1939,7 @@ function ask() {
     "field",
     q.speaker,
     q.text,
-    q.memoryHint || "選一個回答；研究讓你知道反應，也讓具體答法說得出口。",
+    issueLine(q) + (sameTopicMemory(q) ? "\n" + sameTopicMemory(q) : ""),
     q.options.map((o) => ({
       text: o.text,
       note:
@@ -2705,6 +2755,10 @@ $("staff").onclick = () => {
         : { text: "團隊與招募", fn: teamHub },
     ],
   );
+};
+$("aide-seat").onclick = () => {
+  staffTalk();
+  $("staff").onclick();
 };
 $("visitor").onclick = inbox;
 $("knock").onclick = inbox;

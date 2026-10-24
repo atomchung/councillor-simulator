@@ -765,6 +765,28 @@ const stubFor = (calls, on = { v: true }) => ({
   h.run("s.day=3");
   ok(/挖小馬的料|里長/.test(h.run("mechanicHint()")), "小葉 mentions digging from round three");
 }
+{
+  // 小葉 does not send the player to the same venue round after round.
+  const h = harness({ s: state(24, "incumbent"), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("s.player.known=G.availableTopics(s).map(t=>t.id).filter(t=>t!=='tip');s.day=4;s.budget.available=9e6");
+  const first = h.run("advice().pick.text");
+  const venue = h.run("G.venueView(s).find(v=>advice().pick.text.includes(v.title)).id");
+  h.run("s.journal.push({day:3,totalVotes:10,player:{action:'canvass',venue:" + JSON.stringify(venue) + ",teamReports:[]},summary:{headline:''}})");
+  h.run("s.chiefs&&s.chiefs[" + JSON.stringify(venue) + "]&&(s.chiefs[" + JSON.stringify(venue) + "].broken=true)");
+  ok(h.run("advice().pick.text") !== first, "advice rotates away from last round's venue");
+}
+{
+  // A street question names its issue; a resident's memory shows only for the same issue.
+  const h = harness({ s: state(24, "newcomer"), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("choose('canvass',{venue:'market'})");
+  h.footer();
+  h.run("finishTravel()");
+  eq(h.state().phase, "question", "question reached");
+  const title = h.run("G.TOPICS[s.pending.topic].title");
+  ok(h.nodes.sub.textContent.includes("議題：" + title), "question names its issue");
+  h.run("s.player.residents={x:{name:G.question(s).speakerName,topic:'__other__',lastQuote:'別的題'}}");
+  eq(h.run("sameTopicMemory(G.question(s))"), "", "memory of another issue is not shown");
+}
 // Full nine-round controller journeys preserve the shared engine outcome for every identity.
 for (const background of ["newcomer", "heir", "incumbent"]) {
   for (const seed of [1, 7, 24]) {
