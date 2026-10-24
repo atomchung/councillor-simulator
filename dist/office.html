@@ -1,0 +1,463 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>競選辦公室｜可玩整合試版</title>
+    <link rel="stylesheet" href="office.css?v=office-int-2" />
+    <link rel="stylesheet" href="office-result.css?v=office-int-2" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar" hidden>
+        <div class="brand">
+          小黃競選辦公室 <small>整合試版 · 原遊戲引擎</small>
+        </div>
+        <span class="round" id="round"></span>
+      </header>
+      <section class="room" id="room" aria-label="競選辦公室">
+        <div class="caption" id="caption"></div>
+        <div class="toast" id="toast" role="status"></div>
+        <header class="hud" id="hud">
+          <div class="hud-status" id="hud-status" role="status">
+            <strong id="hud-round">第 1 / 9 回合</strong>
+            <span id="hud-funds">競選經費 --</span>
+          </div>
+          <button
+            id="settings-open"
+            class="hud-gear"
+            aria-label="設定"
+            aria-haspopup="dialog"
+          >
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                stroke-linejoin="round"
+                d="M10.3 3h3.4l.5 2.4 1.7.7 2.1-1.3 2.4 2.4-1.3 2.1.7 1.7 2.4.5v3.4l-2.4.5-.7 1.7 1.3 2.1-2.4 2.4-2.1-1.3-1.7.7-.5 2.4h-3.4l-.5-2.4-1.7-.7-2.1 1.3-2.4-2.4 1.3-2.1-.7-1.7L3 13.7v-3.4l2.4-.5.7-1.7-1.3-2.1 2.4-2.4 2.1 1.3 1.7-.7z"
+              />
+              <circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8" />
+            </svg>
+          </button>
+        </header>
+        <button id="round-change" hidden></button>
+        <div id="venue-scene" hidden></div>
+        <div id="travel-scene" hidden>
+          <div id="world-map"></div>
+          <div id="travel-caption"></div>
+          <button id="skip-travel">抵達現場 →</button>
+        </div>
+        <svg
+          id="scene"
+          viewBox="0 0 1536 870"
+          preserveAspectRatio="xMidYMid slice"
+          role="group"
+          aria-label="原本霧面玩具風格的辦公室，小黃坐在桌後，小葉拿著筆記報告"
+        >
+          <defs>
+            <clipPath id="desk-occlusion">
+              <path d="M522 352H977V558H520Z" />
+            </clipPath>
+            <filter id="soft-shadow">
+              <feGaussianBlur stdDeviation="5" />
+            </filter>
+          </defs>
+          <image
+            href="assets/office/office-windows.png"
+            width="1536"
+            height="1024"
+          />
+          <defs>
+            <clipPath id="window-glass">
+              <path
+                d="M248 110H347V198H285V145H248Z M363 110H450V180H414V198H363Z M1121 110H1212V193H1121Z M1227 110H1321V193H1227Z"
+              />
+            </clipPath>
+          </defs>
+          <g
+            id="window-weather"
+            clip-path="url(#window-glass)"
+            pointer-events="none"
+          >
+            <rect
+              x="230"
+              y="104"
+              width="1110"
+              height="100"
+              fill="#647b91"
+              opacity=".48"
+            />
+            <g class="rain-lines">
+              <path d="M240 85l-15 34 M250 145l-15 34 M232 205l-15 34" />
+              <path d="M263 85l-15 34 M273 145l-15 34 M255 205l-15 34" />
+              <path d="M286 85l-15 34 M296 145l-15 34 M278 205l-15 34" />
+              <path d="M309 85l-15 34 M319 145l-15 34 M301 205l-15 34" />
+              <path d="M332 85l-15 34 M342 145l-15 34 M324 205l-15 34" />
+              <path d="M355 85l-15 34 M365 145l-15 34 M347 205l-15 34" />
+              <path d="M378 85l-15 34 M388 145l-15 34 M370 205l-15 34" />
+              <path d="M401 85l-15 34 M411 145l-15 34 M393 205l-15 34" />
+              <path d="M424 85l-15 34 M434 145l-15 34 M416 205l-15 34" />
+              <path d="M447 85l-15 34 M457 145l-15 34 M439 205l-15 34" />
+              <path d="M470 85l-15 34 M480 145l-15 34 M462 205l-15 34" />
+              <path d="M493 85l-15 34 M503 145l-15 34 M485 205l-15 34" />
+              <path d="M516 85l-15 34 M526 145l-15 34 M508 205l-15 34" />
+              <path d="M539 85l-15 34 M549 145l-15 34 M531 205l-15 34" />
+              <path d="M562 85l-15 34 M572 145l-15 34 M554 205l-15 34" />
+              <path d="M585 85l-15 34 M595 145l-15 34 M577 205l-15 34" />
+              <path d="M608 85l-15 34 M618 145l-15 34 M600 205l-15 34" />
+              <path d="M631 85l-15 34 M641 145l-15 34 M623 205l-15 34" />
+              <path d="M654 85l-15 34 M664 145l-15 34 M646 205l-15 34" />
+              <path d="M677 85l-15 34 M687 145l-15 34 M669 205l-15 34" />
+              <path d="M700 85l-15 34 M710 145l-15 34 M692 205l-15 34" />
+              <path d="M723 85l-15 34 M733 145l-15 34 M715 205l-15 34" />
+              <path d="M746 85l-15 34 M756 145l-15 34 M738 205l-15 34" />
+              <path d="M769 85l-15 34 M779 145l-15 34 M761 205l-15 34" />
+              <path d="M792 85l-15 34 M802 145l-15 34 M784 205l-15 34" />
+              <path d="M815 85l-15 34 M825 145l-15 34 M807 205l-15 34" />
+              <path d="M838 85l-15 34 M848 145l-15 34 M830 205l-15 34" />
+              <path d="M861 85l-15 34 M871 145l-15 34 M853 205l-15 34" />
+              <path d="M884 85l-15 34 M894 145l-15 34 M876 205l-15 34" />
+              <path d="M907 85l-15 34 M917 145l-15 34 M899 205l-15 34" />
+              <path d="M930 85l-15 34 M940 145l-15 34 M922 205l-15 34" />
+              <path d="M953 85l-15 34 M963 145l-15 34 M945 205l-15 34" />
+              <path d="M976 85l-15 34 M986 145l-15 34 M968 205l-15 34" />
+              <path d="M999 85l-15 34 M1009 145l-15 34 M991 205l-15 34" />
+              <path d="M1022 85l-15 34 M1032 145l-15 34 M1014 205l-15 34" />
+              <path d="M1045 85l-15 34 M1055 145l-15 34 M1037 205l-15 34" />
+              <path d="M1068 85l-15 34 M1078 145l-15 34 M1060 205l-15 34" />
+              <path d="M1091 85l-15 34 M1101 145l-15 34 M1083 205l-15 34" />
+              <path d="M1114 85l-15 34 M1124 145l-15 34 M1106 205l-15 34" />
+              <path d="M1137 85l-15 34 M1147 145l-15 34 M1129 205l-15 34" />
+              <path d="M1160 85l-15 34 M1170 145l-15 34 M1152 205l-15 34" />
+              <path d="M1183 85l-15 34 M1193 145l-15 34 M1175 205l-15 34" />
+              <path d="M1206 85l-15 34 M1216 145l-15 34 M1198 205l-15 34" />
+              <path d="M1229 85l-15 34 M1239 145l-15 34 M1221 205l-15 34" />
+              <path d="M1252 85l-15 34 M1262 145l-15 34 M1244 205l-15 34" />
+              <path d="M1275 85l-15 34 M1285 145l-15 34 M1267 205l-15 34" />
+              <path d="M1298 85l-15 34 M1308 145l-15 34 M1290 205l-15 34" />
+              <path d="M1321 85l-15 34 M1331 145l-15 34 M1313 205l-15 34" />
+            </g>
+          </g>
+          <g
+            id="wall-map"
+            role="button"
+            tabindex="0"
+            aria-label="選戰地圖：走過的地方與承諾"
+            class="hotspot"
+          >
+            <rect
+              x="638"
+              y="34"
+              width="311"
+              height="143"
+              rx="5"
+              fill="#eff0db"
+            />
+            <path
+              d="M660 130Q720 55 790 135T925 87M660 85L920 145"
+              fill="none"
+              stroke="#cfbc90"
+              stroke-width="8"
+            />
+            <path
+              d="M650 157Q770 140 935 162"
+              fill="none"
+              stroke="#9bbdb5"
+              stroke-width="10"
+            />
+            <g id="wall-pins"></g>
+            <text x="792" y="65" text-anchor="middle" style="font-size: 21px">
+              選戰足跡 ▸
+            </text>
+            <text
+              id="wall-summary"
+              x="792"
+              y="166"
+              text-anchor="middle"
+              style="font-size: 13px; fill: #405d55"
+            >
+              首站還沒出發
+            </text>
+          </g>
+          <image
+            id="field-backdrop"
+            href="assets/matte-toy-v1/game/market-soft-v2.webp"
+            width="1536"
+            height="1024"
+            style="display: none"
+          />
+          <g id="candidate" transform="translate(681 177)">
+            <svg
+              width="142"
+              height="254"
+              viewBox="223 22 199 356"
+              overflow="hidden"
+            >
+              <image
+                href="assets/matte-toy-v1/game/candidates.webp"
+                width="1536"
+                height="1024"
+              />
+            </svg>
+          </g>
+          <image
+            id="desk-mask"
+            href="assets/office/office-windows.png"
+            width="1536"
+            height="1024"
+            clip-path="url(#desk-occlusion)"
+          />
+          <g
+            id="paper"
+            class="paper"
+            opacity="0"
+            transform="translate(755 383)"
+          >
+            <path
+              d="M0 0L61 0L56 30H-7Z"
+              fill="#fffbed"
+              stroke="#a7ad93"
+              stroke-width="2"
+            />
+            <path
+              d="M6 8H45M3 15H38M0 22H43"
+              stroke="#669288"
+              stroke-width="2"
+            />
+          </g>
+          <g
+            class="hotspot"
+            role="button"
+            tabindex="0"
+            aria-label="桌上行程：查看所有可做的事"
+            id="desk-hotspot"
+          >
+            <rect x="608" y="467" width="285" height="70" rx="6" />
+            <text id="desk-plan" x="750" y="508" text-anchor="middle">
+              今天做什麼？
+            </text>
+          </g>
+          <g
+            id="staff"
+            class="actor gone"
+            style="--x: 80px; --y: 320px; --scale: 0.8"
+            role="button"
+            tabindex="0"
+            aria-label="幕僚小葉：報告與助手分工"
+          >
+            <ellipse
+              cx="100"
+              cy="274"
+              rx="70"
+              ry="15"
+              fill="#674c2e"
+              opacity=".2"
+              filter="url(#soft-shadow)"
+            />
+            <g class="body">
+              <g transform="translate(196 0) scale(-1 1)">
+                <svg
+                  width="196"
+                  height="258"
+                  viewBox="639 710 236 311"
+                  overflow="hidden"
+                >
+                  <image
+                    href="assets/matte-toy-v1/game/support.webp"
+                    width="1536"
+                    height="1024"
+                  />
+                </svg>
+              </g>
+            </g>
+            <g class="name-tag">
+              <rect
+                class="name-bg"
+                x="48"
+                y="252"
+                width="104"
+                height="34"
+                rx="17"
+              />
+              <text class="person-label" x="100" y="276" text-anchor="middle">
+                <tspan class="tag-name">小葉</tspan
+                ><tspan class="tag-role"> 幕僚</tspan>
+              </text>
+            </g>
+          </g>
+          <g
+            id="visitor"
+            class="actor gone"
+            style="--x: -100px; --y: 300px; --scale: 0.7"
+            role="button"
+            tabindex="0"
+            aria-label="門口訪客：聽邀約"
+          >
+            <ellipse
+              cx="91"
+              cy="291"
+              rx="62"
+              ry="13"
+              fill="#674c2e"
+              opacity=".2"
+              filter="url(#soft-shadow)"
+            />
+            <g class="body">
+              <svg
+                width="176"
+                height="291"
+                viewBox="186 74 253 418"
+                overflow="hidden"
+              >
+                <image
+                  href="assets/matte-toy-v1/game/support-v3.webp"
+                  width="1536"
+                  height="1024"
+                />
+              </svg>
+            </g>
+            <g class="name-tag">
+              <rect
+                class="name-bg"
+                x="30"
+                y="284"
+                width="122"
+                height="34"
+                rx="17"
+              />
+              <text class="person-label" x="91" y="308" text-anchor="middle">
+                <tspan class="tag-name">來訪代表</tspan
+                ><tspan class="tag-role"></tspan>
+              </text>
+            </g>
+            <g class="wait-cue" aria-hidden="true">
+              <path d="M128 18h70a14 14 0 0 1 14 14v26a14 14 0 0 1-14 14h-46l-16 14v-14h-8a14 14 0 0 1-14-14V32a14 14 0 0 1 14-14z" />
+              <text x="163" y="56" text-anchor="middle">等你</text>
+            </g>
+          </g>
+          <g
+            id="poll-folder"
+            class="hotspot"
+            role="button"
+            tabindex="0"
+            aria-label="選情夾：民調與對手"
+          >
+            <rect x="1130" y="260" width="200" height="78" rx="8" />
+            <text x="1230" y="288" text-anchor="middle">選情夾 ▸</text>
+            <text
+              id="poll-glance"
+              x="1230"
+              y="317"
+              text-anchor="middle"
+              style="font-size: 14px; fill: #526b60"
+            ></text>
+          </g>
+          <g
+            id="knock"
+            class="hotspot"
+            role="button"
+            tabindex="0"
+            aria-label="有人敲門，請訪客進來"
+            style="display: none"
+          >
+            <rect x="290" y="285" width="195" height="60" rx="12" />
+            <text x="387" y="323" text-anchor="middle">來客的消息 ▸</text>
+          </g>
+          <g id="reaction-layer" class="reaction" pointer-events="none"></g>
+          <g class="office-prop">
+            <rect
+              x="609"
+              y="12"
+              width="360"
+              height="36"
+              rx="5"
+              fill="#a8713d"
+            />
+            <text
+              id="office-sign"
+              x="789"
+              y="39"
+              text-anchor="middle"
+              fill="#fff7df"
+              font-size="26"
+            >
+              競選辦公室
+            </text>
+          </g>
+          <g class="office-prop ledger">
+            <path
+              d="M820 372H960L970 437H827Z"
+              fill="#e9eee0"
+              stroke="#9a9579"
+              stroke-width="2"
+            />
+          </g>
+        </svg>
+        <section class="dialogue hidden" id="dialogue" aria-label="人物對話">
+          <button class="close" id="dismiss" aria-label="收起對話">×</button>
+          <div class="speaker">
+            <span class="talk-tag" id="talk-tag"></span
+            ><span class="who"
+              ><b id="speaker"></b><small id="speaker-role"></small
+            ></span>
+          </div>
+          <h1 id="line"></h1>
+          <p class="sub" id="sub"></p>
+          <div id="details"></div>
+          <div class="actions" id="actions"></div>
+        </section>
+        <nav hidden class="desk-nav" aria-label="辦公室物件">
+          <button data-open="map">牆上地圖<small>足跡・承諾</small></button
+          ><button data-open="poll">
+            選情夾<small id="poll-short">民調・對手</small></button
+          ><button data-open="inbox">
+            門口來客<small id="inbox-short">目前無邀約</small>
+          </button>
+        </nav>
+      </section>
+      <footer hidden class="bar">
+        <p><b id="plan-label">尚未排行程</b><small id="plan-note"></small></p>
+        <div class="mini">
+          <button class="other" id="all-actions">
+            選行程<small>募款・造勢・爆料</small></button
+          ><button class="primary" id="depart">出發 →</button>
+        </div>
+      </footer>
+    </main>
+    <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
+      <header>
+        <h2 id="sheet-title"></h2>
+        <button id="sheet-close" aria-label="關閉面板">×</button>
+      </header>
+      <div id="sheet-status" role="status" aria-live="polite"></div>
+      <div class="sheet-body" id="sheet-body"></div>
+      <footer id="sheet-foot" hidden></footer>
+    </dialog>
+    <dialog class="sheet settings" id="settings" aria-labelledby="settings-title">
+      <header>
+        <h2 id="settings-title">設定</h2>
+        <button id="settings-close" aria-label="關閉設定">×</button>
+      </header>
+      <div class="sheet-body">
+        <button
+          id="sound-toggle"
+          class="setting-row"
+          data-action="sound-toggle"
+          aria-pressed="true"
+        >
+          <span><strong>音效</strong><small>點一下畫面後才會出聲；手機靜音鍵開著時不會響</small></span
+          ><b id="sound-state">開</b>
+        </button>
+        <button id="restart" class="setting-row">
+          <span><strong>新的一局</strong><small>重選人物；確認前不會清掉進度</small></span
+          ><b aria-hidden="true">›</b>
+        </button>
+      </div>
+    </dialog>
+    <script src="day-engine.js?v=office-1"></script>
+    <script src="day-art.js?v=office-1"></script>
+    <script src="day-sound.js?v=office-int-2"></script>
+    <script src="office.js?v=office-int-2"></script>
+  </body>
+</html>

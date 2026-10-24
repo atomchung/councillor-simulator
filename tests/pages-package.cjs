@@ -24,7 +24,10 @@ try {
   art.useDistrictMap(); rendered.push(art.scene());
   art.setPack('original'); rendered.push(art.scene());
   let references = 0;
-  for (const markup of [html, ...rendered]) {
+  const office = fs.readFileSync(path.join(output, 'office.html'), 'utf8');
+  assert.ok(fs.existsSync(path.join(output, 'office.js')));
+  assert.ok(fs.existsSync(path.join(output, 'office.css')));
+  for (const markup of [html, office, ...rendered]) {
     for (const [, url] of markup.matchAll(/(?:src|href|data-art-fallback)="([^"#]+)"/g)) {
       if (url === './' || /^https?:/.test(url)) continue;
       assert.ok(fs.existsSync(path.join(output, url.split(/[?#]/)[0])), 'published dependency ' + url);

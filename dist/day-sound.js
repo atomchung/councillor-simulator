@@ -2,6 +2,8 @@
 (function () {
   'use strict';
   const KEY = 'wenshan-sound', MASTER = .35;
+  // 'ambient' follows the iPhone silent switch (silent = no sound); 'playback' plays even when the switch is on silent.
+  const AUDIO_SESSION = 'ambient';
   let on = true, context = null, master = null, interacted = false, seed = 1, progress = 0, resuming = false;
   let pending = [];
   const voices = new Set(), loops = new Map();
@@ -60,8 +62,11 @@
     if (!context) {
       const Audio = window.AudioContext || window.webkitAudioContext; if (!Audio) return;
       // Ambient respects the iPhone silent switch; never opt into media playback.
-      safely(() => { if (window.navigator?.audioSession) window.navigator.audioSession.type = 'ambient'; });
-      context = new Audio(); master = context.createGain(); master.gain.value = MASTER; master.connect(context.destination);
+      safely(() => { if (window.navigator?.audioSession) window.navigator.audioSession.type = AUDIO_SESSION; });
+      context = new Audio();
+      // iOS unlock: start a 1-sample silent buffer inside this same trusted gesture.
+      safely(() => { const unlock = context.createBufferSource(); unlock.buffer = context.createBuffer(1, 1, 22050); unlock.connect(context.destination); unlock.start(0); });
+      master = context.createGain(); master.gain.value = MASTER; master.connect(context.destination);
     }
     if (context.state === 'running') { for (const name of loops.keys()) runLoop(name); return; }
     if (resuming) return;
@@ -87,6 +92,7 @@
     else if (name === 'positive') { tone(440, 440, .12, .1); tone(660, 660, .18, .1, .12); }
     else if (name === 'negative') tone(170, 100, .22, .12);
     else if (name === 'rival') { tone(150, 135, .12, .12); tone(125, 110, .17, .12, .17); }
+    else if (name === 'crisis') { tone(233, 233, .34, .1); tone(247, 247, .34, .1); tone(92, 70, .5, .14, .12); }
     else if (name === 'draw') noise(.045, .16, delay, 'draw', 1700);
     else if (name === 'win') {
       tone(110, 45, .32, .25);
@@ -105,6 +111,7 @@
     if (event.target?.closest?.('[data-action="sound-toggle"]')?.dataset?.action === 'sound-toggle' && on) return;
     safely(resume);
   }, true);
+  document.addEventListener('touchend', event => { if (!event.isTrusted || event.target?.closest?.('[data-action="sound-toggle"]')) return; interacted = true; safely(resume); }, true);
   document.addEventListener('visibilitychange', () => safely(() => { if (document.hidden) { silence(); if (context) settle(context.suspend()); } else resume(); }));
   window.addEventListener('pagehide', () => safely(() => { silence(); if (context) settle(context.suspend()); }));
   window.DaySound = Object.freeze({ play: (name, opts) => safely(() => play(name, opts)), startLoop: name => safely(() => startLoop(name)), stopLoop: name => safely(() => stopLoop(name)), setEnabled: value => safely(() => setEnabled(value)), enabled: () => on });

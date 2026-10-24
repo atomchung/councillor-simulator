@@ -5,11 +5,11 @@ const vm = require('node:vm');
 const root = path.resolve(__dirname, '..');
 const source = path.join(root, 'dist');
 
-// Publish only the current entrypoint and its runtime. Historical games and
+// Publish the current game and the opt-in office playtest. Historical games and
 // source artwork stay in the repository for regression tests, never in Pages.
 function releaseFiles() {
   const html = fs.readFileSync(path.join(source, 'index.html'), 'utf8');
-  const files = new Set(['index.html']);
+  const files = new Set(['index.html', 'office.html', 'office.js', 'office.css', 'office-result.css', 'day-sound.js', 'assets/office/office-windows.png']);
   for (const [, url] of html.matchAll(/(?:src|href)="([^"#]+)"/g)) {
     if (url === './' || /^https?:/.test(url)) continue;
     const file = url.split(/[?#]/)[0];
