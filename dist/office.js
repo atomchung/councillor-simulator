@@ -257,7 +257,8 @@ function move(id, x, y, scale = 1, away = false) {
 // 小葉 walks the office floor between fixed spots. Links only join spots with clear floor between them,
 // so a route from her post to the window goes around the front of the desk, never across it.
 const STAFF_SPOTS = {
-    post: [1060, 315, 0.7],
+    // Standing in front of the L-desk's return wing, by her chair.
+    post: [1040, 478, 0.76],
     frontRight: [905, 468, 0.78],
     frontLeft: [430, 476, 0.78],
     window: [300, 322, 0.7],
