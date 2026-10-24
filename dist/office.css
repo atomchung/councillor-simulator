@@ -1974,3 +1974,34 @@ select {
 .dialogue .speaker .who {
   min-width: 0;
 }
+
+/* Phones: the dialogue sits at the bottom and is tall enough that crisis choices fit without scrolling;
+   the speaker row stays pinned if a long event still needs a scroll. */
+@media (max-width: 900px) {
+  .dialogue {
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    max-height: 64%;
+  }
+  .dialogue .speaker {
+    position: sticky;
+    top: -14px;
+    z-index: 2;
+    background: inherit;
+  }
+}
+
+.research-compare {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+.research-compare p {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #5f6a5b;
+}
+.research-compare b {
+  margin-right: 6px;
+  color: #2f5d50;
+}
