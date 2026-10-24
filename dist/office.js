@@ -17,7 +17,9 @@ const G = window.DayGame,
     (n / 10000).toLocaleString("zh-TW", { maximumFractionDigits: 1 }) + " 萬",
   num = (n) => Math.round(n || 0).toLocaleString("zh-TW");
 const placeLabel = (p) =>
-  ["canvass", "rally"].includes(p.id)
+  p.id === "fundraise" && p.donor === "developer"
+    ? "文山開發會客室"
+    : ["canvass", "rally"].includes(p.id)
     ? p.venueTitle
     : {
         prepare: "競選辦公室",
@@ -391,7 +393,24 @@ function toast(text) {
   $("toast").classList.add("show");
   later(() => $("toast").classList.remove("show"), 2400);
 }
+function setSceneCandidate() {
+  window.DayArt.setCandidates({player:{identity:s.settings.background,outfit:G.BACKGROUNDS[s.settings.background].outfit,party:s.settings.affiliation,name:G.candidateName(s.settings)}});
+}
+function clearDeveloperMeeting() {
+  if (!$('room').classList.contains('developer-meeting')) return;
+  $('room').classList.remove('developer-meeting', 'field');
+  $('venue-scene').hidden = true;
+  syncDock();
+}
+function showDeveloperMeeting(state) {
+  setSceneCandidate();
+  $('venue-scene').innerHTML=window.DayArt.interior('developer',{state});
+  $('venue-scene').hidden=false;
+  $('room').classList.add('field','developer-meeting');
+  syncDock();
+}
 function hideTalk() {
+  clearDeveloperMeeting();
   $("dialogue").classList.add("hidden");
   $("dialogue").classList.remove("alarm");
   dialogueKind = "";
@@ -415,7 +434,7 @@ const talkType = (kind, who) =>
     ? "staff"
     : /小馬/.test(who)
       ? "rival"
-      : /主持人/.test(who)
+      : /主持人|記者/.test(who)
         ? "host"
         : "resident";
 const splitWho = (who) => {
@@ -548,7 +567,7 @@ function urgent() {
 }
 // Phones: the empty floor under the office holds today's next step, so the plan is never hidden behind the desk.
 function syncDock() {
-  const show = s.phase === "plan" && s.crisis?.status !== "pending" && (s.day > 1 || tutorialDone);
+  const show = s.phase === "plan" && !$("room").classList.contains("developer-meeting") && s.crisis?.status !== "pending" && (s.day > 1 || tutorialDone);
   $("dock").hidden = !show;
   if (!show) return;
   const a = advice();
@@ -569,6 +588,7 @@ function syncDock() {
   $("dock-own").onclick = () => (action ? planDetail() : catalog());
 }
 function sync() {
+  setSceneCandidate();
   const p = s.phase === "plan" ? preview() : s.pending || preview();
   $("round").textContent =
     `第 ${s.day} / ${G.DAYS} 回合 · ${wan(s.budget.available)}`;
@@ -631,7 +651,7 @@ function office() {
   clearTimers();
   $("toast").classList.remove("show");
   $("toast").textContent = "";
-  $("room").classList.remove("field", "arriving");
+  $("room").classList.remove("field", "arriving", "developer-meeting");
   $("field-backdrop").style.display = "none";
   $("visitor").classList.add("gone");
   $("visitor").classList.remove("waiting");
@@ -1347,6 +1367,7 @@ function inbox() {
       true,
       { type: "offer", role: o.org + " · 不占回合", rows: offerRows(o) },
     );
+    if (o.id === "developer") showDeveloperMeeting("visit");
     return;
   }
   if (c.opportunity?.status === "open" && !cfg.campaignOpportunity) {
@@ -1640,6 +1661,7 @@ function handleOffer(choice) {
       rows,
     },
   );
+  if (o.id === "developer") showDeveloperMeeting(choice);
 }
 // The person at the door: who they are follows the pending item they came for.
 let visitorFor = "";
@@ -1711,7 +1733,7 @@ function travel() {
   audioScene();
   $("dialogue").classList.add("hidden");
   $("toast").classList.remove("show");
-  $("room").classList.remove("field");
+  $("room").classList.remove("field", "developer-meeting");
   $("venue-scene").hidden = true;
   const A = window.DayArt,
     p = s.pending;
@@ -1900,9 +1922,7 @@ function field() {
     id = p.id,
     kind = ["canvass", "rally"].includes(id)
       ? p.venue
-      : id === "press"
-        ? "tv"
-        : id;
+      : id;
   A.setCandidates({
     player: {
       identity: s.settings.background,
@@ -2144,9 +2164,10 @@ function resultView(r) {
     };
   if (p.action === "fundraise")
     return {
-      kind: "fundraise",
+      kind: p.dealt?.id === "developer" ? "developer" : "fundraise",
+      state: p.dealt?.id === "developer" ? "accept" : undefined,
       crowd: [],
-      who: "街坊募款",
+      who: p.dealt?.id === "developer" ? p.dealt.name : "街坊募款",
       text: first ? first + "。" : "這次募款已記入競選預算。",
     };
   if (["canvass", "tv", "online", "debate", "rally"].includes(p.action)) {
@@ -2182,7 +2203,8 @@ function resultView(r) {
     };
   }
   return {
-    kind: p.action === "press" ? "tv" : null,
+    kind: p.action === "press" ? "press" : null,
+    state: p.action === "press" && p.answer === "tip_correct" ? "correction" : undefined,
     mode: p.action,
     crowd: [],
     who: p.title || NAMES[p.action] || "這回合",
@@ -2350,6 +2372,7 @@ function recap() {
       rain: G.weather(s).id === "rain",
       staff: capacity(),
       mode: v.mode,
+      state: v.state,
       stage: "reaction",
       topic: G.TOPICS[r.player.topic]?.title,
     });
@@ -2851,6 +2874,7 @@ document.addEventListener("change", (e) => {
     sync();
   }
 });
+document.addEventListener("error", (e) => window.DayArt.eventArtError(e.target), true);
 document.addEventListener("keydown", (e) => {
   const target = e.target.closest("[role=button]");
   if (target && (e.key === "Enter" || e.key === " ")) {

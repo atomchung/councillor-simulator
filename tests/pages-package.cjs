@@ -20,6 +20,12 @@ try {
   }
   for (const stage of ['count','elected','refunded','forfeited']) rendered.push(art.countNight(stage));
   for (const identity of ['newcomer','heir','incumbent']) rendered.push(art.portrait({identity}));
+  for (const identity of ['newcomer','heir','incumbent']) {
+    art.setCandidates({player:{identity,outfit:''}});
+    for (const stage of ['count','elected','refunded','forfeited']) rendered.push(art.countNight(stage));
+    for (const state of ['visit','accept','decline']) rendered.push(art.interior('developer',{state}));
+    for (const state of ['release','correction']) rendered.push(art.interior('press',{state,stage:'reaction'}));
+  }
   art.walkStep(.2, true); rendered.push(art.avatar('player'));
   art.useDistrictMap(); rendered.push(art.scene());
   art.setPack('original'); rendered.push(art.scene());
@@ -28,7 +34,7 @@ try {
   assert.ok(fs.existsSync(path.join(output, 'office.js')));
   assert.ok(fs.existsSync(path.join(output, 'office.css')));
   for (const markup of [html, office, ...rendered]) {
-    for (const [, url] of markup.matchAll(/(?:src|href|data-art-fallback)="([^"#]+)"/g)) {
+    for (const [, url] of markup.matchAll(/(?:src|href|data-art-fallback|data-event-fallback)="([^"#]+)"/g)) {
       if (url === './' || /^https?:/.test(url)) continue;
       assert.ok(fs.existsSync(path.join(output, url.split(/[?#]/)[0])), 'published dependency ' + url);
       references++;

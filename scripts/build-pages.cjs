@@ -24,6 +24,7 @@ function releaseFiles() {
   for (const registry of [art.files, art.visits, art.rain, art.toyScenes]) {
     for (const file of Object.values(registry)) files.add('assets/matte-toy-v1/' + file);
   }
+  for (const file of Object.values(art.eventFiles)) files.add(file);
   for (const [, file] of art.scene().matchAll(/(?:src|href)="(assets\/[^"?#]+)"/g)) files.add(file);
   for (const file of files) {
     if (file.includes('..') || !fs.statSync(path.join(source, file)).isFile()) throw Error('Invalid runtime file: ' + file);

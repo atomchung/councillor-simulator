@@ -831,6 +831,62 @@
   // Camera on a 1536×1024 backdrop: zoom z about the source point (cx, cy), which lands in the middle of the 1200×650 scene.
   const camera = (z = 1, cx = 768, cy = 512) => { const s = .78125 * z; return {s, x: 600 - cx * s, y: 325 - cy * s}; };
   const backdropImage = (file, c, attrs = '') => '<image data-art-image="venue" href="' + TOY_ROOT + file + '" x="' + c.x.toFixed(1) + '" y="' + c.y.toFixed(1) + '" width="' + (1536 * c.s).toFixed(1) + '" height="' + (1024 * c.s).toFixed(1) + '" preserveAspectRatio="none" ' + attrs + '/>';
+
+  // Full runtime paths are separate from the original art pack's source/preview registry.
+  const EVENT_FILES = Object.freeze({victory:'assets/office-events/candidates-victory.webp',defeat:'assets/office-events/candidates-defeat.webp',press:'assets/office-events/press-background.webp',evidence:'assets/office-events/press-evidence-frames.webp',developer:'assets/office-events/developer-office.webp',accept:'assets/office-events/developer-pairs-accept.webp',decline:'assets/office-events/developer-pairs-decline.webp'});
+  // Per-pose crops: raised hands cross the old equal-width character columns.
+  const EMOTION_FRAMES = {
+    victory:[{x:26,y:190,w:461,h:731,sole:723},{x:513,y:163,w:481,h:754,sole:746},{x:1003,y:248,w:531,h:671,sole:663}],
+    defeat:[{x:42,y:181,w:459,h:761,sole:753},{x:560,y:159,w:417,h:781,sole:773},{x:990,y:217,w:482,h:724,sole:716}]
+  };
+  function emotionCandidate(emotion, x, feet, size) {
+    const col=toyColumn(), f=EMOTION_FRAMES[emotion][col], k=124/f.sole;
+    return '<g class="stage-person" data-who="you" data-emotion="'+emotion+'" data-identity="'+['newcomer','heir','incumbent'][col]+'" transform="translate('+(x-50*size)+' '+(feet-130*size)+') scale('+size+')">'+ringMark('you')+toyShadow()+'<svg x="'+(50-f.w*k/2)+'" y="6" width="'+(f.w*k)+'" height="'+(f.h*k)+'" viewBox="'+[f.x,f.y,f.w,f.h].join(' ')+'" overflow="hidden"><image data-event-art="emotion" data-event-neutral="'+col+'" href="'+EVENT_FILES[emotion]+'" width="1536" height="1024"/></svg>'+toySash(candidates.player.party)+'</g>';
+  }
+  function eventBackdrop(file, fallback) {
+    const c=camera();
+    return '<image data-event-art="backdrop" data-event-fallback="'+TOY_ROOT+fallback+'" href="'+file+'" x="'+c.x+'" y="'+c.y+'" width="'+(1536*c.s)+'" height="'+(1024*c.s)+'"/>';
+  }
+  // Neutral people remain available if a pair sheet fails. This never calls the engine.
+  function developerPairFallback() {
+    return stagePerson('player',440,548,2.7,{ring:'you',who:'you'})+stagePerson('middle-office',738,548,2.7,{mirror:true,who:'developer'});
+  }
+  function developerScene(o) {
+    const state=['accept','decline'].includes(o.state)?o.state:'visit', col=toyColumn();
+    let s=eventBackdrop(EVENT_FILES.developer,TOY_VISITS.office);
+    if(state==='visit') s+=developerPairFallback();
+    else s+='<g class="developer-pair" data-event-pair="'+state+'" data-identity="'+['newcomer','heir','incumbent'][col]+'"><svg x="365" y="100" width="470" height="470" viewBox="'+(col*724)+' 0 724 724" overflow="hidden"><image data-event-art="pair" href="'+EVENT_FILES[state]+'" width="2172" height="724"/></svg></g>';
+    return s+label(600,58,state==='accept'?'合作已答應':state==='decline'?'婉拒合作':'與建商會面',28,'#4b5e50','text-anchor="middle"');
+  }
+  function pressScene(o) {
+    const released=o.stage==='reaction'&&o.state!=='correction';
+    let s=eventBackdrop(EVENT_FILES.press,TOY_SCENES.tv);
+    s+=label(600,58,o.state==='correction'?'公開更正說明':'記者會 · 公開說明',28,'#fffdf7','text-anchor="middle"');
+    s+=stagePerson('player',400,550,1.7,{ring:'you',who:'you'})+stagePerson('helper',215,526,1.32,{who:'staff'});
+    s+='<g class="press-evidence'+(released?' is-released':'')+'" data-press-state="'+(released?'release':o.state==='correction'?'correction':'waiting')+'">';
+    for(let i=0;i<3;i++) s+='<g class="evidence-frame evidence-'+i+'"><svg x="600" y="255" width="310" height="310" viewBox="'+(i*724)+' 0 724 724" overflow="hidden"><image data-event-art="evidence" href="'+EVENT_FILES.evidence+'" width="2172" height="724"/></svg></g>';
+    return s+'</g>';
+  }
+  // Failed optional artwork falls back locally; choices, saves and settlement remain untouched.
+  function eventArtError(target) {
+    if(!target?.getAttribute?.('data-event-art')||target.isConnected===false) return false;
+    const kind=target.getAttribute('data-event-art'), fallback=target.getAttribute('data-event-fallback');
+    target.removeAttribute('data-event-art');
+    if(fallback){target.removeAttribute('data-event-fallback');target.setAttribute('href',fallback);}
+    else if(kind==='emotion'){
+      const frame=TOY_FRAMES[Number(target.getAttribute('data-event-neutral'))]?.[0], box=target.parentNode;
+      if(box&&frame){
+        const k=124/frame.sole;
+        for(const [key,value] of Object.entries({viewBox:[frame.x,frame.y,frame.w,frame.h].join(' '),x:50-frame.w*k/2,y:6,width:frame.w*k,height:frame.h*k})) box.setAttribute(key,String(value));
+      }
+      target.setAttribute('href',TOY_ROOT+FILES.candidates);
+    } else if(kind==='pair'){
+      const pair=target.closest('[data-event-pair]');
+      if(pair) pair.innerHTML=developerPairFallback();
+    } else target.style.display='none';
+    return true;
+  }
+
   // Looks for a crowd: each group cycles through its own looks, starting at a different look per place, and never repeats the speaker.
   const speakerLook = sp => sp && (SPEAKER_LOOKS[sp.name] || (GROUP_LOOKS[sp.group] || GROUP_LOOKS[1])[1]);
   function crowdLooks(crowd, avoid, salt = 0) { const seen = [0, 0, 0]; return crowd.map(c => { const list = (GROUP_LOOKS[c.group] || GROUP_LOOKS[1]).filter(l => l !== avoid); return list[(seen[c.group] = (seen[c.group] || 0) + 1, seen[c.group] - 1 + salt) % list.length]; }); }
@@ -937,7 +993,9 @@
   function toyInterior(kind, options = {}) {
     const o = options;
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '" data-stage="' + (o.stage || 'question') + '"' + (o.rain ? ' data-rain="1"' : '') + '>';
-    if (kind === 'tv') s += tvScene(o);
+    if (kind === 'press') s += pressScene(o);
+    else if (kind === 'developer') s += developerScene(o);
+    else if (kind === 'tv') s += tvScene(o);
     else if (kind === 'online') s += onlineScene(o);
     else if (kind === 'fundraise') s += fundraiseScene(o);
     else if (kind === 'office') s += officeScene(o);
@@ -947,6 +1005,8 @@
   }
   function interior(kind, options = {}) {
     if (isToy()) return toyInterior(kind, options);
+    if (kind === 'press') kind = 'tv';
+    if (kind === 'developer') kind = 'fundraise';
     const crowd = Array.isArray(options.crowd) ? options.crowd : [], roleOf = c => GROUP_ROLES[c.group]?.[c.variant ? 1 : 0] || 'resident';
     let s = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 650" aria-hidden="true" focusable="false" class="venue-art" data-kind="' + kind + '">' + backdrop(kind);
     const slots = ['tv','online'].includes(kind) ? TV_SLOTS : kind === 'debate' ? DEBATE_SLOTS : STREET_SLOTS;
@@ -1026,7 +1086,7 @@
     // The placard stands left of the helpers so neither art pack hides its text.
     if (refunded) s += rect(301, 418, 5, 78, '#6d6a5c') + rect(250, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(304, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
     // Matte-toy: the staff in their orange vests flank the candidate (gold ring); supporters on both sides turn toward the stage.
-    if (isToy()) s += stagePerson('helper', 470, 505, 1.02, {mirror: false, ring: 'staff', who: 'staff'}) + stagePerson('middle-office', 730, 505, 1.02, {mirror: true, ring: 'staff', who: 'staff'}) + stagePerson('player', 600, 507, 1.2, {ring: 'you', who: 'you'});
+    if (isToy()) s += stagePerson('helper', 470, 505, 1.02, {mirror: false, ring: 'staff', who: 'staff'}) + stagePerson('middle-office', 730, 505, 1.02, {mirror: true, ring: 'staff', who: 'staff'}) + (done ? emotionCandidate(won ? 'victory' : 'defeat',600,507,1.2) : stagePerson('player', 600, 507, 1.2, {ring: 'you', who: 'you'}));
     else s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
     // Supporters on the floor; each bobs on its own beat once the result is in.
     NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + (isToy() ? stagePerson(NIGHT_LOOKS[i], x, y, k, {mirror: x > 600}) : figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null)) + '</g>'; });
@@ -1047,5 +1107,5 @@
     return s + '</svg>';
   }
 
-  window.DayArt = Object.freeze({getPack:()=>artPack,setPack,getMap:()=>mapLayout,kitLayout:KIT,useDistrictMap,stand,slot,rivalSpot,boardSpot,looks:LOOKS,groupLooks:GROUP_LOOKS,speakerLooks:SPEAKER_LOOKS,sheets:SHEETS,files:FILES,visits:TOY_VISITS,rain:TOY_RAIN,toyScenes:TOY_SCENES,kitWalk,walkStep,toyTeam,supportFrames:SUPPORT_FRAMES,walkFrames:WALK_FRAMES,isToy,spot,visualRoute,mapPoint,travelPoint,facing,assetFrames:TOY_FRAMES,scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
+  window.DayArt = Object.freeze({eventFiles:EVENT_FILES,emotionFrames:EMOTION_FRAMES,eventArtError,getPack:()=>artPack,setPack,getMap:()=>mapLayout,kitLayout:KIT,useDistrictMap,stand,slot,rivalSpot,boardSpot,looks:LOOKS,groupLooks:GROUP_LOOKS,speakerLooks:SPEAKER_LOOKS,sheets:SHEETS,files:FILES,visits:TOY_VISITS,rain:TOY_RAIN,toyScenes:TOY_SCENES,kitWalk,walkStep,toyTeam,supportFrames:SUPPORT_FRAMES,walkFrames:WALK_FRAMES,isToy,spot,visualRoute,mapPoint,travelPoint,facing,assetFrames:TOY_FRAMES,scene,avatar,portrait,billboard,anchors,paths,route,interior,faceIcon,countNight,GROUP_ROLES,setCandidates});
 })();
