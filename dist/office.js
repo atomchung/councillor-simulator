@@ -271,7 +271,7 @@ function hideTalk() {
   $("dialogue").classList.remove("alarm");
   dialogueKind = "";
   settleVisitor();
-  if (s.phase === "plan") move("staff", 1120, 315, 0.7);
+  if (s.phase === "plan") move("staff", 1060, 315, 0.7);
   $("staff").focus();
   if (s.phase === "plan" && !$("sheet").open) queueVisitor();
 }
@@ -2516,7 +2516,8 @@ function sceneStatus() {
       PORTRAITS[s.settings.background] || PORTRAITS.newcomer,
     );
   const last = s.journal.at(-1);
-  $("round-change").hidden = !last || s.phase !== "plan";
+  // The round result is shown on the spot, so the old "上回合" strip stays hidden.
+  $("round-change").hidden = true;
   if (last) {
     $("round-change").textContent =
       "上回合 " +

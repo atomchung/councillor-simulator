@@ -1966,3 +1966,11 @@ select {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* Long names and roles wrap under the close button instead of running into it. */
+.dialogue .speaker {
+  padding-right: 40px;
+}
+.dialogue .speaker .who {
+  min-width: 0;
+}
