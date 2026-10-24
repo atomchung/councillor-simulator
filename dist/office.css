@@ -766,8 +766,17 @@ button.primary small {
   border-top: 1px solid #ded8c6;
   padding: 12px 20px;
 }
+.sheet footer {
+  display: flex;
+  gap: 10px;
+}
 .sheet footer button {
   width: 100%;
+}
+.sheet footer button:not(.primary) {
+  flex: 0 0 auto;
+  width: auto;
+  white-space: nowrap;
 }
 .poll-row {
   display: grid;
@@ -1916,4 +1925,44 @@ select {
   #candidate[class*="react-"] {
     animation: none !important;
   }
+}
+
+/* Answer options: one face per voter group instead of "長輩 分歧／中年 ＋" text. */
+.reaction-faces {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+.reaction-face {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+}
+.reaction-face b {
+  font-weight: 500;
+  color: #5f6a5b;
+}
+.reaction-face .face-icon {
+  width: 22px;
+  height: 22px;
+}
+.reaction-face .face-unknown {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 1.5px dashed #b9b2a1;
+  color: #8d8676;
+  font-style: normal;
+  font-size: 12px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

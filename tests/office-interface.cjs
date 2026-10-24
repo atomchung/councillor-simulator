@@ -212,7 +212,7 @@ function harness(initial, opts = {}) {
       for (const f of events.click || []) f({ target: b, isTrusted: true });
     },
     footer() {
-      const b = nodes["sheet-foot"].children[0];
+      const b = nodes["sheet-foot"].children.at(-1);
       assert.ok(b && !b.disabled, "enabled primary action");
       b.onclick();
     },
@@ -391,7 +391,7 @@ function harness(initial, opts = {}) {
     });
   h.run("choose('canvass',{venue:'street'})");
   ok(
-    h.nodes["sheet-foot"].children[0].textContent.includes("出門去保儀路口"),
+    h.nodes["sheet-foot"].children.at(-1).textContent.includes("出門去保儀路口"),
     "destination on the committing action",
   );
   h.footer();
@@ -766,6 +766,13 @@ const stubFor = (calls, on = { v: true }) => ({
   eq(h.run("briefWorthShowing()"), true, "小葉 opens round one");
   h.run("s.day=G.DAYS-1");
   eq(h.run("briefWorthShowing()"), true, "小葉 flags the last two rounds");
+}
+{
+  // The day's action can be changed from the plan sheet without scrolling.
+  const h = harness({ s: state(), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("choose('canvass');planDetail()");
+  const foot = h.nodes["sheet-foot"];
+  ok(JSON.stringify(foot.children?.map?.((b) => b.textContent) || foot.innerHTML || "").includes("換行程"), "換行程 sits beside the departure button");
 }
 // Full nine-round controller journeys preserve the shared engine outcome for every identity.
 for (const background of ["newcomer", "heir", "incumbent"]) {

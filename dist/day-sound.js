@@ -101,7 +101,7 @@
     } else if (name === 'lose') tone(200, 65, .7, .18);
     else if (name === 'stamp') { noise(.09, .14, .04, 'stamp', 900); tone(95, 55, .12, .1, .04); }
   }
-  function startLoop(name) { if (!on || !['steps', 'rain', 'count'].includes(name)) return; if (!loops.has(name)) loops.set(name, { active: false, timer: null }); runLoop(name); }
+  function startLoop(name) { if (!on || !['steps', 'count'].includes(name)) return; if (!loops.has(name)) loops.set(name, { active: false, timer: null }); runLoop(name); }
   function stopLoop(name) { pending = pending.filter(cue => cue.name !== name); const loop = loops.get(name); if (loop) window.clearTimeout(loop.timer); loops.delete(name); for (const v of [...voices]) if (v.tag === name) stopVoice(v, name === 'rain' && !document.hidden ? .18 : 0); }
   function setEnabled(value) { on = !!value; safely(() => window.localStorage.setItem(KEY, on ? 'on' : 'off')); if (!on) { silence(); loops.clear(); if (context) settle(context.suspend()); } else resume(); }
   document.addEventListener('click', event => {

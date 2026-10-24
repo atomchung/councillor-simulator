@@ -363,6 +363,7 @@ function showPanel(title, html, footer) {
   $("sheet-body").innerHTML = html;
   $("sheet-foot").replaceChildren();
   $("sheet-foot").hidden = !footer;
+  if (footer?.alt) $("sheet-foot").append(button(footer.alt.text, footer.alt.fn));
   if (footer)
     $("sheet-foot").append(
       button(footer.text, footer.fn, "", true, !!footer.disabled),
@@ -714,8 +715,14 @@ function planDetail() {
     : "";
   showPanel(
     "出發準備 · " + NAMES[action],
-    `<p>${esc(p.description)}</p><div class="inline-note">費用 ${wan(p.totalCost || 0)}${p.expectedIncome ? ` · 募得約 ${wan(p.expectedIncome.min)}–${wan(p.expectedIncome.max)}` : ""}<br>${esc(p.risk || "")}${action === "recruit" ? `<br>招募 ${p.recruitCount} 人，下回合起可派` : ""}</div>${prep}${researchEntry()}${extra}<div class="confirm-strip">${esc(assignmentText())}</div>${pending() ? `<p class="choice-note">門口還有 ${pending()} 件消息。<button data-open="inbox">先聽來客</button></p>` : ""}<div class="tabs"><button data-open="extras">加碼與後勤</button><button data-open="catalog">換行程</button></div>${!p.allowed || conflict() ? `<p class="danger">${esc(conflict() || p.reason)}</p>` : ""}`,
-    { text: startLabel(), fn: depart, disabled: !p.allowed || !!conflict() },
+    `<p>${esc(p.description)}</p><div class="inline-note">費用 ${wan(p.totalCost || 0)}${p.expectedIncome ? ` · 募得約 ${wan(p.expectedIncome.min)}–${wan(p.expectedIncome.max)}` : ""}<br>${esc(p.risk || "")}${action === "recruit" ? `<br>招募 ${p.recruitCount} 人，下回合起可派` : ""}</div>${prep}${researchEntry()}${extra}<div class="confirm-strip">${esc(assignmentText())}</div>${pending() ? `<p class="choice-note">門口還有 ${pending()} 件消息。<button data-open="inbox">先聽來客</button></p>` : ""}<div class="tabs"><button data-open="extras">加碼與後勤</button></div>${!p.allowed || conflict() ? `<p class="danger">${esc(conflict() || p.reason)}</p>` : ""}`,
+    {
+      text: startLabel(),
+      fn: depart,
+      disabled: !p.allowed || !!conflict(),
+      // Changing the day's action stays one tap away, next to the departure button.
+      alt: { text: "換行程", fn: catalog },
+    },
   );
 }
 function topicGrid(kind) {
@@ -1402,7 +1409,8 @@ function travel() {
       : Math.max(1800, Math.min(3600, total * 5)),
     started = performance.now(),
     e = epoch;
-  let previous = route[0];
+  let previous = route[0],
+    lastFrame = null;
   function tick(now) {
     if (e !== epoch || s.phase !== "travel") return;
     let ratio = duration ? Math.min(1, (now - started) / duration) : 1,
@@ -1418,12 +1426,15 @@ function travel() {
       }
       d -= lengths[i];
     }
-    A.facing(pos.x - previous.x, pos.y - previous.y);
-    A.walkStep(0.04, ratio < 1);
+    // Step in real seconds (as day-ui.js does) so a 120 Hz phone does not walk twice as fast.
+    const dt = Math.max(0, Math.min((now - (lastFrame ?? now)) / 1000, 0.1));
+    lastFrame = now;
+    const turned = A.facing(pos.x - previous.x, pos.y - previous.y),
+      stepped = A.walkStep(dt, ratio < 1);
     const actor = $("map-walker");
     actor.style.left = pos.x / 12 + "%";
     actor.style.top = pos.y / 6.5 + "%";
-    actor.innerHTML = A.avatar("player");
+    if (turned || stepped || !actor.innerHTML) actor.innerHTML = A.avatar("player");
     previous = pos;
     if (ratio === 1) {
       later(finishTravel, 350);
@@ -1584,6 +1595,19 @@ function field() {
   sync();
 }
 
+// Each group's expected reaction as a face: like, dislike, "?" when the group is split, a dash when unknown.
+const REACTION_TONE = { "＋＋": "up", "＋": "up", "−": "down", "−−": "down", 分歧: "unknown" };
+function reactionFaces(list) {
+  return (
+    list
+      .map((r, i) => {
+        const tone = REACTION_TONE[r.mark],
+          g = Number.isInteger(r.group) ? r.group : i;
+        return `<span class="reaction-face" title="${esc(r.text)}"><b>${esc(groupTitle(g))}</b>${tone && window.DayArt?.faceIcon ? window.DayArt.faceIcon(tone) : '<i class="face-unknown">—</i>'}<span class="sr-only">${esc(r.text)}</span></span>`;
+      })
+      .join("")
+  );
+}
 function ask() {
   field();
   sfx.play("question");
@@ -1598,10 +1622,8 @@ function ask() {
       text: o.text,
       note:
         (o.unlocked ? o.detail : o.whyLocked) +
-        (o.unlocked && o.reactions?.length
-          ? " · " + o.reactions.map((x) => x.text).join("／")
-          : "") +
         (o.tags?.length ? " · " + o.tags.map((t) => t.text).join("；") : ""),
+      reactions: o.unlocked ? o.reactions : null,
       disabled: !o.unlocked,
       fn: () => {
         if (s.phase !== "question") return;
@@ -1615,9 +1637,18 @@ function ask() {
     false,
   );
   $("actions").classList.add("answer-list");
+  const opts = q.options;
   $("actions")
     .querySelectorAll("button")
-    .forEach((b) => b.classList.add("wide"));
+    .forEach((b, i) => {
+      b.classList.add("wide");
+      if (opts[i]?.unlocked && opts[i].reactions?.length) {
+        const row = document.createElement("span");
+        row.className = "reaction-faces";
+        row.innerHTML = reactionFaces(opts[i].reactions);
+        b.append(row);
+      }
+    });
 }
 /* ---------- Round result: the reaction on the spot, then the next round ----------
    Mirrors the original recap (day-ui.js sceneView/dockRecap): the speaker reacts, the crowd's faces follow the
