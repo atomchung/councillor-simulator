@@ -784,7 +784,9 @@ const stubFor = (calls, on = { v: true }) => ({
   ok(h.run("guideHints().some(g=>g.id==='dig')"), "小葉 introduces digging from round three");
   h.run("s.budget.available=9e6");
   const ids = h.run("guideHints().map(g=>g.id)");
-  ok(["rally", "tv", "billboard"].every((id) => ids.includes(id)), "with money 小葉 introduces rallies, TV and billboards");
+  ok(["tv", "billboard"].every((id) => ids.includes(id)), "with money 小葉 introduces TV and billboards");
+  eq(ids.includes("rally"), h.run("G.preview(s,'rally',{research:[],booth:false,venue:'market'}).allowed||G.venueView(s).some(v=>G.preview(s,'rally',{research:[],booth:false,venue:v.id}).allowed)") && ids.includes("rally"), "rallies are introduced only when one can be held");
+  ok(!ids.includes("fundraise"), "no fundraising tip when money is plentiful");
   ok(h.run("guideHints().every(g=>g.label&&typeof g.fn==='function')"), "every guide line opens the feature it names");
   h.run("s.journal.push({day:2,totalVotes:0,player:{action:'rally',venue:'market',teamReports:[]},summary:{headline:''}})");
   ok(!h.run("guideHints().some(g=>g.id==='rally')"), "a feature already used is not introduced again");

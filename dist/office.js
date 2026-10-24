@@ -727,7 +727,9 @@ function advice() {
   const canvassAt = (v) => go("canvass", { venue: v.id });
   const helpers = () => (cfg.research?.length ? `助手已排好查「${cfg.research.map(TOPIC).join("、")}」。` : "");
   let tip, pick;
-  const fresh = researched.find((t) => venues.some((v) => v.pool.includes(t)));
+  const fresh =
+    researched.find((t) => venues.some((v) => v.pool.includes(t) && v.id !== lastVenue)) ||
+    researched.find((t) => venues.some((v) => v.pool.includes(t)));
   if (s.day === G.DEBATE_ROUND && action !== "debate") {
     tip = "今天是政見發表會，缺席會被重罰，一定要出席。";
     pick = { text: "出席政見會", fn: go("debate") };
@@ -741,7 +743,8 @@ function advice() {
     tip = `還沒有題目查過，直接去街訪會被追問扣票。先查「${TOPIC(topic)}」，助手同時查其他題，下回合去${v.title}。`;
     pick = { text: `先查「${TOPIC(topic)}」`, fn: go("prepare", { topic }) };
   } else if (fresh) {
-    const v = venues.find((x) => x.pool.includes(fresh));
+    const asks = venues.filter((x) => x.pool.includes(fresh)),
+      v = asks.find((x) => x.id !== lastVenue) || asks[0];
     tip = `「${TOPIC(fresh)}」查好了，去${v.title}講它。`;
     pick = { text: `去${v.title}街訪`, fn: canvassAt(v) };
   } else if (left <= 2) {
@@ -930,21 +933,22 @@ function guideHints() {
       label: "看里長進度",
       fn: mapPanel,
     });
-  if (!used("fundraise") && (money < 300000 || s.day >= 3))
+  if (!used("fundraise") && money < 300000)
     list.push({
       id: "fundraise",
       text: `錢不夠時可以「做準備 → 募款」：用掉一回合，募到約 ${wan(G.TUNING?.fundraise?.base?.[0] || 40000)}–${wan(G.TUNING?.fundraise?.base?.[1] || 90000)}。`,
       label: "看募款",
       fn: open("fundraise"),
     });
-  if (s.day >= 2 && !used("rally") && money >= G.COSTS.rally + 50000)
+  const can = (id, extra = {}) => G.preview(s, id, { research: [], booth: false, ...extra }).allowed;
+  if (s.day >= 2 && !used("rally") && money >= G.COSTS.rally + 50000 && can("rally", { venue: bestVenue?.id }))
     list.push({
       id: "rally",
       text: `「做宣傳 → 造勢晚會」一次能觸及的人比街訪多，花 ${wan(G.COSTS.rally)}；辦在你答得出題目的地點最划算。`,
       label: "看造勢",
       fn: open("rally", { venue: bestVenue?.id }),
     });
-  if (s.day >= 3 && !used("tv") && money >= G.COSTS.tv + 50000)
+  if (s.day >= 3 && !used("tv") && money >= G.COSTS.tv + 50000 && can("tv"))
     list.push({
       id: "tv",
       text: `「做宣傳 → 上電視」一次觸及最多人，花 ${wan(G.COSTS.tv)}；主持人從熱門題抽問，先研究過再上。`,
