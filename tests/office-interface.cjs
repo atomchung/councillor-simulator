@@ -222,6 +222,93 @@ function harness(initial, opts = {}) {
     },
   };
 }
+
+// New event visuals follow real engine reports, without adding transactions or save fields.
+for (const identity of ['newcomer','heir','incumbent']) {
+  const h=harness({s:state(71,identity),cfg:{research:[]},action:null,tutorialDone:true});
+  const original=h.state();
+  for(const stage of ['elected','refunded','forfeited']) {
+    const svg=h.run(`window.DayArt.countNight('${stage}',{still:true})`);
+    ok(svg.includes(`data-identity="${identity}"`), identity+' result retains the candidate');
+    ok(svg.includes(`data-emotion="${stage==='elected'?'victory':'defeat'}"`), stage+' expression');
+  }
+  ok(!h.run("window.DayArt.countNight('count')").includes('data-emotion='),'count does not reveal the ending early');
+  for(const state of ['visit','accept','decline']) h.run(`showDeveloperMeeting('${state}')`);
+  eq(h.state(),original,'meeting visual changes do not mutate the game');
+  h.run('hideTalk()');
+  ok(h.nodes['venue-scene'].hidden&&!h.nodes.room.classList.contains('developer-meeting'),'dismissal restores office');
+}
+function developerFixture(identity) {
+  for(let seed=1;seed<=120;seed++) {
+    const x=state(seed,identity);
+    for(let day=1;day<G.DAYS;day++) {
+      if(x.crisis?.status==='pending') G.respondCrisis(x,'apologize');
+      if(G.offerView(x)?.id==='developer') return x;
+      assert.ok(G.begin(x,'fundraise',{research:[],booth:false}));G.arrive(x);G.next(x);
+    }
+  }
+  throw Error('No natural developer invitation fixture for '+identity);
+}
+for(const identity of ['newcomer','heir','incumbent']) for(const choice of ['accept','decline']) {
+  const s=developerFixture(identity),h=harness({s,cfg:{research:[]},action:null,tutorialDone:true});
+  h.flush();h.run('inbox()');
+  ok(h.nodes['venue-scene'].innerHTML.includes('與建商會面'),'developer offer has its meeting scene');
+  ok(h.nodes.dock.hidden,'meeting leaves room for the choices');
+  const expected=h.state();assert.ok(G.respondOffer(expected,choice));
+  h.run(`handleOffer('${choice}')`);
+  ok(h.nodes['venue-scene'].innerHTML.includes(`data-event-pair="${choice}"`),'choice selects its own pair pose');
+  eq(h.state(),expected,'offer uses exactly the engine transaction');
+  h.run(`handleOffer('${choice}');hideTalk()`);h.flush();
+  eq(h.state(),expected,'double answer and animation timers do not repeat the offer');
+  const reload=harness(h.snapshot());
+  eq(reload.state(),expected,'resolved cooperation reload preserves exact state');
+  ok(!reload.nodes.room.classList.contains('developer-meeting'),'reload does not replay a resolved meeting');
+}
+// Visiting a donor is a whole action; an invitation is free. Their visuals use the settled deal.
+{
+  const h=harness({s:state(71,'incumbent'),cfg:{research:[]},action:null,tutorialDone:true});
+  h.run("G.begin(s,'fundraise',{donor:'developer',research:[],booth:false});G.arrive(s)");
+  ok(h.state().recap?.player.dealt?.id==='developer','engine records developer donor');
+  const settled=h.state();h.run('recap()');
+  ok(h.nodes['venue-scene'].innerHTML.includes('data-event-pair="accept"'),'donor visit uses accepted cooperation visual');
+  eq(h.state(),settled,'donor animation does not add a second donation');
+  h.run('recap()');eq(h.state(),settled,'repeated donor recap is display only');
+  const reload=harness({s:settled,cfg:{research:[]},action:null,tutorialDone:true});
+  ok(reload.nodes['venue-scene'].innerHTML.includes('data-identity="incumbent"'),'donor recap reload retains incumbent identity');
+  eq(reload.state(),settled,'donor recap reload does not change the donation');
+}
+for(const answer of ['tip_accuse','tip_limited','tip_correct']) {
+  const s=state(71);
+  for(let i=0;i<2;i++){G.begin(s,'fundraise',{research:[],booth:false});G.arrive(s);G.next(s);}
+  const h=harness({s,cfg:{research:[]},action:null,tutorialDone:true});
+  h.run("G.begin(s,'press',{});G.arrive(s);field()");
+  ok(h.nodes['venue-scene'].innerHTML.includes('data-press-state="waiting"'),'press waits for the answer');
+  if(!h.run(`G.question(s).options.some(o=>o.id==='${answer}'&&o.unlocked)`)) continue;
+  h.run(`G.answer(s,'${answer}')`);const settled=h.state();h.run('recap()');
+  ok(h.nodes['venue-scene'].innerHTML.includes(`data-press-state="${answer==='tip_correct'?'correction':'release'}"`),'press visuals follow chosen answer');
+  eq(h.state(),settled,'evidence frames do not alter votes or truth');
+}
+// A real correction follows an earlier publication, and keeps the folder closed.
+{
+  const s=state(2);
+  for(let i=0;i<2;i++){G.begin(s,'fundraise',{});G.arrive(s);G.next(s);}
+  G.begin(s,'press',{});G.arrive(s);G.answer(s,'tip_accuse');G.next(s);
+  const h=harness({s,cfg:{research:[]},action:null,tutorialDone:true});
+  h.run("G.begin(s,'press',{});G.arrive(s);G.answer(s,'tip_correct')");
+  eq(h.state().recap.player.answer,'tip_correct','real correction fixture');
+  const settled=h.state();h.run('recap()');
+  ok(h.nodes['venue-scene'].innerHTML.includes('data-press-state="correction"'),'correction does not play publication frames');
+  eq(h.state(),settled,'correction visual preserves the settled truth');
+}
+// Optional image failures are local, finite, and cannot trigger engine changes.
+{
+  const h=harness({s:state(),cfg:{research:[]},action:null,tutorialDone:true});
+  const before=h.state();
+  eq(h.run(`(()=>{const attrs={'data-event-art':'emotion','data-event-neutral':'1'}, box={setAttribute(k,v){this[k]=v}}, image={isConnected:true,parentNode:box,getAttribute:k=>attrs[k],setAttribute(k,v){attrs[k]=v},removeAttribute(k){delete attrs[k]}};const a=window.DayArt.eventArtError(image),b=window.DayArt.eventArtError(image);return [a,b,attrs.href,box.viewBox]})()`),[true,false,'assets/matte-toy-v1/game/candidates.webp','676 24 213 349'],'failed expression uses same candidate and only falls back once');
+  eq(h.run(`(()=>{const attrs={'data-event-art':'pair'}, pair={innerHTML:''}, image={isConnected:true,getAttribute:k=>attrs[k],removeAttribute(k){delete attrs[k]},closest:()=>pair};window.DayArt.eventArtError(image);return pair.innerHTML.includes('data-who="developer"')&&pair.innerHTML.includes('data-who="you"')})()`),true,'failed pair uses two neutral people');
+  eq(h.state(),before,'image recovery preserves state');
+}
+
 // Recap overlays are driven by the settled player report and never mutate game state.
 {
   const h = harness({ s: state(71, "heir"), cfg: { research: [] }, action: null, tutorialDone: true });

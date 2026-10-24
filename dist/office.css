@@ -2251,3 +2251,20 @@ select {
   font: inherit;
   font-size: 14px;
 }
+
+/* Event vignettes are visual-only and never gate the existing choices or recap timer. */
+.evidence-frame { opacity: 0; }
+.evidence-0 { opacity: 1; }
+.is-released .evidence-0 { animation: evidence-closed .6s steps(1,end) both; }
+.is-released .evidence-1 { animation: evidence-open 1.2s steps(1,end) both; }
+.is-released .evidence-2 { opacity: 1; animation: evidence-reveal 1.2s steps(1,end) both; }
+.developer-pair { transform-box: fill-box; transform-origin: center bottom; animation: meeting-arrive .4s ease-out both; }
+@keyframes evidence-closed { 0% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes evidence-open { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes evidence-reveal { 0% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes meeting-arrive { from { opacity: .3; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .developer-pair, .is-released .evidence-frame { animation: none; }
+  .is-released .evidence-0, .is-released .evidence-1 { opacity: 0; }
+  .is-released .evidence-2 { opacity: 1; }
+}

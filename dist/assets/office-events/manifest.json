@@ -1,0 +1,63 @@
+{
+  "generator": "OpenAI ImageGen",
+  "style": "Original matte toy miniature, matching the existing candidate and support sheets.",
+  "processing": "WebP encoding only; original dimensions and alpha preserved.",
+  "assets": [
+    {
+      "file": "candidates-victory.webp",
+      "width": 1536,
+      "height": 1024,
+      "sourceSha256": "115c17ef989e1cf163968cbdb93fe7a17b2bfd554ddcee6efda7aa898dff4730",
+      "sha256": "6309a598ea6ecc47095d92db136d77530e51096ab14f97cad4e89af1e3fac95f",
+      "bytes": 139648
+    },
+    {
+      "file": "candidates-defeat.webp",
+      "width": 1536,
+      "height": 1024,
+      "sourceSha256": "4e2df61c3bf1c3067103488c67de8268a9183b40f0d3315df95274fb1d4e22ef",
+      "sha256": "6419f2f87ec73075bd609aeee7cc68f7984535fb1d81981ad82d0de56d3f10ec",
+      "bytes": 128482
+    },
+    {
+      "file": "press-background.webp",
+      "width": 1536,
+      "height": 1024,
+      "sourceSha256": "80ed55b7cb676ad7d41e2fbf56a869e5dde6a0807e1e44b9e1a9edefea05524c",
+      "sha256": "ed99bf422ba0bc9af8a5d6abfc253753caf0a9a6dd8e61220fdcc74e1e79a809",
+      "bytes": 66352
+    },
+    {
+      "file": "press-evidence-frames.webp",
+      "width": 2172,
+      "height": 724,
+      "sourceSha256": "1a610da1172691a95c95b8d9725963f2617c2e0631a85a041c80a821e0b336b4",
+      "sha256": "09b1eec110a59e38e21add7ca81bf8c728ab3d11f49fe4707a5cc49965179441",
+      "bytes": 114976
+    },
+    {
+      "file": "developer-office.webp",
+      "width": 1536,
+      "height": 1024,
+      "sourceSha256": "4ec92295d869bf5c949932063f775fe3f53b90305bf0f411282fbdef80bdac46",
+      "sha256": "2083c0af7ede9ffbf51493458f7dbbd6e84b3ec721f5aec3a8ba1ac4ca688099",
+      "bytes": 85000
+    },
+    {
+      "file": "developer-pairs-accept.webp",
+      "width": 2172,
+      "height": 724,
+      "sourceSha256": "825716d754e9d60129c8c9bf5000390ca91d5b9b29a99e10baeb02ccbfe32df6",
+      "sha256": "20b0a9817f22087669f5a76b6cb3eae68c2cf7baf0d7ab44c2730308d6083682",
+      "bytes": 210800
+    },
+    {
+      "file": "developer-pairs-decline.webp",
+      "width": 2172,
+      "height": 724,
+      "sourceSha256": "33d42deb97e1ac2eaa469143f46fed3a8db2f7b54f1b0495cc71c053f9c10d17",
+      "sha256": "a425fd22c98a53772559eb90b0268864bb64d7947bd7179dba0f4c127942eafa",
+      "bytes": 212034
+    }
+  ]
+}

@@ -1336,6 +1336,7 @@
   window.addEventListener('pagehide', save);
   reduced.addEventListener?.('change', () => { if (reduced.matches && !modal) { if (motion) finishTravel(); if (counting?.status === 'inprogress') finishCounting(); } });
   document.addEventListener('error', event => {
+    if (Art?.eventArtError?.(event.target)) return;
     if (!event.target?.getAttribute?.('data-art-image') || !Art?.isToy?.() || event.target.isConnected === false) return;
     console.warn('Artwork load failed:', event.target.getAttribute('src') || event.target.getAttribute('href'));
     // A missing rain backdrop falls back to the dry one.

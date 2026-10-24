@@ -11,6 +11,17 @@ const kitL=art.kitLayout,runtime=new Set([...Object.values(art.files),...Object.
 for(const name of ['ground','ground-rain','hills-back','river','bridge','tree-a','tree-b',...Object.values(kitL.buildings).map(b=>b[0])])runtime.add('game/map-'+name+'.webp');
 const sourceOf=f=>{const n=f.replace(/^game\//,'').replace(/\.webp$/,'');for(const p of [pack+'incoming/map-kit/'+n.replace(/^map-/,'')+'.png',pack+'incoming/'+n+'.png',pack+n+'.png'])if(fs.existsSync(p))return p;throw Error('no source for '+f);};
 for(const f of runtime){const b=fs.readFileSync(pack+f);assert.ok(b.length<1.5e6,f+' under 1.5 MB');assert.deepEqual(webpSize(b),pngSize(sourceOf(f)),f+' keeps the source pixel size');checks++;}
+// Event files retain their declared dimensions, alpha and integrity after production encoding.
+const crypto=require('node:crypto'),events=JSON.parse(fs.readFileSync(root+'/assets/office-events/manifest.json','utf8'));
+for(const f of events.assets){const b=fs.readFileSync(root+'/assets/office-events/'+f.file);assert.deepEqual(webpSize(b),[f.width,f.height]);assert.equal(crypto.createHash('sha256').update(b).digest('hex'),f.sha256);assert.ok(b.length<300000);if(!['developer-office.webp','press-background.webp'].includes(f.file))assert.ok(b.toString('ascii',12,16)==='VP8X'&&(b[20]&16),'transparent event asset '+f.file);checks++;}
+for(const poses of Object.values(art.emotionFrames))for(const f of poses){assert.ok(f.x>=0&&f.y>=0&&f.x+f.w<=1536&&f.y+f.h<=1024&&f.sole>0&&f.sole<=f.h);checks++;}
+// A square atlas cell must have a square SVG viewport; letterboxing leaks adjacent pairs.
+for(const identity of ['newcomer','heir','incumbent'])for(const state of ['accept','decline']){
+ art.setCandidates({player:{identity,outfit:''}});const svg=art.interior('developer',{state});
+ const m=svg.match(/<svg x="[^"]+" y="[^"]+" width="([\d.]+)" height="([\d.]+)" viewBox="([\d.]+) 0 724 724"/);
+ assert.ok(m,'pair has a bounded atlas viewport');assert.equal(Number(m[1])/Number(m[2]),1,'no letterbox through which neighbours can show');assert.equal(Number(m[3]),['newcomer','heir','incumbent'].indexOf(identity)*724);checks++;
+}
+art.setCandidates({player:{identity:'newcomer',outfit:'casual'}});
 // Component map: the map is built from the kit; streets connect every place; nobody stops behind a building or inside someone else.
 const scene=art.scene();assert.ok(scene.includes('game/map-ground.webp')&&scene.includes('game/map-ground-rain.webp')&&scene.includes('id="kit-paving"')&&scene.includes('game/map-bridge.webp'));for(const b of Object.values(kitL.buildings))assert.ok(scene.includes('game/map-'+b[0]+'.webp'),b[0]);checks+=2;
 // Every building remains a separately placed sprite; compact labels stay below roofs, with room between neighbouring names.
