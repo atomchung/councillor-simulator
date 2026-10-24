@@ -26,6 +26,6 @@
 
 ## 美術來源
 
-`assets/office/office-ldesk.png` 以原辦公室素材（含右側窗戶）由 Codex 內建影像編輯產生：主桌位置不變，從右端加一段 L 型側桌與一張空椅，作為幕僚的位置；桌前地板保持空出供人物走動。角色、地圖與現場沿用原版圖集。
+`assets/office/office-ldesk-aide.png` 與 `office-ldesk-empty.png` 由 Codex 內建影像編輯產生的一組配對背景：L 型辦公桌，幕僚小葉坐在側桌椅子上面向候選人；空椅版只移除小葉，其餘像素一致。小葉坐著時顯示前者；她起身走動或說話時切到後者並改用角色圖。角色、地圖與現場沿用原版圖集。
 
 生成提示：Edit the empty campaign office game background. Keep the exact camera/composition, matte clay toy materials, warm wood palette, desk and chair positions, whiteboard, existing left window, door and floor geometry. Replace only the top of the right bookshelf with a matching wooden two-pane window showing softly blurred green trees and pale sky. Keep lower shelving and foreground desk aligned for existing sprites and occlusion masks. No people, text, UI or rain.

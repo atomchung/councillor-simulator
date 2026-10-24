@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>競選辦公室｜可玩整合試版</title>
-    <link rel="stylesheet" href="office.css?v=office-int-13" />
-    <link rel="stylesheet" href="office-result.css?v=office-int-13" />
+    <link rel="stylesheet" href="office.css?v=office-int-14" />
+    <link rel="stylesheet" href="office-result.css?v=office-int-14" />
   </head>
   <body>
     <main class="shell">
@@ -64,7 +64,8 @@
             </filter>
           </defs>
           <image
-            href="assets/office/office-ldesk.png"
+            id="office-bg"
+            href="assets/office/office-ldesk-aide.png"
             width="1536"
             height="1024"
           />
@@ -205,7 +206,7 @@
           </g>
           <image
             id="desk-mask"
-            href="assets/office/office-ldesk.png"
+            href="assets/office/office-ldesk-aide.png"
             width="1536"
             height="1024"
             clip-path="url(#desk-occlusion)"
@@ -239,6 +240,17 @@
             <text id="desk-plan" x="750" y="508" text-anchor="middle">
               今天做什麼？
             </text>
+          </g>
+          <g
+            id="aide-seat"
+            class="aide-seat seated"
+            role="button"
+            tabindex="0"
+            aria-label="幕僚小葉坐在側桌：點她報告與派工"
+          >
+            <rect x="1045" y="305" width="200" height="315" fill="transparent" />
+            <rect class="aide-tag-bg" x="1083" y="626" width="124" height="34" rx="17" />
+            <text class="aide-tag" x="1145" y="650" text-anchor="middle">小葉 <tspan>幕僚</tspan></text>
           </g>
           <g
             id="staff"
@@ -461,6 +473,6 @@
     <script src="day-engine.js?v=office-1"></script>
     <script src="day-art.js?v=office-1"></script>
     <script src="day-sound.js?v=office-int-7"></script>
-    <script src="office.js?v=office-int-13"></script>
+    <script src="office.js?v=office-int-14"></script>
   </body>
 </html>
