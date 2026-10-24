@@ -152,6 +152,24 @@
 .rr-chips li.down b {
   color: var(--rr-down);
 }
+/* One-line hindsight on a question round, as in the original recap. */
+.rr-hindsight {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: #45524b;
+}
+.rr-hindsight b {
+  margin-right: 6px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: #f1eee2;
+  font-size: 12px;
+}
+.rr-hindsight.warn b {
+  background: var(--rr-down-soft);
+  color: var(--rr-down);
+}
 .rr-next {
   display: grid;
   gap: 5px;

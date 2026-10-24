@@ -876,4 +876,67 @@ for (const background of ["newcomer", "heir", "incumbent"]) {
     "saves from before the count was tracked never replay it",
   );
 }
+// Engine facts restored on the office screens: chiefs, researched topics, origin and vote bank.
+{
+  const base = state(24, "newcomer"),
+    venues = G.venueView(base),
+    pick = venues.find((v) => v.pool.length) || venues[0],
+    topic = pick.pool[0];
+  if (!base.player.known.includes(topic)) base.player.known.push(topic);
+  const h = harness({ s: clone(base), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("choose('canvass',{venue:'market'});planDetail()");
+  const body = h.nodes["sheet-body"].innerHTML,
+    chief = G.chiefPreview(base, "market");
+  ok(body.includes(chief.name) && body.includes("已訪 " + chief.visits + "/" + chief.need + " 次"), "venue button shows the chief's visits");
+  ok(body.includes("chief-note"), "chief line sits on the venue button");
+  ok(body.includes(G.TOPICS[topic].short + " ✓"), "researched topic marked on its venue");
+  const unknown = venues.flatMap((v) => v.pool).find((t) => !base.player.known.includes(t));
+  if (unknown) ok(!body.includes(G.TOPICS[unknown].short + " ✓"), "unresearched topic left unmarked");
+  h.run("mapPanel()");
+  ok(h.nodes["sheet-body"].innerHTML.includes("市場老里長"), "wall map lists the chiefs");
+  h.run("network()");
+  ok(h.nodes["sheet-body"].innerHTML.includes("廟口里長"), "local team panel lists the chiefs");
+  h.run("polls()");
+  const o = G.originView(base), route = G.routeView(base);
+  ok(h.nodes["sheet-body"].innerHTML.includes(o.title) && h.nodes["sheet-body"].innerHTML.includes(route.perk), "poll folder shows origin and vote bank");
+  h.run("newGame()");
+  const seed = h.run("nextSeed"),
+    card = h.nodes["sheet-body"].innerHTML;
+  ok(card.includes("本局出身") && card.includes("基本盤"), "character cards show origin and vote bank");
+  for (const id of Object.keys(G.BACKGROUNDS))
+    ok(card.includes(G.originView(G.initial(seed), id).title), "card origin for " + id + " matches the seed");
+  h.footer();
+  eq(h.state().seed, seed, "the new game uses the previewed seed");
+  // A broken chief reads as on your side.
+  const won = clone(base);
+  won.chiefs.market.broken = true;
+  const w = harness({ s: won, cfg: { research: [] }, action: null, tutorialDone: true });
+  w.run("choose('canvass',{venue:'market'});planDetail()");
+  ok(w.nodes["sheet-body"].innerHTML.includes("★ 市場老里長相挺"), "won chief marked with a star");
+}
+// Hindsight: the other answers are tried on copies only; the real answer applies once and the line survives reload.
+{
+  const base = state(24, "heir"),
+    h = harness({ s: clone(base), cfg: { research: [] }, action: null, tutorialDone: true });
+  h.run("choose('canvass',{venue:'street'})");
+  h.footer();
+  h.run("finishTravel()");
+  eq(h.state().phase, "question", "question reached");
+  const q = G.question(h.state()),
+    i = q.options.findIndex((o) => o.unlocked);
+  ok(q.options.filter((o) => o.unlocked).length >= 2, "question has alternatives to compare");
+  h.nodes.actions.children[i].onclick();
+  const got = h.state(),
+    hs = got.hindsight?.[got.day];
+  ok(hs && hs.chosen === q.options[i].text, "hindsight stored for the round");
+  ok(h.nodes["round-result"].innerHTML.includes("rr-hindsight") && h.nodes["round-result"].innerHTML.includes("檢討"), "result card shows the hindsight line");
+  G.begin(base, "canvass", { research: [], booth: false, venue: "street" });
+  G.arrive(base);
+  G.answer(base, q.options[i].id);
+  const bare = clone(got);
+  delete bare.hindsight;
+  eq(bare, base, "hindsight leaves the campaign state as a plain answer");
+  const reload = harness(h.snapshot());
+  eq(reload.state().hindsight, got.hindsight, "reload keeps the hindsight");
+}
 console.log(JSON.stringify({ result: "passed", assertions: checks }));

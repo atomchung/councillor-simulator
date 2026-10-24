@@ -65,7 +65,9 @@ let s,
   travelFrame = 0,
   soundedRecap = 0,
   soundedEnding = false,
-  selectingCharacter = false;
+  selectingCharacter = false,
+  // Seed of the campaign being picked in the character panel, so its cards show that game's origins.
+  nextSeed = null;
 function later(fn, delay) {
   const e = epoch;
   timers.push(
@@ -102,7 +104,8 @@ function save() {
 }
 function fresh(settings = newSettings) {
   clearTimers();
-  s = G.initial(Math.floor(Math.random() * 1000000));
+  s = G.initial(nextSeed ?? Math.floor(Math.random() * 1000000));
+  nextSeed = null;
   G.configure(s, settings);
   G.start(s);
   action = null;
@@ -116,18 +119,34 @@ function fresh(settings = newSettings) {
   office();
   tutorial(0);
 }
+// Atlas crops; card portraits are bottom-aligned so a wide crop never shows the next row's head below it.
 const PORTRAITS = {
   newcomer: "223 22 199 356",
   heir: "676 24 213 349",
-  incumbent: "1076 35 254 341",
+  incumbent: "1076 35 254 345",
 };
 function newGame() {
   clearTimers();
   selectingCharacter = true;
+  nextSeed = Math.floor(Math.random() * 1000000);
   newSettings = {
     ...(s?.settings || { background: "newcomer", affiliation: "independent" }),
   };
   characterPanel();
+}
+// This game's origin preset and vote bank for one identity, as the original opening cards show them.
+function originMarkup(id) {
+  const t = G.initial(nextSeed ?? s?.seed ?? 0, { ...newSettings, background: id }),
+    o = G.originView?.(t, id),
+    b = G.baseView?.(t, id);
+  return (
+    (o
+      ? `<span class="origin-line" title="${esc(o.info)}"><i>本局出身</i><b>${esc(o.title)}</b><em class="og">＋${esc(o.good)}</em><em class="ob">－${esc(o.bad)}</em></span>`
+      : "") +
+    (b
+      ? `<span class="origin-line base" title="${esc(b.perkText)}"><i>基本盤</i><b>${esc(b.title)}</b><em class="og">＋${esc(b.perk)}</em></span>`
+      : "")
+  );
 }
 function characterPanel() {
   showPanel(
@@ -137,7 +156,7 @@ function characterPanel() {
     )
       .map(
         (b) =>
-          `<button data-action="identity" data-id="${b.id}" aria-pressed="${newSettings.background === b.id}"><svg viewBox="${PORTRAITS[b.id]}" aria-hidden="true"><image href="assets/matte-toy-v1/game/candidates.webp" width="1536" height="1024"/></svg><span><strong>${G.candidateName({ ...newSettings, background: b.id })} · ${b.title}</strong><small>${b.id === "newcomer" ? "擅長街訪、議題熟；經費少。" : b.id === "heir" ? "家族有人脈、經費多；議題要從頭準備。" : "有團隊與基本盤；舊承諾會被追問。"}</small></span></button>`,
+          `<button data-action="identity" data-id="${b.id}" aria-pressed="${newSettings.background === b.id}"><svg viewBox="${PORTRAITS[b.id]}" preserveAspectRatio="xMidYMax meet" aria-hidden="true"><image href="assets/matte-toy-v1/game/candidates.webp" width="1536" height="1024"/></svg><span><strong>${G.candidateName({ ...newSettings, background: b.id })} · ${b.title}</strong><small>${b.id === "newcomer" ? "擅長街訪、議題熟；經費少。" : b.id === "heir" ? "家族有人脈、經費多；議題要從頭準備。" : "有團隊與基本盤；舊承諾會被追問。"}</small>${originMarkup(b.id)}</span></button>`,
       )
       .join(
         "",
@@ -765,6 +784,42 @@ function startLabel() {
         : "出門去" + placeLabel(p) + " →";
 }
 
+// A village chief's standing at a place: still a stranger (visits so far), won over on the next visit, or on your side.
+function chiefText(c) {
+  if (!c) return "";
+  if (c.broken) return "★ " + c.name + "相挺";
+  const bloc = G.TUNING?.chief?.bloc,
+    gain = bloc ? "＋組織票約 " + num(bloc) : "";
+  if (c.breaks)
+    return (
+      c.name +
+      "：" +
+      (c.need ? "已訪 " + c.visits + "/" + c.need + " 次，" : "") +
+      "這次去就破冰" +
+      (gain ? "（" + gain + "）" : "")
+    );
+  return (
+    c.name +
+    "：已訪 " +
+    c.visits +
+    "/" +
+    c.need +
+    " 次（" +
+    (c.visits ? "再訪 " : "去 ") +
+    (c.need - c.visits) +
+    " 次破冰" +
+    gain +
+    "）"
+  );
+}
+const chiefNote = (c) =>
+  c ? `<small class="chief-note${c.broken ? " won" : ""}">${esc(chiefText(c))}</small>` : "";
+function chiefList() {
+  const list = G.chiefView?.(s) || [];
+  return list.length
+    ? `<div class="section-label">里長</div>${list.map((c) => `<p class="chief-row${c.broken ? " won" : ""}"><b>${esc(c.title)}</b> ${esc(chiefText(c))}</p>`).join("")}`
+    : "";
+}
 function planDetail() {
   if (s.phase !== "plan") return resume();
   if (!action) return catalog();
@@ -777,7 +832,7 @@ function planDetail() {
       G.venueView(s)
         .map(
           (v) =>
-            `<button data-action="venue" data-id="${v.id}" aria-pressed="${(cfg.venue || "market") === v.id}"><strong>${v.title}</strong><small>${v.mainTitle}多 · ${v.pool.map(TOPIC).join("、")}</small></button>`,
+            `<button data-action="venue" data-id="${v.id}" aria-pressed="${(cfg.venue || "market") === v.id}"><strong>${v.title}</strong><small>${v.mainTitle}多 · ${v.pool.map((t) => TOPIC(t) + (known.includes(t) ? " ✓" : "")).join("、")}</small>${chiefNote(G.chiefPreview(s, v.id))}</button>`,
         )
         .join("") +
       "</div>";
@@ -954,7 +1009,7 @@ function mapPanel() {
     platform = G.platformView(s);
   showPanel(
     "牆上的選戰地圖",
-    `<p>${esc(c.plan ? c.hint : "跑過的地方會記在這裡。")}</p>${mapMarkup()}<p class="key">數字＝你跑過的次數；點地點排街訪。</p><div class="tabs"><button data-open="strategy">調整選戰方向</button><button data-open="teamhub">團隊與招募</button></div><div class="section-label">目前走到哪裡</div>${c.progress.map((p) => `<p style="margin:6px 0">${p.done ? "✓" : "○"} ${esc(p.label)}</p>`).join("")}<div class="section-label">已公開的承諾</div>${platform.items.length ? platform.items.map((p) => `<p>${esc(p.quote || p.text || p.title)}<small>第 ${p.day || p.round || "?"} 回合</small></p>`).join("") : '<p class="empty">還沒公開具體政見；研究不算承諾。</p>'}<details><summary>行動足跡 · ${s.journal.length} 回合</summary><ol class="route-history">${s.journal.map((j) => `<li>第 ${j.day} 回合 · ${esc(placeLabel({ id: j.player.action, venueTitle: j.player.venueTitle }) || "辦公室")} · ${NAMES[j.player.action]}<br>${esc(j.player.quote || j.player.result || j.summary.headline)}</li>`).join("") || "<li>還沒出發。</li>"}</ol></details>`,
+    `<p>${esc(c.plan ? c.hint : "跑過的地方會記在這裡。")}</p>${mapMarkup()}<p class="key">數字＝你跑過的次數；點地點排街訪。</p><div class="tabs"><button data-open="strategy">調整選戰方向</button><button data-open="teamhub">團隊與招募</button></div>${chiefList()}<div class="section-label">目前走到哪裡</div>${c.progress.map((p) => `<p style="margin:6px 0">${p.done ? "✓" : "○"} ${esc(p.label)}</p>`).join("")}<div class="section-label">已公開的承諾</div>${platform.items.length ? platform.items.map((p) => `<p>${esc(p.quote || p.text || p.title)}<small>第 ${p.day || p.round || "?"} 回合</small></p>`).join("") : '<p class="empty">還沒公開具體政見；研究不算承諾。</p>'}<details><summary>行動足跡 · ${s.journal.length} 回合</summary><ol class="route-history">${s.journal.map((j) => `<li>第 ${j.day} 回合 · ${esc(placeLabel({ id: j.player.action, venueTitle: j.player.venueTitle }) || "辦公室")} · ${NAMES[j.player.action]}<br>${esc(j.player.quote || j.player.result || j.summary.headline)}</li>`).join("") || "<li>還沒出發。</li>"}</ol></details>`,
     { text: "看完了，回辦公室", fn: closePanel },
   );
 }
@@ -983,10 +1038,11 @@ function polls() {
   const e = officeEstimate(),
     r = G.raceView(s),
     route = G.routeView(s),
-    rumor = G.rumorView(s);
+    rumor = G.rumorView(s),
+    origin = G.originView?.(s);
   showPanel(
     "選情夾 · " + (e.poll ? "本回合民調" : "幕僚估計"),
-    `<div class="statline"><span>目前估計<b>第 ${r.rank} 名</b></span><span>距當選線<b>${num(Math.max(0, r.line - r.you))} 票</b></span></div><p>${s.pollReports?.length ? "依最新民調與後續訪查估計" : "選前初估，街坊回報還少"}。黑線是我們的基本盤目標。</p>${e.groups.map((g, i) => `<div class="poll-row"><b>${g.title}</b><div class="poll-track"><i class="poll-range" style="left:${Math.min((g.lo / 12) * 100, 95)}%;width:${Math.max(2, Math.min(((g.hi - g.lo) / 12) * 100, 100 - (g.lo / 12) * 100))}%"></i><i class="poll-target" style="left:${Math.min((route.targets[i].pct / 12) * 100, 98)}%"></i></div><span>${g.lo}–${g.hi}%</span></div>`).join("")}<div class="section-label">小馬的動向</div><p>${esc(rumor.text || "目前沒有新消息。")} <span class="badge">${esc(rumor.reliability || "傳聞")}</span></p><div class="tabs"><button data-open="files">查證與爆料檔案</button><button data-open="map">看走過的地方</button></div>`,
+    `<div class="statline"><span>目前估計<b>第 ${r.rank} 名</b></span><span>距當選線<b>${num(Math.max(0, r.line - r.you))} 票</b></span></div><p>${s.pollReports?.length ? "依最新民調與後續訪查估計" : "選前初估，街坊回報還少"}。黑線是我們的基本盤目標。</p>${e.groups.map((g, i) => `<div class="poll-row"><b>${g.title}${route && route.group === i ? '<i class="poll-star" aria-label="主力">★</i>' : ""}</b><div class="poll-track"><i class="poll-range" style="left:${Math.min((g.lo / 12) * 100, 95)}%;width:${Math.max(2, Math.min(((g.hi - g.lo) / 12) * 100, 100 - (g.lo / 12) * 100))}%"></i><i class="poll-target" style="left:${Math.min((route.targets[i].pct / 12) * 100, 98)}%"></i></div><span>${g.lo}–${g.hi}%</span></div>`).join("")}<div class="section-label">出身與基本盤</div>${origin ? `<p class="origin-line"><i>出身</i><b>${esc(origin.title)}</b><em class="og">＋${esc(origin.good)}</em><em class="ob">－${esc(origin.bad)}</em><small>${esc(origin.info)}</small></p>` : ""}${route ? `<p class="origin-line base"><i>基本盤</i><b>${esc(route.title)}</b><em class="og">＋${esc(route.perk)}</em><small>${esc(route.perkText)}</small></p>` : ""}<div class="section-label">小馬的動向</div><p>${esc(rumor.text || "目前沒有新消息。")} <span class="badge">${esc(rumor.reliability || "傳聞")}</span></p><div class="tabs"><button data-open="files">查證與爆料檔案</button><button data-open="map">看走過的地方</button></div>`,
     { text: "闔上選情夾", fn: closePanel },
   );
 }
@@ -994,9 +1050,9 @@ function network() {
   const n = G.networkView(s);
   showPanel(
     "地方小隊",
-    n.active
+    (n.active
       ? `<p>小隊和受薪助手分開，只能去實際支持你的地方、講已公開政見。</p><label>地點 <select id="network-venue">${n.venues.map((v) => `<option value="${v.id}" ${v.id === n.venue ? "selected" : ""}>${v.title}</option>`).join("")}</select></label><p><label>政見 <select id="network-topic">${n.topics.map((t) => `<option value="${t.id}" ${t.id === n.topic ? "selected" : ""}>${esc(t.title)}</option>`).join("")}</select></label></p>${!n.topics.length ? "<p>還沒有可交給小隊講的具體政見。</p>" : ""}`
-      : "<p>還沒成立地方小隊。先公開具體政見，跑熟一個地方，讓當地人願意替你繼續跑。</p>",
+      : "<p>還沒成立地方小隊。先公開具體政見，跑熟一個地方，讓當地人願意替你繼續跑。</p>") + chiefList(),
     { text: "回辦公室", fn: closePanel },
   );
 }
@@ -1704,6 +1760,60 @@ function reactionFaces(list) {
       .join("")
   );
 }
+/* Hindsight, as in the original (day-ui.js): every other unlocked answer is replayed on a deep copy with the
+   same draws, so the result card can say what a better answer was worth. The live state is answered once. */
+function alternatives(id) {
+  if (s.pending?.topic === "tip") return null;
+  const base = JSON.stringify(s);
+  return G.question(s)
+    .options.filter((o) => o.unlocked && o.id !== id)
+    .map((o) => {
+      const t = JSON.parse(base);
+      return G.answer(t, o.id)
+        ? { text: o.text, total: t.recap.totalVotes, byGroup: t.recap.totalByGroup || null }
+        : null;
+    })
+    .filter(Boolean);
+}
+function remember(alts, option) {
+  if (!alts || !s.recap) return;
+  const r = s.recap,
+    best = [...alts].sort((a, b) => b.total - a.total)[0],
+    gain = best ? best.total - r.totalVotes : 0;
+  (s.hindsight ||= {})[s.day] = {
+    chosen: option.text,
+    best:
+      gain >= 1
+        ? {
+            text: best.text,
+            gain,
+            byGroup:
+              best.byGroup && r.totalByGroup
+                ? best.byGroup.map((v, k) => v - r.totalByGroup[k])
+                : null,
+          }
+        : null,
+  };
+}
+const HINDSIGHT_MIN = 30;
+// One line: the better answer and the group that would have made the difference.
+function hindsightLine(h) {
+  if (!h) return null;
+  if (!h.best || h.best.gain < HINDSIGHT_MIN) return ["這題你答得最好。", ""];
+  const k = h.best.byGroup ? h.best.byGroup.indexOf(Math.max(...h.best.byGroup)) : -1;
+  return [
+    "答「" +
+      h.best.text +
+      "」約多 " +
+      num(h.best.gain) +
+      " 票" +
+      (k >= 0 && h.best.byGroup[k] >= 1
+        ? "，差在" + groupTitle(k) + "（" + signed(h.best.byGroup[k]) + "）"
+        : "") +
+      "。",
+    "warn",
+  ];
+}
 function ask() {
   field();
   sfx.play("question");
@@ -1723,7 +1833,9 @@ function ask() {
       disabled: !o.unlocked,
       fn: () => {
         if (s.phase !== "question") return;
+        const alts = alternatives(o.id);
         if (G.answer(s, o.id)) {
+          remember(alts, o);
           save();
           recap();
         }
@@ -1873,6 +1985,10 @@ function resultView(r) {
     text: first ? first + "。" : "",
   };
 }
+function hindsightMarkup(r) {
+  const h = r.player?.topic ? hindsightLine(s.hindsight?.[r.day]) : null;
+  return h ? `<p class="rr-hindsight ${h[1]}"><b>檢討</b>${esc(h[0])}</p>` : "";
+}
 function resultMarkup(r, v) {
   const sum = r.summary || {},
     before = sum.before || { rank: r.raceBefore?.rank },
@@ -1903,6 +2019,7 @@ function resultMarkup(r, v) {
     (chips.length
       ? `<ul class="rr-chips">${chips.map((x) => `<li class="${toneOf(x.votes)}">${esc(x.label)} <b>${signed(x.votes)}</b></li>`).join("")}</ul>`
       : "") +
+    hindsightMarkup(r) +
     `<div class="rr-next"><i class="rr-timer"></i><span>${last ? "點一下前往開票" : "點一下繼續 · 第 " + (r.day + 1) + " 回合"}</span></div>`
   );
 }
