@@ -2005,3 +2005,53 @@ select {
   margin-right: 6px;
   color: #2f5d50;
 }
+
+/* 小葉 faces where she walks; the sprite's own transform makes her face left, and dropping it faces her right. */
+#staff.face-right .body > g {
+  transform: none;
+}
+
+/* Today's next step on the empty floor; desktop keeps the desk entry only. */
+.dock {
+  display: none;
+}
+@media (max-width: 900px) {
+  .dock:not([hidden]) {
+    position: absolute;
+    left: 10px;
+    right: 10px;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border-radius: 16px;
+    background: #fffaf0;
+    border: 1px solid #ded8c6;
+    box-shadow: 0 6px 18px rgba(80, 60, 30, 0.12);
+  }
+  .dock p {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.55;
+    color: #3c4a44;
+  }
+  .dock-actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+  }
+  .dock-actions button {
+    min-height: 44px;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font: inherit;
+    font-size: 15px;
+  }
+  .dialogue:not(.hidden) ~ .dock,
+  .field .dock {
+    display: none;
+  }
+  #desk-hotspot {
+    display: none;
+  }
+}

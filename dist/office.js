@@ -162,7 +162,7 @@ function characterPanel() {
   );
 }
 function tutorial(step) {
-  move("staff", 1060, 315, 0.7);
+  staffHome();
   const name = G.candidateName(s.settings),
     r = G.raceView(s),
     n = capacity();
@@ -254,6 +254,77 @@ function move(id, x, y, scale = 1, away = false) {
     matchMedia("(prefers-reduced-motion:reduce)").matches ? 0 : 650,
   );
 }
+// 小葉 walks the office floor between fixed spots. Links only join spots with clear floor between them,
+// so a route from her post to the window goes around the front of the desk, never across it.
+const STAFF_SPOTS = {
+    post: [1060, 315, 0.7],
+    frontRight: [905, 468, 0.78],
+    frontLeft: [430, 476, 0.78],
+    window: [300, 322, 0.7],
+  },
+  STAFF_LINKS = {
+    post: ["frontRight"],
+    frontRight: ["post", "frontLeft"],
+    frontLeft: ["frontRight", "window"],
+    window: ["frontLeft"],
+  },
+  STAFF_STEP_MS = 1300;
+let staffSpot = "post",
+  staffRoute = 0;
+function staffPath(from, to) {
+  const seen = { [from]: null },
+    queue = [from];
+  while (queue.length) {
+    const at = queue.shift();
+    if (at === to) break;
+    for (const n of STAFF_LINKS[at])
+      if (!(n in seen)) {
+        seen[n] = at;
+        queue.push(n);
+      }
+  }
+  const path = [];
+  for (let at = to; at && at !== from; at = seen[at]) path.unshift(at);
+  return path;
+}
+function staffGo(to) {
+  const route = ++staffRoute,
+    path = staffPath(staffSpot, to);
+  if (!path.length) return move("staff", ...STAFF_SPOTS[staffSpot]);
+  const step = (i) => {
+    if (route !== staffRoute || i >= path.length) return;
+    const [x0] = STAFF_SPOTS[staffSpot],
+      [x, y, k] = STAFF_SPOTS[path[i]];
+    $("staff").classList.toggle("face-right", x > x0);
+    staffSpot = path[i];
+    move("staff", x, y, k);
+    setTimeout(() => step(i + 1), STAFF_STEP_MS);
+  };
+  step(0);
+}
+// Back to her post whenever she has something to say or the scene changes.
+function staffHome() {
+  staffGo("post");
+}
+// While the player looks around the office, she wanders to a neighbouring spot every few seconds.
+function staffWander() {
+  setTimeout(staffWander, 4500);
+  if (
+    !s ||
+    s.phase !== "plan" ||
+    document.hidden ||
+    $("sheet").open ||
+    !$("dialogue").classList.contains("hidden") ||
+    $("room").classList.contains("field") ||
+    $("staff").classList.contains("gone") ||
+    matchMedia("(prefers-reduced-motion:reduce)").matches
+  )
+    return;
+  if (Math.random() < 0.5) return;
+  const next = STAFF_LINKS[staffSpot];
+  staffGo(next[Math.floor(Math.random() * next.length)]);
+}
+setTimeout(staffWander, 4500);
 function toast(text) {
   if ($("sheet").open) {
     $("sheet-status").textContent = text;
@@ -271,7 +342,7 @@ function hideTalk() {
   $("dialogue").classList.remove("alarm");
   dialogueKind = "";
   settleVisitor();
-  if (s.phase === "plan") move("staff", 1060, 315, 0.7);
+  if (s.phase === "plan") staffHome();
   $("staff").focus();
   if (s.phase === "plan" && !$("sheet").open) queueVisitor();
 }
@@ -418,6 +489,18 @@ function pending() {
 function urgent() {
   return s.crisis?.status === "pending" || !!G.offerView(s);
 }
+// Phones: the empty floor under the office holds today's next step, so the plan is never hidden behind the desk.
+function syncDock() {
+  const show = s.phase === "plan" && s.crisis?.status !== "pending" && (s.day > 1 || tutorialDone);
+  $("dock").hidden = !show;
+  if (!show) return;
+  const a = advice();
+  $("dock-tip").textContent = a.title + " " + a.sub;
+  $("dock-pick").textContent = a.pick.text;
+  $("dock-pick").onclick = a.pick.fn;
+  $("dock-own").textContent = action ? "回到我排的行程" : "自己排行程";
+  $("dock-own").onclick = () => (action ? planDetail() : catalog());
+}
 function sync() {
   const p = s.phase === "plan" ? preview() : s.pending || preview();
   $("round").textContent =
@@ -487,7 +570,7 @@ function office() {
   $("visitor").classList.remove("waiting");
   visitorFor = "";
   clearReaction();
-  move("staff", 1060, 315, 0.7);
+  staffHome();
   $("dialogue").classList.add("hidden");
   sync();
 }
@@ -579,7 +662,7 @@ function advice() {
 function brief() {
   if (s.phase !== "plan") return resume();
   if (s.day === 1 && !tutorialDone) return tutorial(0);
-  move("staff", 1060, 315, 0.7);
+  staffHome();
   let title,
     sub,
     choices = [];
@@ -964,7 +1047,7 @@ function inbox() {
   if (cr?.status === "pending") {
     // Whoever came to the door waits there while the crisis is handled.
     if (visitorFor) visitorWait();
-    move("staff", 1060, 315, 0.7);
+    staffHome();
     const key = cr.round + ":" + cr.kind,
       first = alarmed !== key;
     alarmed = key;
@@ -2547,6 +2630,7 @@ function sceneStatus() {
   }
   syncSettings();
   audioScene();
+  syncDock();
 }
 $("settings-open").onclick = settingsOpen;
 $("settings-close").onclick = () => $("settings").close();
