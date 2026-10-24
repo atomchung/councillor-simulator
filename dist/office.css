@@ -661,6 +661,30 @@ button.primary small {
 .rows strong {
   font-size: 15px;
 }
+/* Assistant research entry: visible on the first plan screens, not buried in the team hub. */
+.research-entry {
+  display: block;
+  width: 100%;
+  text-align: left;
+  min-height: 52px;
+  padding: 10px 14px;
+  margin: 12px 0;
+  border: 2px dashed var(--teal);
+  background: #eef4ef;
+}
+.rows > .research-entry {
+  margin: 0;
+}
+.research-entry strong {
+  display: block;
+  color: var(--teal);
+  font-size: 15px;
+}
+.research-entry small {
+  display: block;
+  font-size: 12px;
+  color: var(--muted);
+}
 .section-label {
   font-size: 13px;
   font-weight: 700;

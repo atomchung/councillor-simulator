@@ -164,25 +164,26 @@ function characterPanel() {
 function tutorial(step) {
   move("staff", 1010, 300, 0.75);
   const name = G.candidateName(s.settings),
-    r = G.raceView(s);
+    r = G.raceView(s),
+    n = capacity();
   const pages = [
     {
-      line: `${name}，我們有 ${G.DAYS} 回合，把支持拉過當選線。`,
-      sub: `目前估計差 ${num(Math.max(0, r.line - r.you))} 票。先抓住願意聽你的街坊，再讓更多人知道你想做什麼。牆上地圖會記下我們跑過的地方。`,
-      next: "我要怎麼開始？",
+      line: `${name}，${G.DAYS} 回合內要衝過當選線。`,
+      sub: `還差 ${num(Math.max(0, r.line - r.you))} 票。每回合你親自跑一個行程。`,
+      next: "下一步",
     },
     {
-      line: "你每天親自做一件事，我們同時幫你查資料。",
-      sub: "研究讓你說得出具體做法；街訪讓人認識你、聽見需求。先查再講，或先去聽，都能開始。助手研究要到下一回合才有成果。",
-      next: "先決定我的第一步",
+      line: n ? `${n} 位助手可同時研究議題。` : "助手可同時研究議題。",
+      sub: "不占你的行程；查過的題，現場看得到各群反應。",
+      next: "選第一步",
     },
   ];
   if (step < 2) {
     const p = pages[step];
-    say("staff", "小葉 · 選戰第一天", p.line, p.sub, [
+    say("staff", `小葉 · 教學 ${step + 1}/3`, p.line, p.sub, [
       { text: p.next, fn: () => tutorial(step + 1), primary: true },
       {
-        text: "我熟悉了，直接排行程",
+        text: "略過教學",
         fn: () => {
           tutorialDone = true;
           save();
@@ -196,13 +197,13 @@ function tutorial(step) {
   save();
   say(
     "staff",
-    "小葉 · 選戰第一天",
-    "這次，先從哪裡打開局面？",
-    "地方路線先跑熟街坊；宣傳路線先備好議題，再去節目。之後隨時可以調整。",
+    "小葉 · 教學 3/3",
+    "第一步做哪個？",
+    "街訪拉地方支持；研究讓你答得出具體做法。",
     [
       {
         text: "先跑地方",
-        note: "安排市場街訪",
+        note: "市場街訪",
         fn: () => {
           G.setCampaignPlan(s, "organization");
           choose("canvass", { venue: "market" });
@@ -210,8 +211,8 @@ function tutorial(step) {
         primary: true,
       },
       {
-        text: "先備議題，再做宣傳",
-        note: "安排本人研究",
+        text: "先備議題",
+        note: "本人研究，之後上節目",
         fn: () => {
           G.setCampaignPlan(s, "media");
           choose("prepare");
@@ -485,6 +486,63 @@ function office() {
   $("dialogue").classList.add("hidden");
   sync();
 }
+// Assistants not yet assigned; unassigned ones still follow you or canvass.
+function freeHelpers() {
+  return Math.max(0, capacity() - used());
+}
+// Most-watched issue the campaign has no read on yet (latest poll, else base weights).
+function hotUnknownTopic() {
+  const issues = s.polls?.at(-1)?.issues || s.landscape?.weights || {},
+    ids = G.availableTopics(s)
+      .map((t) => t.id)
+      .filter((t) => t !== "tip");
+  return (
+    ids
+      .filter(
+        (t) =>
+          !s.player.insight?.[t] &&
+          !(cfg.research || []).includes(t) &&
+          !(action === "prepare" && cfg.topic === t),
+      )
+      .sort((a, b) => (issues[b] || 0) - (issues[a] || 0))[0] || null
+  );
+}
+function researchEntry() {
+  if (!capacity()) return "";
+  const picked = (cfg.research || []).map(TOPIC);
+  return `<button class="research-entry" data-open="team"><strong>派助手研究 · ${freeHelpers()} 位可派</strong><small>${picked.length ? "已派：" + esc(picked.join("、")) : "不占你的行程"}</small></button>`;
+}
+// Staff advice picks from current state: last result, rounds left, unread issues, race gap.
+function advice() {
+  const last = s.journal.at(-1),
+    r = G.raceView(s),
+    gap = num(Math.max(0, r.line - r.you)),
+    left = G.DAYS - s.day + 1,
+    free = freeHelpers(),
+    hot = hotUnknownTopic(),
+    standing = `估計第 ${r.rank} 名，差 ${gap} 票。`;
+  const researched = [
+    ...new Set(
+      (last?.player.teamReports || [])
+        .filter((x) => x.task === "research" && x.knowledge)
+        .map((x) => x.knowledge),
+    ),
+  ];
+  const title =
+    last?.player.action === "prepare"
+      ? `「${TOPIC(last.player.topic)}」查好了，今天能帶去現場。`
+      : last
+        ? (last.player.result || last.summary.headline).split("。")[0] + "。"
+        : standing;
+  let sub = last ? standing : "先選今天的主行程。";
+  if (researched.length)
+    sub = `助手查好「${researched.map(TOPIC).join("、")}」，今天能用。`;
+  else if (left <= 2)
+    sub = `只剩 ${left} 回合，帶已公開的政見去拉票。`;
+  else if (free && hot)
+    sub = `「${TOPIC(hot)}」最多人關心還沒查，${free} 位助手可派。`;
+  return { title, sub, researched, free, hot };
+}
 function brief() {
   if (s.phase !== "plan") return resume();
   if (s.day === 1 && !tutorialDone) return tutorial(0);
@@ -492,67 +550,33 @@ function brief() {
   let title,
     sub,
     choices = [];
-  const last = s.journal.at(-1),
-    known = s.player.known.filter((t) => t !== "tip");
   if (s.crisis?.status === "pending") {
     title = "有人爆料，出發前得先回應。";
     sub = s.crisis.text;
     choices.push({ text: "聽小葉說明", fn: inbox, primary: true });
-  } else if (s.day === 1 && !action) {
-    title = "先挑一條能講清楚的政見，再決定去哪裡說。";
-    sub = "本人研究占主行程；也能派助手查資料，下回合帶著成果出門。";
-    const t = G.venueView(s).find((x) => x.id === "market").pool[0];
-    choices = [
-      {
-        text: "先準備，再搶曝光",
-        note: "安排研究，下回合上節目",
-        primary: true,
-        fn: () => {
-          G.setCampaignPlan(s, "media");
-          choose("prepare", {
-            topic: G.tvPool(s).find((x) => !s.player.studied?.[x]) || t,
-          });
-        },
-      },
-      {
-        text: "先從市場累積支持",
-        note: "安排街訪；沒研究的題先聽需求",
-        fn: () => {
-          G.setCampaignPlan(s, "organization");
-          choose("canvass", { venue: "market" });
-        },
-      },
-    ];
   } else {
-    title =
-      last?.player.action === "prepare"
-        ? TOPIC(last.player.topic) + "資料已備妥，這回合可以帶去現場。"
-        : last
-          ? (last.player.result || last.summary.headline).split("。")[0]
-          : "今天只親自跑一個行程。";
-    const p = G.preview(s, action || "canvass", cfg),
-      pool = p.pool || [];
-    const researched = [
-      ...new Set(
-        (last?.player.teamReports || [])
-          .filter((r) => r.task === "research" && r.knowledge)
-          .map((r) => r.knowledge),
-      ),
-    ];
-    sub = researched.length
-      ? `我們查好了${researched.map(TOPIC).join("、")}，今天就能帶去談。可以先看筆記，再挑人潮合適的地方。`
-      : action && pool.length
-        ? `這個行程可能問到${pool.map(TOPIC).join("、")}。${pool.some((t) => !known.includes(t)) ? "還有沒準備的題，助手今天查、下回合用。" : "這幾題已有資料。"}`
-        : "先選今天要接觸誰，再安排主行程。我們可以同時查資料、擺募款攤或陪你出門。";
+    const a = advice();
+    title = a.title;
+    sub = a.sub;
     choices = [
-      { text: "打開桌上行程", fn: catalog, primary: true },
-      researched.length
-        ? { text: "看看剛查好的資料", fn: knowledge }
-        : { text: "團隊與招募", fn: teamHub },
+      { text: action ? "回到今天的行程" : "排今天的行程", fn: () => (action ? planDetail() : catalog()), primary: true },
+      a.researched.length
+        ? { text: "看研究筆記", fn: knowledge }
+        : a.free && a.hot
+          ? {
+              text: `派助手查「${TOPIC(a.hot)}」`,
+              note: `${a.free} 位可派`,
+              fn: () => {
+                cfg.research = [...new Set([...(cfg.research || []), a.hot])];
+                sync();
+                team();
+              },
+            }
+          : { text: "團隊與招募", fn: teamHub },
     ];
   }
-  say("staff", "小葉 · 本回合只說重點", title, sub, choices);
-  const b = button("知道了，先讓我看看辦公室", hideTalk);
+  say("staff", `小葉 · 第 ${s.day} 回合`, title, sub, choices);
+  const b = button("先看看辦公室", hideTalk);
   b.className = "optional";
   $("details").append(b);
 }
@@ -576,8 +600,8 @@ function choose(id, extra = {}) {
 function catalog() {
   if (s.phase !== "plan") return resume();
   showPanel(
-    "今天，把力氣放在哪裡？",
-    `<p>選一個主行程，助手和地方小隊同步出動。</p><div class="rows"><button data-action="select" data-id="canvass"><strong>跑地方</strong><small>拜訪街坊，累積地方支持</small></button><button data-action="category" data-id="publicity"><strong>做宣傳</strong><small>造勢・電視・直播${s.day === G.DEBATE_ROUND ? "・政見會" : ""}</small></button><button data-action="category" data-id="preparation"><strong>做準備</strong><small>研究議題・籌募經費</small></button><button data-open="teamhub"><strong>帶團隊</strong><small>助手分工・招募・地方小隊</small></button><button data-action="category" data-id="intel"><strong>做情報</strong><small>挖料・查證・爆料</small></button></div>`,
+    "今天親自做哪件事？",
+    `<div class="rows">${researchEntry()}<button data-action="select" data-id="canvass"><strong>跑地方</strong><small>拜訪街坊，累積地方支持</small></button><button data-action="category" data-id="publicity"><strong>做宣傳</strong><small>造勢・電視・直播${s.day === G.DEBATE_ROUND ? "・政見會" : ""}</small></button><button data-action="category" data-id="preparation"><strong>做準備</strong><small>研究議題・籌募經費</small></button><button data-open="teamhub"><strong>帶團隊</strong><small>招募・地方小隊・助手分工</small></button><button data-action="category" data-id="intel"><strong>做情報</strong><small>挖料・查證・爆料</small></button></div>`,
   );
 }
 function category(id) {
@@ -605,7 +629,7 @@ function category(id) {
         })
         .join("") +
       (id === "intel"
-        ? '<button data-open="files"><strong>查證手上的資料</strong><small>查證不占主行程，發布時再選場合</small></button>'
+        ? '<button data-open="files"><strong>查證手上的資料</strong><small>查證只花錢，不占行程</small></button>'
         : "") +
       '</div><div class="tabs"><button data-open="catalog">換個方向</button></div>',
   );
@@ -615,7 +639,7 @@ function teamHub() {
   const n = G.networkView(s);
   showPanel(
     "我們的團隊",
-    `<div class="rows"><button data-open="team"><strong>安排 ${capacity()} 位助手</strong><small>研究、募款攤、跟你出門；每人一份工作</small></button><button data-action="select" data-id="recruit"><strong>招募一位助手</strong><small>你花本回合找人，新人下回合開始幫忙</small></button><button data-open="network"><strong>地方小隊 · ${n.active ? "已成立" : "累積地方關係中"}</strong><small>支持你的街坊，留在當地替你跑；不用占助手名額</small></button></div>`,
+    `<div class="rows"><button data-open="team"><strong>派 ${capacity()} 位助手</strong><small>研究、擺募款攤，或陪你出門</small></button><button data-action="select" data-id="recruit"><strong>招募一位助手</strong><small>用掉本回合；新人下回合起可派</small></button><button data-open="network"><strong>地方小隊 · ${n.active ? "已成立" : "未成立"}</strong><small>留在當地替你拉票，不占助手</small></button></div>`,
     {
       text: action ? "回到今天的行程" : "選今天的主行程",
       fn: () => (action ? planDetail() : catalog()),
@@ -655,14 +679,14 @@ function planDetail() {
       topicGrid("personal");
   if (action === "fundraise")
     extra =
-      '<div class="section-label">找誰 · 所得與代價一起看</div><div class="rows"><button data-action="donor" data-id="small" aria-pressed="' +
+      '<div class="section-label">找誰 · 收了就要公開支持對方主張</div><div class="rows"><button data-action="donor" data-id="small" aria-pressed="' +
       (!cfg.donor || cfg.donor === "small") +
       '"><strong>街坊小額募款</strong><small>不綁立場 · 這回合不親自拉票</small></button>' +
       G.donorView(s)
         .filter((d) => d.status === "open")
         .map(
           (d) =>
-            `<button data-action="donor" data-id="${d.id}" aria-pressed="${cfg.donor === d.id}"><strong>${d.name} · ${wan(d.money)}</strong><small>${esc(d.pitch)}<br>接受就得公開這個立場，與既有承諾可能衝突。</small></button>`,
+            `<button data-action="donor" data-id="${d.id}" aria-pressed="${cfg.donor === d.id}"><strong>${d.name} · ${wan(d.money)}</strong><small>${esc(d.pitch)}</small></button>`,
         )
         .join("") +
       "</div>";
@@ -676,11 +700,11 @@ function planDetail() {
   if (action === "press")
     extra = '<button data-open="files">打開查證與發布檔案</button>';
   const prep = p.pool?.length
-    ? `<p class="choice-note">準備：${p.pool.filter((t) => known.includes(t)).length} / ${p.pool.length} 題已有資料；現場仍可能被問時事。</p>`
+    ? `<p class="choice-note">可能問 ${p.pool.length} 題，${p.pool.filter((t) => known.includes(t)).length} 題有資料，也可能問時事。</p>`
     : "";
   showPanel(
     "出發準備 · " + NAMES[action],
-    `<p>${esc(p.description)}</p><div class="inline-note">費用 ${wan(p.totalCost || 0)}${p.expectedIncome ? ` · 募得約 ${wan(p.expectedIncome.min)}–${wan(p.expectedIncome.max)}` : ""}<br>${esc(p.risk || "")}${action === "recruit" ? `<br>本次招募 ${p.recruitCount} 人 · 新人下回合起可派工` : ""}</div>${prep}${extra}<div class="confirm-strip">${esc(assignmentText())}</div>${pending() ? `<p class="choice-note">門口還有 ${pending()} 件消息。<button data-open="inbox">先聽來客</button></p>` : ""}<div class="tabs"><button data-open="team">助手分工</button><button data-open="extras">加碼與後勤</button><button data-open="catalog">換行程</button></div>${!p.allowed || conflict() ? `<p class="danger">${esc(conflict() || p.reason)}</p>` : ""}`,
+    `<p>${esc(p.description)}</p><div class="inline-note">費用 ${wan(p.totalCost || 0)}${p.expectedIncome ? ` · 募得約 ${wan(p.expectedIncome.min)}–${wan(p.expectedIncome.max)}` : ""}<br>${esc(p.risk || "")}${action === "recruit" ? `<br>招募 ${p.recruitCount} 人，下回合起可派` : ""}</div>${prep}${researchEntry()}${extra}<div class="confirm-strip">${esc(assignmentText())}</div>${pending() ? `<p class="choice-note">門口還有 ${pending()} 件消息。<button data-open="inbox">先聽來客</button></p>` : ""}<div class="tabs"><button data-open="extras">加碼與後勤</button><button data-open="catalog">換行程</button></div>${!p.allowed || conflict() ? `<p class="danger">${esc(conflict() || p.reason)}</p>` : ""}`,
     { text: startLabel(), fn: depart, disabled: !p.allowed || !!conflict() },
   );
 }
@@ -698,11 +722,25 @@ function topicGrid(kind) {
             kind === "personal"
               ? cfg.topic === t.id
               : (cfg.research || []).includes(t.id);
-        return `<button data-action="${kind}" data-id="${t.id}" aria-pressed="${on}" ${done || (kind === "research" && action === "prepare" && cfg.topic === t.id) ? "disabled" : ""}><b>${esc(t.short || t.title)}</b><small>${done ? "已完成" : s.player.known.includes(t.id) ? "有資料" : "還沒查"}</small></button>`;
+        return `<button data-action="${kind}" data-id="${t.id}" aria-pressed="${on}" ${done || (kind === "research" && action === "prepare" && cfg.topic === t.id) ? "disabled" : ""}><b>${esc(t.short || t.title)}</b><small>${topicState(t.id)}</small></button>`;
       })
       .join("") +
     "</div>"
   );
+}
+// One label set for research depth, matching the answer screen.
+function topicState(id) {
+  const level = s.player.insight?.[id]?.level;
+  return level === "precise"
+    ? "摸清楚"
+    : level
+      ? "知道方向"
+      : s.player.known.includes(id)
+        ? "有資料"
+        : "沒研究";
+}
+function teamCountText() {
+  return `已派 ${used()} / ${capacity()} 人，其他人${["prepare", "dig", "recruit"].includes(action) ? "自行拉票" : "陪你出門"}。`;
 }
 function assignmentText() {
   const p = preview();
@@ -716,10 +754,10 @@ function assignmentText() {
 function team() {
   if (s.phase !== "plan") return resume();
   showPanel(
-    "小葉 · 助手分工",
-    `<p>和你的主行程同步。每人只做一件事；研究成果下回合可用。</p><div class="inline-note" id="team-summary">${esc(assignmentText())}</div><p class="confirm-strip" id="team-count">已安排 ${used()} / ${capacity()} 人，其他助手自動${["prepare", "dig", "recruit"].includes(action) ? "拉票" : "同行"}。</p><div class="section-label">選議題派人研究 · 可連點</div>${topicGrid("research")}<div class="feature-row"><label for="booth">留 1 人擺小額募款攤</label><input type="checkbox" id="booth" ${cfg.booth ? "checked" : ""}></div><p class="danger" id="team-warning">${conflict()}</p><div class="tabs"><button data-open="teamhub">團隊與招募</button><button data-open="extras">加碼與後勤</button><button data-open="knowledge">研究成果</button></div>`,
+    "派助手研究",
+    `<p>一人查一題，下回合起可用。</p><div class="inline-note" id="team-summary">${esc(assignmentText())}</div><p class="confirm-strip" id="team-count">${teamCountText()}</p><div class="section-label">點議題派一人</div>${topicGrid("research")}<div class="feature-row"><label for="booth">留 1 人擺小額募款攤</label><input type="checkbox" id="booth" ${cfg.booth ? "checked" : ""}></div><p class="danger" id="team-warning">${conflict()}</p><div class="tabs"><button data-open="teamhub">團隊與招募</button><button data-open="extras">加碼與後勤</button><button data-open="knowledge">研究筆記</button></div>`,
     {
-      text: action ? "分工好了，回行程出發" : "分工好了，選主行程",
+      text: action ? "回到行程" : "選主行程",
       fn: () => (action ? planDetail() : catalog()),
     },
   );
@@ -728,8 +766,7 @@ function updateTeam() {
   sync();
   if ($("team-summary")) $("team-summary").textContent = assignmentText();
   if ($("team-count"))
-    $("team-count").textContent =
-      `已安排 ${used()} / ${capacity()} 人，其他助手自動同行或拉票。`;
+    $("team-count").textContent = teamCountText();
   if ($("team-warning")) $("team-warning").textContent = conflict();
 }
 function extras() {
@@ -746,7 +783,7 @@ function extras() {
     items.push(["gotv", "選前催票", G.COSTS.gotv]);
   showPanel(
     "加碼與後勤",
-    `<p>這些和主行程一起執行，不多占回合。</p>${items.map(([id, t, c]) => `<div class="feature-row"><label for="extra-${id}">${t} · ${wan(c)}</label><input id="extra-${id}" data-extra="${id}" type="checkbox" ${cfg[id] ? "checked" : ""}></div>`).join("")}${!items.length ? '<p class="empty">這個行程目前沒有現場加碼。</p>' : ""}${
+    `<p>跟主行程一起做，不另占回合。</p>${items.map(([id, t, c]) => `<div class="feature-row"><label for="extra-${id}">${t} · ${wan(c)}</label><input id="extra-${id}" data-extra="${id}" type="checkbox" ${cfg[id] ? "checked" : ""}></div>`).join("")}${!items.length ? '<p class="empty">這個行程目前沒有現場加碼。</p>' : ""}${
       action === "tv"
         ? '<div class="section-label">付費指定節目議題 · ' +
           wan(G.COSTS.brief) +
@@ -754,13 +791,13 @@ function extras() {
           G.tvPool(s)
             .map(
               (t) =>
-                `<button data-action="brief-topic" data-id="${t}" aria-pressed="${cfg.brief === t}">${TOPIC(t)}<small>${s.player.known.includes(t) ? "已有資料" : "沒研究，指定題目也不會自動學會"}</small></button>`,
+                `<button data-action="brief-topic" data-id="${t}" aria-pressed="${cfg.brief === t}">${TOPIC(t)}<small>${s.player.known.includes(t) ? "有資料" : "沒研究 · 指定後節目前先摸到方向"}</small></button>`,
             )
             .join("") +
           "</div>"
         : ""
-    }<div class="tabs"><button data-open="team">研究與募款攤派工</button><button data-open="files">爆料檔案</button></div><div class="confirm-strip" id="extra-total">合計費用 ${wan(p.totalCost)}</div>`,
-    { text: "保留安排，回行程出發", fn: planDetail },
+    }<div class="tabs"><button data-open="team">派助手研究</button><button data-open="files">爆料檔案</button></div><div class="confirm-strip" id="extra-total">合計費用 ${wan(p.totalCost)}</div>`,
+    { text: "回到行程", fn: planDetail },
   );
 }
 function renderPins() {
@@ -803,7 +840,7 @@ function mapPanel() {
     platform = G.platformView(s);
   showPanel(
     "牆上的選戰地圖",
-    `<p>${esc(c.plan ? c.hint : "先安排今天的第一步，做過的事會留在地圖上。")}</p>${mapMarkup()}<p class="key">圓點數字＝本人已跑的次數。點地點可安排下一次街訪。</p><div class="tabs"><button data-open="strategy">調整選戰方向</button><button data-open="teamhub">團隊與招募</button></div><div class="section-label">目前走到哪裡</div>${c.progress.map((p) => `<p style="margin:6px 0">${p.done ? "✓" : "○"} ${esc(p.label)}</p>`).join("")}<div class="section-label">已公開的承諾</div>${platform.items.length ? platform.items.map((p) => `<p>${esc(p.quote || p.text || p.title)}<small>第 ${p.day || p.round || "?"} 回合</small></p>`).join("") : '<p class="empty">還沒公開具體政見。研究完成不等於對外承諾。</p>'}<details><summary>行動足跡 · ${s.journal.length} 回合</summary><ol class="route-history">${s.journal.map((j) => `<li>第 ${j.day} 回合 · ${esc(placeLabel({ id: j.player.action, venueTitle: j.player.venueTitle }) || "辦公室")} · ${NAMES[j.player.action]}<br>${esc(j.player.quote || j.player.result || j.summary.headline)}</li>`).join("") || "<li>還沒出發。</li>"}</ol></details>`,
+    `<p>${esc(c.plan ? c.hint : "跑過的地方會記在這裡。")}</p>${mapMarkup()}<p class="key">數字＝你跑過的次數；點地點排街訪。</p><div class="tabs"><button data-open="strategy">調整選戰方向</button><button data-open="teamhub">團隊與招募</button></div><div class="section-label">目前走到哪裡</div>${c.progress.map((p) => `<p style="margin:6px 0">${p.done ? "✓" : "○"} ${esc(p.label)}</p>`).join("")}<div class="section-label">已公開的承諾</div>${platform.items.length ? platform.items.map((p) => `<p>${esc(p.quote || p.text || p.title)}<small>第 ${p.day || p.round || "?"} 回合</small></p>`).join("") : '<p class="empty">還沒公開具體政見；研究不算承諾。</p>'}<details><summary>行動足跡 · ${s.journal.length} 回合</summary><ol class="route-history">${s.journal.map((j) => `<li>第 ${j.day} 回合 · ${esc(placeLabel({ id: j.player.action, venueTitle: j.player.venueTitle }) || "辦公室")} · ${NAMES[j.player.action]}<br>${esc(j.player.quote || j.player.result || j.summary.headline)}</li>`).join("") || "<li>還沒出發。</li>"}</ol></details>`,
     { text: "看完了，回辦公室", fn: closePanel },
   );
 }
@@ -813,7 +850,7 @@ function strategy() {
   const c = G.campaignView(s);
   showPanel(
     "把方向排進行程",
-    `<p>把方向變成今天的第一步：地方路線先跑街坊，宣傳路線先備議題。</p><div class="rows">${G.CAMPAIGN_PLANS.map((p) => `<button data-action="strategy" data-id="${p.id}" aria-pressed="${c.plan === p.id}"><strong>${p.title}</strong><small>${p.pitch}</small></button>`).join("")}</div>`,
+    `<p>選了就預排第一步：地方→街訪，宣傳→研究。</p><div class="rows">${G.CAMPAIGN_PLANS.map((p) => `<button data-action="strategy" data-id="${p.id}" aria-pressed="${c.plan === p.id}"><strong>${p.title}</strong><small>${p.pitch}</small></button>`).join("")}</div>`,
   );
 }
 function officeEstimate() {
@@ -1476,7 +1513,8 @@ function knowledge() {
         return (
           '<details class="inline-note"><summary>' +
           esc(t.title) +
-          (s.player.studied?.[t.id] ? " · 本人查過" : " · 已有資料") +
+          " · " +
+          topicState(t.id) +
           "</summary><p>" +
           esc(t.ask || "") +
           "</p>" +
@@ -1495,7 +1533,8 @@ function knowledge() {
           "</details>"
         );
       })
-      .join("") || "<p>還沒有資料，先安排本人或助手研究。</p>",
+      .join("") ||
+      `<p class="empty">還沒有筆記。</p>${capacity() ? '<button data-open="team">派助手研究</button>' : ""}`,
     { text: "把筆記放回桌上", fn: closePanel },
   );
 }
@@ -2234,7 +2273,7 @@ document.addEventListener("click", (e) => {
       const list = cfg.research || [],
         on = list.includes(id);
       if (!on && used() >= capacity())
-        return toast("助手已安排完，先取消一題或募款攤。");
+        return toast("助手都派出去了，先取消一項。");
       cfg.research = on ? list.filter((t) => t !== id) : [...list, id];
       b.setAttribute("aria-pressed", !on);
       updateTeam();
@@ -2288,7 +2327,7 @@ document.addEventListener("change", (e) => {
   if (t.id === "booth") {
     if (t.checked && used() >= capacity()) {
       t.checked = false;
-      return toast("沒有空閒助手，先取消一題研究。");
+      return toast("助手都派出去了，先取消一項。");
     }
     cfg.booth = t.checked;
     updateTeam();
@@ -2327,12 +2366,14 @@ $("staff").onclick = () => {
   if (s.phase !== "plan") return resume();
   say(
     "staff",
-    "小葉 · 在這裡",
-    "要聽重點，還是改今天的分工？",
-    "研究和募款攤共用助手，分工會跟本人行程一起執行。",
+    "小葉",
+    "要聽重點，還是派助手？",
+    "",
     [
       { text: "聽本回合重點", fn: brief, primary: true },
-      { text: "團隊與招募", fn: teamHub },
+      capacity()
+        ? { text: `派助手研究（${freeHelpers()} 位可派）`, fn: team }
+        : { text: "團隊與招募", fn: teamHub },
     ],
   );
 };

@@ -275,12 +275,90 @@ function harness(initial, opts = {}) {
       id + " available in publicity",
     );
   h.click({ open: "teamhub" });
-  for (const label of ["招募一位助手", "地方小隊", "安排 2 位助手"])
+  for (const label of ["招募一位助手", "地方小隊", "派 2 位助手"])
     ok(h.nodes["sheet-body"].innerHTML.includes(label), "team hub " + label);
   h.click({ action: "category", id: "intel" });
   ok(
     h.nodes["sheet-body"].innerHTML.includes("查證手上的資料"),
     "verification visible with intelligence",
+  );
+}
+// Tutorial is at most three short beats and names parallel assistant research early.
+{
+  const h = harness({
+    s: state(24, "newcomer"),
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: false,
+  });
+  const beats = [];
+  h.run("tutorial(0)");
+  for (let i = 0; i < 3; i++) {
+    beats.push(h.nodes.sub.textContent);
+    ok(
+      [...h.nodes.sub.textContent].length <= 25,
+      "tutorial beat " + (i + 1) + " body stays short",
+    );
+    if (i < 2) h.nodes.actions.children[0].onclick();
+  }
+  ok(
+    h.nodes.line.textContent.includes("第一步") && h.run("tutorialDone"),
+    "third beat is the last and picks the first step",
+  );
+  ok(
+    beats[1].includes("不占你的行程"),
+    "second beat says assistant research runs alongside your action",
+  );
+}
+// Assistant research is one tap from the first plan screens and the staff brief.
+{
+  const h = harness({
+    s: state(24, "newcomer"),
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: true,
+  });
+  h.run("catalog()");
+  ok(
+    h.nodes["sheet-body"].innerHTML.includes('data-open="team"') &&
+      h.nodes["sheet-body"].innerHTML.includes("2 位可派"),
+    "catalog shows research entry with free assistants",
+  );
+  h.run("choose('canvass',{venue:'market'})");
+  ok(
+    h.nodes["sheet-body"].innerHTML.includes("派助手研究 · 2 位可派"),
+    "first plan detail shows research entry",
+  );
+  h.click({ open: "team" });
+  eq(h.nodes["sheet-title"].textContent, "派助手研究", "entry opens research picker");
+  h.click({ action: "research", id: "health" });
+  h.run("planDetail()");
+  ok(
+    h.nodes["sheet-body"].innerHTML.includes("1 位可派") &&
+      h.nodes["sheet-body"].innerHTML.includes("已派："),
+    "entry reflects assignment",
+  );
+  // Brief advice keys on state: a free assistant points at an unresearched hot topic.
+  const fresh = harness({
+    s: state(24, "newcomer"),
+    cfg: { research: [] },
+    action: null,
+    tutorialDone: true,
+  });
+  fresh.run("brief()");
+  const hot = fresh.run("hotUnknownTopic()");
+  ok(hot, "hot unresearched topic found");
+  ok(
+    fresh.nodes.sub.textContent.includes("2 位助手可派"),
+    "brief names idle assistants",
+  );
+  fresh.nodes.actions.children[1].onclick();
+  eq(fresh.config().research, [hot], "brief shortcut assigns the hot topic");
+  eq(fresh.nodes["sheet-title"].textContent, "派助手研究", "shortcut opens picker");
+  fresh.run("brief()");
+  ok(
+    !fresh.nodes.sub.textContent.includes("2 位助手可派"),
+    "advice changes once assistants are assigned",
   );
 }
 // Consecutive research selection stays in the same panel and cannot exceed capacity.
