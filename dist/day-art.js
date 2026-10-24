@@ -981,7 +981,7 @@
   // Election night at the campaign office: a big screen for the count, the candidate on a small stage and supporters around. stage is
   // 'count' while votes are read out, then 'elected', 'refunded' or 'forfeited'. Motion is CSS only, so a still frame shows the end state.
   const NIGHT_CROWD = [[70, 608, .92, 'elder'], [168, 642, 1, 'young'], [262, 602, .9, 'middle2'], [130, 560, .76, 'young2'], [222, 548, .72, 'elder2'], [938, 602, .9, 'middle'], [1032, 642, 1, 'elder2'], [1130, 608, .92, 'young'], [978, 548, .72, 'young2'], [1070, 560, .76, 'middle2']];
-  const NIGHT_LOOKS = ['elder-hat', 'young-pack', 'middle-mom', 'young-student', 'elder-cart', 'middle-office', 'elder-track', 'young-hoodie', 'young-bike', 'middle-polo'];
+  const NIGHT_LOOKS = ['elder-hat', 'young-pack', 'middle-mom', 'young-student', 'elder-cart', 'middle-apron', 'elder-track', 'young-hoodie', 'young-bike', 'middle-polo'];
   const TALLY = [['小沈 一票！', 'you', 150, 452], ['5 號 一票！', 'other', 1050, 452], ['小沈 一票！', 'you', 205, 382], ['無效票', 'void', 1000, 382], ['9 號 一票！', 'other', 1090, 492], ['小沈 一票！', 'you', 110, 492]];
   // A speech bubble centred on x whose tail points down at tail (default: the centre).
   const bubbleAt = (x, y, text, color, cls = '', style = '', tail = x) => { const w = 26 + Array.from(text).length * 21; return '<g class="' + cls + '"' + (style ? ' style="' + style + '"' : '') + '>' + poly([[tail - 9, y + 12], [tail + 7, y + 12], [tail - 6, y + 28]], color) + rect(x - w / 2, y - 26, w, 40, '#fffaf0', 'rx="12" stroke="' + color + '" stroke-width="3"') + poly([[tail - 7, y + 12], [tail + 5, y + 12], [tail - 5, y + 23]], '#fffaf0') + label(x, y + 2, text, 19, color, 'text-anchor="middle"') + '</g>'; };
@@ -1007,7 +1007,7 @@
     for (const [x, words] of [[58, name + '競選總部'], [1068, won ? '凍蒜' : '感謝支持']]) {
       const sag = x > 600 && lost;
       s += '<g' + (sag ? ' class="banner-sag"' + (still ? ' transform="rotate(4 ' + x + ' 138)"' : '') : '') + '>' + rect(x, 138, 74, 292, '#fffaf0', 'rx="4"') + rect(x, 138, 74, 22, party, 'rx="4"') + rect(x, 410, 74, 20, party);
-      Array.from(words).forEach((ch, i, all) => { s += label(x + 37, 160 + (all.length > 4 ? 44 : 60) * (i + 1) - (all.length > 4 ? 6 : 14), ch, all.length > 4 ? 34 : 44, '#24443c', 'text-anchor="middle"'); });
+      Array.from(words).forEach((ch, i, all) => { const step = Math.min(60, Math.floor(240 / all.length)), size = Math.min(44, step - 6); s += label(x + 37, 160 + step * (i + 1) - Math.round(size / 3), ch, size, '#24443c', 'text-anchor="middle"'); });
       s += '</g>';
     }
     // The big screen; while the count runs its numbers are laid over it by the page.
@@ -1017,7 +1017,7 @@
       // Your bar against the last seat, and your place among all candidates.
       const t = options.tally, top = Math.max(t.you, t.line) * 1.12 || 1, w = v => 470 * Math.min(1, v / top), lx = 380 + w(t.line);
       s += label(600, 84, '開票結果', 30, '#e8f1df', 'text-anchor="middle"');
-      s += label(300, 178, name, 26, '#e8f1df') + rect(380, 152, w(t.you), 40, '#7fc98f', 'rx="5"') + label(910, 182, Math.round(t.you).toLocaleString('zh-TW'), 26, '#fffaf0', 'text-anchor="end"') + (t.rank ? label(600, 238, '第 ' + t.rank + ' 名' + (t.seats ? '・前 ' + t.seats + ' 名當選' : ''), 24, '#e8f1df', 'text-anchor="middle"') : '');
+      s += label(300, 178, name, 26, '#e8f1df') + rect(380, 152, w(t.you), 40, '#7fc98f', 'rx="5"') + label(910, 182, Math.round(t.you).toLocaleString('zh-TW'), 26, '#fffaf0', 'text-anchor="end"') + (t.rank ? label(600, 238, '第 ' + t.rank + ' 名', 24, '#e8f1df', 'text-anchor="middle"') : '');
       s += path('M' + lx.toFixed(1) + ' 136V206', '#fff1b8', 3, 'stroke-dasharray="8 6"') + label(lx, 128, '當選線 ' + Math.round(t.line).toLocaleString('zh-TW'), 18, '#fff1b8', 'text-anchor="middle"');
     }
     // The stage, the candidate and two assistants.
@@ -1026,7 +1026,7 @@
     // The placard stands left of the helpers so neither art pack hides its text.
     if (refunded) s += rect(301, 418, 5, 78, '#6d6a5c') + rect(250, 380, 108, 44, '#fffaf0', 'rx="4" stroke="' + party + '" stroke-width="3"') + label(304, 409, '保證金退回', 18, '#24443c', 'text-anchor="middle"');
     // Matte-toy: the staff in their orange vests flank the candidate (gold ring); supporters on both sides turn toward the stage.
-    if (isToy()) s += stagePerson('helper', 470, 505, 1.02, {mirror: false, ring: 'staff', who: 'staff'}) + stagePerson('helper', 730, 505, 1.02, {mirror: true, ring: 'staff', who: 'staff'}) + stagePerson('player', 600, 507, 1.2, {ring: 'you', who: 'you'});
+    if (isToy()) s += stagePerson('helper', 470, 505, 1.02, {mirror: false, ring: 'staff', who: 'staff'}) + stagePerson('middle-office', 730, 505, 1.02, {mirror: true, ring: 'staff', who: 'staff'}) + stagePerson('player', 600, 507, 1.2, {ring: 'you', who: 'you'});
     else s += figure(470, 505, 'helper', 1.02, crew) + figure(730, 505, 'helper', 1.02, crew) + figure(600, 507, 'player', 1.2, won ? 'cheer' : done ? 'bow' : 'wave');
     // Supporters on the floor; each bobs on its own beat once the result is in.
     NIGHT_CROWD.forEach(([x, y, k, role], i) => { s += '<g class="fan"' + (still ? '' : ' style="animation-delay:-' + ((i * .23) % 1).toFixed(2) + 's"') + '>' + (isToy() ? stagePerson(NIGHT_LOOKS[i], x, y, k, {mirror: x > 600}) : figure(x, y, role, k, won ? 'cheer' : refunded ? 'clap' : lost ? 'sad' : null)) + '</g>'; });

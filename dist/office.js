@@ -160,7 +160,7 @@ function characterPanel() {
       )
       .join(
         "",
-      )}</div><div class="section-label">政黨</div><div class="rows party-list">${Object.values(
+      )}</div><button class="reroll-origin" data-action="reroll-origin">換一組出身</button><div class="section-label">政黨</div><div class="rows party-list">${Object.values(
       G.PARTIES,
     )
       .map(
@@ -222,12 +222,11 @@ function tutorial(step) {
     [
       {
         text: "先跑地方",
-        note: "市場街訪",
+        note: "市場街訪 · 沒研究的題會被追問",
         fn: () => {
           G.setCampaignPlan(s, "organization");
           choose("canvass", { venue: "market" });
         },
-        primary: true,
       },
       {
         text: "先備議題",
@@ -481,6 +480,9 @@ function alarm() {
   }, 900);
 }
 function showPanel(title, html, footer) {
+  // Re-rendering the same open panel (a choice inside it) keeps the reader where they were.
+  const same = $("sheet").open && activePanel === title,
+    keep = same ? [$("sheet-body").scrollTop, $("sheet").scrollTop] : [0, 0];
   $("sheet-status").textContent = "";
   hideTalk();
   focusReturn = document.activeElement;
@@ -495,8 +497,8 @@ function showPanel(title, html, footer) {
       button(footer.text, footer.fn, "", true, !!footer.disabled),
     );
   if (!$("sheet").open) $("sheet").showModal();
-  $("sheet-body").scrollTop = 0;
-  $("sheet").scrollTop = 0;
+  $("sheet-body").scrollTop = keep[0];
+  $("sheet").scrollTop = keep[1];
 }
 function closePanel() {
   if ($("sheet").open) $("sheet").close();
@@ -554,9 +556,13 @@ function syncDock() {
   $("dock-helpers").hidden = !cfg.research?.length;
   $("dock-helpers").textContent = cfg.research?.length ? `小葉已排助手查：${cfg.research.map(TOPIC).join("、")}（點此更換）` : "";
   $("dock-helpers").onclick = team;
-  const hint = mechanicHint();
-  $("dock-hint").hidden = !hint;
-  $("dock-hint").textContent = hint ? "小葉提醒：" + hint : "";
+  const g = guideHint();
+  $("dock-guide").hidden = !g;
+  if (g) {
+    $("dock-hint").textContent = "小葉提醒：" + g.text;
+    $("dock-guide-go").textContent = g.label;
+    $("dock-guide-go").onclick = g.fn;
+  }
   $("dock-pick").textContent = a.pick.text;
   $("dock-pick").onclick = a.pick.fn;
   $("dock-own").textContent = action ? "回到我排的行程" : "自己排行程";
@@ -769,14 +775,15 @@ function brief() {
     const a = advice();
     title = a.title;
     // Round two is when 小葉 first explains a hidden mechanic in person; later rounds keep it in the dock.
-    const hint = s.day === 2 ? mechanicHint() : "";
-    sub = a.sub + (hint ? "\n" + hint : "");
+    const g = s.day > 1 ? guideHint() : null;
+    sub = a.sub + (g ? "\n小葉提醒：" + g.text : "");
     choices = [
       { ...a.pick, primary: true },
       {
         text: action ? "回到我排的行程" : "我自己排",
         fn: () => (action ? planDetail() : catalog()),
       },
+      ...(g ? [{ text: g.label, fn: g.fn }] : []),
     ];
   }
   say("staff", `小葉 · 第 ${s.day} 回合`, title, sub, choices);
@@ -901,18 +908,84 @@ function mapChiefBadges(A) {
     .join("");
 }
 // 小葉 explains mechanics nobody would find alone; information, not an instruction.
-function mechanicHint() {
-  const chiefs = G.chiefView(s).filter(Boolean),
+// 小葉 as the guide: each round she introduces one way of playing the player has not tried yet, with a button that
+// opens it. She explains what it costs and what it does; whether to use it stays the player's call.
+function guideHints() {
+  const used = (id) => s.journal.some((j) => j.player.action === id),
+    money = s.budget.available,
+    known = s.player.known || [],
+    venues = G.venueView(s),
+    bestVenue = [...venues].sort((a, b) => b.pool.filter((t) => known.includes(t)).length - a.pool.filter((t) => known.includes(t)).length)[0],
+    chiefs = G.chiefView(s).filter((c) => c && c.venue),
     tip = s.events?.tip,
-    digOpen = s.day >= 3 && tip && !tip.history?.length && !tip.evidenceLevel;
-  const chiefHint =
-    chiefs.length && !chiefs.some((c) => c.broken) && s.day >= 2
-      ? `有些地點有里長，同一個地點去滿次數就會破冰：拿到約 ${num(G.TUNING?.chief?.bloc || 400)} 張組織票，之後在那裡街訪的效果將近加倍。牆上地圖看得到進度。`
-      : "";
-  const digHint = digOpen
-    ? "「做情報」可以挖小馬的料：查證夠了再爆料。料可能是假的，指控錯了傷的是自己。"
-    : "";
-  return s.day % 2 ? digHint || chiefHint : chiefHint || digHint;
+    open = (id, extra) => () => {
+      choose(id, extra);
+      planDetail();
+    },
+    list = [];
+  if (s.day >= 2 && chiefs.length && !chiefs.some((c) => c.broken))
+    list.push({
+      id: "chief",
+      text: `有些地點有里長，同一個地點去滿次數就會破冰：拿到約 ${num(G.TUNING?.chief?.bloc || 400)} 張組織票，之後在那裡街訪的效果將近加倍。牆上地圖看得到進度。`,
+      label: "看里長進度",
+      fn: mapPanel,
+    });
+  if (!used("fundraise") && (money < 300000 || s.day >= 3))
+    list.push({
+      id: "fundraise",
+      text: `錢不夠時可以「做準備 → 募款」：用掉一回合，募到約 ${wan(G.TUNING?.fundraise?.base?.[0] || 40000)}–${wan(G.TUNING?.fundraise?.base?.[1] || 90000)}。`,
+      label: "看募款",
+      fn: open("fundraise"),
+    });
+  if (s.day >= 2 && !used("rally") && money >= G.COSTS.rally + 50000)
+    list.push({
+      id: "rally",
+      text: `「做宣傳 → 造勢晚會」一次能觸及的人比街訪多，花 ${wan(G.COSTS.rally)}；辦在你答得出題目的地點最划算。`,
+      label: "看造勢",
+      fn: open("rally", { venue: bestVenue?.id }),
+    });
+  if (s.day >= 3 && !used("tv") && money >= G.COSTS.tv + 50000)
+    list.push({
+      id: "tv",
+      text: `「做宣傳 → 上電視」一次觸及最多人，花 ${wan(G.COSTS.tv)}；主持人從熱門題抽問，先研究過再上。`,
+      label: "看上電視",
+      fn: open("tv"),
+    });
+  if (s.day >= 3 && !(s.player.billboards || []).some((b) => b.round > 0) && money >= G.COSTS.billboard + 50000)
+    list.push({
+      id: "billboard",
+      text: `有閒錢可以立看板（${wan(G.COSTS.billboard)}，最多 3 面）：街訪或造勢時在「加碼與後勤」勾選，立在那個地點後每回合都替你拉票。`,
+      label: "看怎麼立看板",
+      fn: () => {
+        choose("canvass", { venue: bestVenue?.id });
+        extras();
+      },
+    });
+  if (s.day >= 3 && tip && !tip.history?.length && !tip.evidenceLevel)
+    list.push({
+      id: "dig",
+      text: "「做情報」可以挖小馬的料：查證夠了再爆料。料可能是假的，指控錯了傷的是自己。",
+      label: "看做情報",
+      fn: open("dig"),
+    });
+  if (s.day >= G.GOTV_FROM)
+    list.push({
+      id: "gotv",
+      text: `最後衝刺可以在「加碼與後勤」加買選前催票（${wan(G.COSTS.gotv)}），把支持你的人催出門投票。`,
+      label: "看催票",
+      fn: () => {
+        if (!action) choose("canvass", { venue: bestVenue?.id });
+        extras();
+      },
+    });
+  return list;
+}
+function guideHint() {
+  const list = guideHints();
+  return list.length ? list[s.day % list.length] : null;
+}
+function mechanicHint() {
+  return guideHint()?.text || "";
 }
 const chiefNote = (c) =>
   c ? `<small class="chief-note${c.broken ? " won" : ""}">${esc(chiefText(c))}</small>` : "";
@@ -969,7 +1042,7 @@ function planDetail() {
     : "";
   showPanel(
     "出發準備 · " + NAMES[action],
-    `<p>${esc(p.description)}</p><div class="inline-note">費用 ${wan(p.totalCost || 0)}${p.expectedIncome ? ` · 募得約 ${wan(p.expectedIncome.min)}–${wan(p.expectedIncome.max)}` : ""}<br>${esc(p.risk || "")}${action === "recruit" ? `<br>招募 ${p.recruitCount} 人，下回合起可派` : ""}</div>${prep}${researchEntry()}${extra}<div class="confirm-strip">${esc(assignmentText())}</div>${pending() ? `<p class="choice-note">門口還有 ${pending()} 件消息。<button data-open="inbox">先聽來客</button></p>` : ""}<div class="tabs"><button data-open="extras">加碼與後勤</button></div>${!p.allowed || conflict() ? `<p class="danger">${esc(conflict() || p.reason)}</p>` : ""}`,
+    `<p>${esc(p.description)}</p><div class="inline-note">費用 ${wan(p.totalCost || 0)}${p.expectedIncome ? ` · 募得約 ${wan(p.expectedIncome.min)}–${wan(p.expectedIncome.max)}` : ""}<br>${esc(p.risk || "")}${action === "recruit" ? `<br>招募 ${p.recruitCount} 人，下回合起可派` : ""}</div>${prep}${researchEntry()}${extra}<div class="confirm-strip">${esc(assignmentText())}</div>${pending() ? `<p class="choice-note">門口還有 ${pending()} 件消息。<button data-open="inbox">先聽來客</button></p>` : ""}<div class="tabs"><button data-open="extras" class="spend-entry">${["canvass", "rally"].includes(action) ? "花錢加碼：立看板・送小禮物" + (s.day >= G.GOTV_FROM ? "・催票" : "") : action === "tv" ? "花錢加碼：指定節目議題" + (s.day >= G.GOTV_FROM ? "・催票" : "") : "加碼與後勤"}</button></div>${!p.allowed || conflict() ? `<p class="danger">${esc(conflict() || p.reason)}</p>` : ""}`,
     {
       text: startLabel(),
       fn: depart,
@@ -1880,13 +1953,15 @@ function alternatives(id) {
     })
     .filter(Boolean);
 }
-function remember(alts, option) {
+function remember(alts, option, locked = 0) {
   if (!alts || !s.recap) return;
   const r = s.recap,
     best = [...alts].sort((a, b) => b.total - a.total)[0],
     gain = best ? best.total - r.totalVotes : 0;
   (s.hindsight ||= {})[s.day] = {
     chosen: option.text,
+    locked,
+    total: r.totalVotes,
     best:
       gain >= 1
         ? {
@@ -1904,7 +1979,12 @@ const HINDSIGHT_MIN = 30;
 // One line: the better answer and the group that would have made the difference.
 function hindsightLine(h) {
   if (!h) return null;
-  if (!h.best || h.best.gain < HINDSIGHT_MIN) return ["這題你答得最好。", ""];
+  if (!h.best || h.best.gain < HINDSIGHT_MIN) {
+    // Only say "best" when it truly was: locked answers (not researched) or a loss mean there was room left.
+    if (h.locked) return ["能選的答法裡這個最好；先研究這題，下次才答得出具體做法。", ""];
+    if ((h.total ?? 0) < 0) return ["其他答法也一樣會掉票；這題不好答，換個地方或先研究再來。", ""];
+    return ["這題你答得最好。", ""];
+  }
   const k = h.best.byGroup ? h.best.byGroup.indexOf(Math.max(...h.best.byGroup)) : -1;
   return [
     "答「" +
@@ -1949,9 +2029,10 @@ function ask() {
       disabled: !o.unlocked,
       fn: () => {
         if (s.phase !== "question") return;
-        const alts = alternatives(o.id);
+        const alts = alternatives(o.id),
+          locked = G.question(s).options.filter((x) => !x.unlocked).length;
         if (G.answer(s, o.id)) {
-          remember(alts, o);
+          remember(alts, o, locked);
           save();
           recap();
         }
@@ -2512,6 +2593,12 @@ function roundWhat(x) {
               ? "記者會爆料"
               : G.ACTIONS.find((a) => a.id === x.action)?.title || x.action;
 }
+// The result in a few plain words instead of the seat arithmetic.
+function marginWords(r) {
+  const share = r.lastSeat ? r.gap / r.lastSeat : 1;
+  if (r.outcome === "elected") return share <= 0.03 ? "壓線當選" : "穩穩當選";
+  return share <= 0.05 ? "差一點就當選" : share <= 0.3 ? "還有一段距離" : "離當選還很遠";
+}
 function reportMarkup() {
   const r = s.result,
     bg = G.BACKGROUNDS[s.settings.background],
@@ -2551,7 +2638,7 @@ function reportMarkup() {
         return `<div class="g-${GROUP_KEYS[k]}"><b>${esc(g.title)}</b><span>${num(v)} 票${r.groupTotals?.[k] ? "（" + ((v / r.groupTotals[k]) * 100).toFixed(1) + "%）" : ""}</span></div>`;
       })
       .join("");
-  return `<article class="report-card"><header class="report-head"><span class="report-who">${esc(name)}｜${esc(bg.title)}・${partyBadge(s.settings.affiliation)}${esc(party.title)}</span><h2 class="report-verdict ${ok ? "win" : "lose"}">${esc(verdict)}</h2>${titlesMarkup()}<p class="result-next-grade">${esc(nextGrade)}</p></header><figure class="report-scene" aria-label="${esc(verdict + "的開票夜")}">${window.DayArt.countNight(r.outcome, { still: true, name, tally: { you: r.playerVotes, line: r.lastSeat, rank: r.rank, seats: r.seats } })}</figure><div class="report-numbers"><div><span>你的得票</span><strong>${num(r.playerVotes)}</strong><small>第 ${r.rank} 名（前 ${r.seats} 名當選）</small></div><div><span>當選線</span><strong>${num(r.lastSeat)}</strong><small>${ok ? "多 " : "還差 "}${num(r.gap)} 票</small></div><div><span>得票率</span><strong>${r.valid ? ((r.playerVotes / r.valid) * 100).toFixed(1) + "%" : "—"}</strong><small>有效票 ${num(r.valid)}</small></div></div>${platformMarkup()}<details class="report-rounds"><summary>每回合做了什麼 · 估票走勢</summary>${trendChart()}<div class="report-groups">${groups}</div><ol>${rounds}</ol></details></article>`;
+  return `<article class="report-card"><header class="report-head"><span class="report-who">${esc(name)}｜${esc(bg.title)}・${partyBadge(s.settings.affiliation)}${esc(party.title)}</span><h2 class="report-verdict ${ok ? "win" : "lose"}">${esc(verdict)}</h2>${titlesMarkup()}<p class="result-next-grade">${esc(nextGrade)}</p></header><figure class="report-scene" aria-label="${esc(verdict + "的開票夜")}">${window.DayArt.countNight(r.outcome, { still: true, name, tally: { you: r.playerVotes, line: r.lastSeat, rank: r.rank, seats: r.seats } })}</figure><div class="report-numbers"><div><span>你的得票</span><strong>${num(r.playerVotes)}</strong><small>${esc(marginWords(r))}</small></div><div><span>當選線</span><strong>${num(r.lastSeat)}</strong><small>${ok ? "多 " : "還差 "}${num(r.gap)} 票</small></div><div><span>得票率</span><strong>${r.valid ? ((r.playerVotes / r.valid) * 100).toFixed(1) + "%" : "—"}</strong><small>有效票 ${num(r.valid)}</small></div></div>${platformMarkup()}<details class="report-rounds"><summary>每回合做了什麼 · 估票走勢</summary>${trendChart()}<div class="report-groups">${groups}</div><ol>${rounds}</ol></details></article>`;
 }
 function report() {
   const el = endingLayer();
@@ -2616,6 +2703,9 @@ document.addEventListener("click", (e) => {
   if (b.dataset.open) return openers[b.dataset.open]?.();
   const id = b.dataset.id;
   switch (b.dataset.action) {
+    case "reroll-origin":
+      nextSeed = Math.floor(Math.random() * 1000000);
+      return characterPanel();
     case "identity":
       newSettings.background = id;
       characterPanel();

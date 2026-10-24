@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>競選辦公室｜可玩整合試版</title>
-    <link rel="stylesheet" href="office.css?v=office-int-14" />
-    <link rel="stylesheet" href="office-result.css?v=office-int-14" />
+    <link rel="stylesheet" href="office.css?v=office-int-15" />
+    <link rel="stylesheet" href="office-result.css?v=office-int-15" />
   </head>
   <body>
     <main class="shell">
@@ -416,7 +416,10 @@
         <section class="dock" id="dock" hidden aria-label="今天的行動">
           <p id="dock-tip"></p>
           <button class="dock-helpers" id="dock-helpers" hidden></button>
-          <p class="dock-hint" id="dock-hint" hidden></p>
+          <div class="dock-guide" id="dock-guide" hidden>
+            <p class="dock-hint" id="dock-hint"></p>
+            <button class="dock-guide-go" id="dock-guide-go"></button>
+          </div>
           <div class="dock-actions">
             <button class="primary" id="dock-pick"></button
             ><button id="dock-own">自己排行程</button>
@@ -471,8 +474,8 @@
       </div>
     </dialog>
     <script src="day-engine.js?v=office-1"></script>
-    <script src="day-art.js?v=office-1"></script>
+    <script src="day-art.js?v=office-int-15"></script>
     <script src="day-sound.js?v=office-int-7"></script>
-    <script src="office.js?v=office-int-14"></script>
+    <script src="office.js?v=office-int-15"></script>
   </body>
 </html>

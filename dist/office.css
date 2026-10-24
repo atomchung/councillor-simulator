@@ -24,8 +24,10 @@ button {
   color: #293d3e;
   padding: 10px 16px;
 }
-button:hover {
-  background: #f4e6c9;
+@media (hover: hover) {
+  button:hover {
+    background: #f4e6c9;
+  }
 }
 button:focus-visible,
 a:focus-visible,
@@ -2179,12 +2181,33 @@ select {
 .map-chief-label.won {
   fill: #2c6464;
 }
-.dock .dock-hint {
-  font-size: 13px;
-  color: #6b5a3c;
+.dock .dock-guide {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
   background: #fbf3e2;
   border-radius: 8px;
   padding: 6px 9px;
+}
+.dock .dock-guide[hidden] {
+  display: none;
+}
+.dock .dock-hint {
+  margin: 0;
+  font-size: 13px;
+  color: #6b5a3c;
+}
+.dock .dock-guide-go {
+  min-height: 36px;
+  padding: 4px 10px;
+  border: 1px solid #c9a46a;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #7a5a2e;
+  font: inherit;
+  font-size: 13px;
+  white-space: nowrap;
 }
 .dialogue .sub {
   white-space: pre-line;
@@ -2214,4 +2237,17 @@ select {
 }
 .field .aide-seat {
   display: none;
+}
+
+.reroll-origin {
+  justify-self: start;
+  margin-top: 8px;
+  min-height: 36px;
+  padding: 4px 12px;
+  border: 1px solid #c9a46a;
+  border-radius: 8px;
+  background: #fffaf0;
+  color: #7a5a2e;
+  font: inherit;
+  font-size: 14px;
 }
