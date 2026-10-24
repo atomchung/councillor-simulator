@@ -1234,8 +1234,9 @@ select {
 .field #candidate {
   transition: none;
 }
-.direction-left > svg {
-  transform: scaleX(-1);
+/* Facing a visitor: mirror the figure about its own centre (the portrait box is 142 wide), so it stays at the desk. */
+.direction-left > .cand-flip {
+  transform: matrix(-1, 0, 0, 1, 142, 0);
 }
 #travel-scene {
   position: absolute;
@@ -1441,10 +1442,6 @@ select {
     bottom: 65px;
     max-height: 49%;
   }
-}
-#candidate > svg {
-  transform-box: fill-box;
-  transform-origin: center;
 }
 .field .room:after {
   display: none;
@@ -2069,4 +2066,86 @@ select {
     text-underline-offset: 3px;
     text-align: left;
   }
+}
+/* Close × above the pinned speaker row. On phones the × is pinned with that row, so a scrolled dialogue keeps it. */
+.dialogue .close {
+  z-index: 3;
+}
+@media (max-width: 900px) {
+  #dialogue .close {
+    position: sticky;
+    top: -8px;
+    display: block;
+    width: max-content;
+    min-height: 32px;
+    line-height: 1;
+    /* Takes no room in the flow: the speaker row starts where it did. */
+    margin: -8px -10px -24px auto;
+    border-radius: 8px;
+    background: inherit;
+  }
+  #dialogue .close[hidden] {
+    display: none;
+  }
+}
+/* Panels open with focus on their title; the × shows a ring only once reached by keyboard. */
+#sheet-title:focus {
+  outline: none;
+}
+
+/* Phones (portrait): every dialogue, field questions included, is anchored to the bottom so all choices fit.
+   The id keeps this ahead of the earlier .dialogue:not(.hidden) / .field .dialogue top:40dvh rules. */
+@media (max-width: 900px) and (min-height: 551px) {
+  #dialogue.dialogue:not(.hidden) {
+    top: auto;
+    bottom: calc(10px + env(safe-area-inset-bottom, 0px));
+    max-height: 64dvh;
+  }
+}
+
+/* Village chiefs and the origin/vote-bank lines in panels. */
+.chief-note {
+  display: block;
+  margin-top: 3px;
+  color: #7a5a2e;
+}
+.chief-note.won,
+.chief-row.won {
+  color: #2c6464;
+  font-weight: 650;
+}
+.chief-row {
+  margin: 6px 0;
+  font-size: 14px;
+}
+.origin-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+  margin: 4px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.origin-line i {
+  font-style: normal;
+  color: #6c705f;
+}
+.origin-line em {
+  font-style: normal;
+}
+.origin-line .og {
+  color: #2c6464;
+}
+.origin-line .ob {
+  color: #a24b2f;
+}
+.origin-line small {
+  flex-basis: 100%;
+  color: #6c705f;
+}
+.poll-star {
+  font-style: normal;
+  margin-left: 2px;
+  color: #b07a1f;
 }

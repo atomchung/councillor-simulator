@@ -173,10 +173,10 @@
     "dist/advisor.css": "4f5b587208bde048ec5dd7fd243a9eb739ae1ece40d1a038e725a0c49f4a388e",
     "dist/round-flow.css": "bc3e6d8f77a03f094895e44463f0e4fc59e19c5d55510eda19574990c1442baa",
     "dist/analytics.js": "c2394c0fe5222991969562064d4b99aec85b0151e51d89924e046a479a323f8e",
-    "dist/office.html": "76b2389956c5fe96dccca44308b037d5d27f3ddb930fdff38b5a073e7efe88b2",
-    "dist/office.js": "091add2282ec42a743a2cf337c1e6cf476185b2b0019f5c9e7ffeae9643d149c",
-    "dist/office.css": "6196f3b6faac9ebcaa88c4350d339f0b1462db4e6689463c2927dbfa0cc1dba2",
-    "dist/office-result.css": "990eeef474f737d40d226aeed95505d569a1ed2f5b9d743c39aa86be509f5a2c",
+    "dist/office.html": "a26efe7c35d0ee358bedb497ae32bd9b6314f183ecb6c083d9efe3f4cd7a215b",
+    "dist/office.js": "6adfbb0930bf8af724dad8247fd793d3f735424ac7e1e4921232bd00de85ba63",
+    "dist/office.css": "b9b2cfe76aa479bd2a08931d21cb0f9d1363367473efe2242cc414940d314b81",
+    "dist/office-result.css": "6d4c77df86a0f9a27c73b9ed6abe837dbf75fedc97fc698becfc51283c6b82ed",
     "dist/assets/office/office-ldesk.png": "b1b37d02e0903fd0defa77a81f21f140dc00e1b9c9f9c57ff7f47dd0ee5d3947"
   },
   "export_only_changes": [
