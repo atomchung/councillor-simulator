@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>競選辦公室｜可玩整合試版</title>
-    <link rel="stylesheet" href="office.css?v=office-int-8" />
+    <link rel="stylesheet" href="office.css?v=office-int-9" />
     <link rel="stylesheet" href="office-result.css?v=office-int-6" />
   </head>
   <body>
@@ -407,6 +407,13 @@
           <div id="details"></div>
           <div class="actions" id="actions"></div>
         </section>
+        <section class="dock" id="dock" hidden aria-label="今天的行動">
+          <p id="dock-tip"></p>
+          <div class="dock-actions">
+            <button class="primary" id="dock-pick"></button
+            ><button id="dock-own">自己排行程</button>
+          </div>
+        </section>
         <nav hidden class="desk-nav" aria-label="辦公室物件">
           <button data-open="map">牆上地圖<small>足跡・承諾</small></button
           ><button data-open="poll">
@@ -458,6 +465,6 @@
     <script src="day-engine.js?v=office-1"></script>
     <script src="day-art.js?v=office-1"></script>
     <script src="day-sound.js?v=office-int-7"></script>
-    <script src="office.js?v=office-int-8"></script>
+    <script src="office.js?v=office-int-9"></script>
   </body>
 </html>
