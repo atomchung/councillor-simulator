@@ -727,7 +727,9 @@ function advice() {
   const canvassAt = (v) => go("canvass", { venue: v.id });
   const helpers = () => (cfg.research?.length ? `助手已排好查「${cfg.research.map(TOPIC).join("、")}」。` : "");
   let tip, pick;
-  const fresh = researched.find((t) => venues.some((v) => v.pool.includes(t)));
+  const fresh =
+    researched.find((t) => venues.some((v) => v.pool.includes(t) && v.id !== lastVenue)) ||
+    researched.find((t) => venues.some((v) => v.pool.includes(t)));
   if (s.day === G.DEBATE_ROUND && action !== "debate") {
     tip = "今天是政見發表會，缺席會被重罰，一定要出席。";
     pick = { text: "出席政見會", fn: go("debate") };
@@ -741,7 +743,8 @@ function advice() {
     tip = `還沒有題目查過，直接去街訪會被追問扣票。先查「${TOPIC(topic)}」，助手同時查其他題，下回合去${v.title}。`;
     pick = { text: `先查「${TOPIC(topic)}」`, fn: go("prepare", { topic }) };
   } else if (fresh) {
-    const v = venues.find((x) => x.pool.includes(fresh));
+    const asks = venues.filter((x) => x.pool.includes(fresh)),
+      v = asks.find((x) => x.id !== lastVenue) || asks[0];
     tip = `「${TOPIC(fresh)}」查好了，去${v.title}講它。`;
     pick = { text: `去${v.title}街訪`, fn: canvassAt(v) };
   } else if (left <= 2) {
@@ -930,21 +933,22 @@ function guideHints() {
       label: "看里長進度",
       fn: mapPanel,
     });
-  if (!used("fundraise") && (money < 300000 || s.day >= 3))
+  if (!used("fundraise") && money < 300000)
     list.push({
       id: "fundraise",
       text: `錢不夠時可以「做準備 → 募款」：用掉一回合，募到約 ${wan(G.TUNING?.fundraise?.base?.[0] || 40000)}–${wan(G.TUNING?.fundraise?.base?.[1] || 90000)}。`,
       label: "看募款",
       fn: open("fundraise"),
     });
-  if (s.day >= 2 && !used("rally") && money >= G.COSTS.rally + 50000)
+  const can = (id, extra = {}) => G.preview(s, id, { research: [], booth: false, ...extra }).allowed;
+  if (s.day >= 2 && !used("rally") && money >= G.COSTS.rally + 50000 && can("rally", { venue: bestVenue?.id }))
     list.push({
       id: "rally",
       text: `「做宣傳 → 造勢晚會」一次能觸及的人比街訪多，花 ${wan(G.COSTS.rally)}；辦在你答得出題目的地點最划算。`,
       label: "看造勢",
       fn: open("rally", { venue: bestVenue?.id }),
     });
-  if (s.day >= 3 && !used("tv") && money >= G.COSTS.tv + 50000)
+  if (s.day >= 3 && !used("tv") && money >= G.COSTS.tv + 50000 && can("tv"))
     list.push({
       id: "tv",
       text: `「做宣傳 → 上電視」一次觸及最多人，花 ${wan(G.COSTS.tv)}；主持人從熱門題抽問，先研究過再上。`,
@@ -2006,20 +2010,23 @@ function sameTopicMemory(q) {
   return m ? `${m.name}記得你上次說：「${m.lastQuote}」` : "";
 }
 // Residents speak their opinion, not the issue's name, so the dialogue names the issue and what is being decided.
-function issueLine(q) {
+// What the resident asks, as a plain question; their opinion stays underneath in their own words.
+function askLine(q) {
   const t = G.TOPICS[s.pending?.topic];
-  return t ? `議題：${t.title}。${t.ask || ""}` : "";
+  return /[？?]\s*$/.test(q.text) || !t?.ask ? [q.text, ""] : [t.ask, `「${q.text}」`];
 }
 function ask() {
   field();
   sfx.play("question");
   const q = G.question(s);
   visitorArt(q.speaker?.includes("小馬") ? "小馬" : q.speakerName || "主持人");
+  const [line, voice] = askLine(q),
+    memory = sameTopicMemory(q);
   say(
     "field",
     q.speaker,
-    q.text,
-    issueLine(q) + (sameTopicMemory(q) ? "\n" + sameTopicMemory(q) : ""),
+    line,
+    [voice, memory].filter(Boolean).join("\n"),
     q.options.map((o) => ({
       text: o.text,
       note:
@@ -2220,6 +2227,35 @@ function resultMarkup(r, v) {
     `<div class="rr-next"><i class="rr-timer"></i><span>${last ? "點一下前往開票" : "點一下繼續 · 第 " + (r.day + 1) + " 回合"}</span></div>`
   );
 }
+// These overlays are presentation only; the completed player report is the source of truth.
+function spendEffectsMarkup(r) {
+  const p = r.player || {},
+    addons = p.addons || {},
+    effects = [];
+  if (addons.billboard)
+    effects.push(
+      `<g class="spend-effect spend-billboard" data-spend-animation="billboard"><path d="M790 410v145m190-145v145" stroke="#76583c" stroke-width="17" stroke-linecap="round"/><rect x="735" y="278" width="310" height="150" rx="18" fill="#c9794d" stroke="#754b35" stroke-width="10"/><rect x="751" y="294" width="278" height="118" rx="10" fill="#fff4d7"/><path d="M770 315h240" stroke="#4f8278" stroke-width="12"/><text x="890" y="375" text-anchor="middle">${esc(G.candidateName(s.settings))}</text><path d="M785 428h265" stroke="#8c6b48" stroke-width="12" stroke-linecap="round"/></g>`,
+    );
+  if (addons.gifts)
+    effects.push(
+      `<g class="spend-effect spend-gifts" data-spend-animation="gifts"><g class="gift-hop gift-one"><path d="M270 524Q335 408 420 510"/><rect x="393" y="480" width="50" height="50" rx="8"/><path d="M388 480h60v13h-60zM408 480q-20-23 0-23q17 0 10 23q12-23 26-13q10 13-21 13"/></g><g class="gift-hop gift-two"><path d="M270 524Q420 390 560 500"/><rect x="535" y="470" width="50" height="50" rx="8"/><path d="M530 470h60v13h-60zM550 470q-20-23 0-23q17 0 10 23q12-23 26-13q10 13-21 13"/></g><g class="gift-hop gift-three"><path d="M270 524Q500 410 700 510"/><rect x="675" y="480" width="50" height="50" rx="8"/><path d="M670 480h60v13h-60zM690 480q-20-23 0-23q17 0 10 23q12-23 26-13q10 13-21 13"/></g></g>`,
+    );
+  if (addons.gotv)
+    effects.push(
+      `<g class="spend-effect spend-gotv" data-spend-animation="gotv"><g class="vote-cue cue-one"><path d="M150 412l55-23v48l-55-23z"/><path d="M205 397q24 16 0 32M215 389q37 24 0 48"/><rect x="105" y="330" width="165" height="48" rx="16"/><text x="187" y="361" text-anchor="middle">記得投票</text></g><g class="vote-cue cue-two"><rect x="490" y="362" width="42" height="78" rx="9"/><circle cx="511" cy="428" r="3"/><rect x="425" y="310" width="176" height="48" rx="16"/><text x="513" y="341" text-anchor="middle">記得投票</text></g><g class="vote-cue cue-three"><path d="M930 430l52-22v46l-52-22z"/><path d="M982 415q24 16 0 32M992 407q37 24 0 48"/><rect x="900" y="335" width="176" height="48" rx="16"/><text x="988" y="366" text-anchor="middle">記得投票</text></g></g>`,
+    );
+  if (p.action === "rally")
+    effects.push(
+      `<g class="spend-effect spend-rally" data-spend-animation="rally"><path class="stage-light light-left" d="M85 80L365 540"/><path class="stage-light light-right" d="M1115 80L835 540"/><g class="crowd-flag flag-left"><path d="M330 565v-94"/><path d="M333 474l84 17-82 27z"/></g><g class="crowd-flag flag-mid"><path d="M600 583v-100"/><path d="M603 486l90 17-88 30z"/></g><g class="crowd-flag flag-right"><path d="M870 565v-94"/><path d="M873 474l84 17-82 27z"/></g></g>`,
+    );
+  if (p.action === "tv")
+    effects.push(
+      `<g class="spend-effect spend-tv" data-spend-animation="tv"><rect class="on-air" x="78" y="75" width="205" height="64" rx="14"/><circle class="on-air-dot" cx="105" cy="107" r="12"/><text x="190" y="117" text-anchor="middle">ON AIR</text><g class="camera-flash"><path d="M973 188l18 45 48-8-33 36 25 40-45-21-31 38 8-49-45-23 49-5z"/><circle cx="986" cy="265" r="30"/></g><g class="camera" transform="translate(1040 430)"><path d="M-54-29h74l25 22v52h-99z"/><circle cx="-18" cy="10" r="25"/><circle cx="-18" cy="10" r="13"/><path d="M45-15l38-19v67L45 14z"/></g></g>`,
+    );
+  return effects.length
+    ? `<svg class="spend-effects" viewBox="0 0 1200 650" aria-hidden="true" focusable="false">${effects.join("")}</svg>`
+    : "";
+}
 function resultCard() {
   let el = document.getElementById("round-result");
   if (!el) {
@@ -2318,6 +2354,7 @@ function recap() {
       topic: G.TOPICS[r.player.topic]?.title,
     });
     $("venue-scene").hidden = false;
+    $("venue-scene").innerHTML += spendEffectsMarkup(r);
     $("room").classList.add("field");
   }
   const el = resultCard();
