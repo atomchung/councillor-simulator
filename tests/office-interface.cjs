@@ -310,7 +310,7 @@ function harness(initial, opts = {}) {
     "second beat says assistant research runs alongside your action",
   );
 }
-// Assistant research is one tap from the first plan screens and the staff brief.
+// 小葉 assigns every free assistant to research by default; the player can still change it.
 {
   const h = harness({
     s: state(24, "newcomer"),
@@ -318,49 +318,30 @@ function harness(initial, opts = {}) {
     action: null,
     tutorialDone: true,
   });
-  h.run("catalog()");
-  ok(
-    h.nodes["sheet-body"].innerHTML.includes('data-open="team"') &&
-      h.nodes["sheet-body"].innerHTML.includes("2 位可派"),
-    "catalog shows research entry with free assistants",
-  );
   h.run("choose('canvass',{venue:'market'})");
-  ok(
-    h.nodes["sheet-body"].innerHTML.includes("派助手研究 · 2 位可派"),
-    "first plan detail shows research entry",
-  );
-  h.click({ open: "team" });
-  eq(h.nodes["sheet-title"].textContent, "派助手研究", "entry opens research picker");
-  h.click({ action: "research", id: "health" });
-  h.run("planDetail()");
-  ok(
-    h.nodes["sheet-body"].innerHTML.includes("1 位可派") &&
-      h.nodes["sheet-body"].innerHTML.includes("已派："),
-    "entry reflects assignment",
-  );
-  // Brief advice keys on state: a free assistant points at an unresearched hot topic.
-  const fresh = harness({
-    s: state(24, "newcomer"),
-    cfg: { research: [] },
-    action: null,
-    tutorialDone: true,
-  });
-  fresh.run("brief()");
-  const hot = fresh.run("hotUnknownTopic()");
-  ok(hot, "hot unresearched topic found");
-  ok(
-    fresh.nodes.sub.textContent.includes("派助手查「" + fresh.run("TOPIC(hotUnknownTopic())") + "」"),
-    "brief points idle assistants at the hot topic",
-  );
-  fresh.nodes.actions.children[0].onclick();
-  eq(fresh.config().research, [hot], "brief shortcut assigns the hot topic");
-  eq(fresh.run("action"), "canvass", "brief shortcut also plans a street visit");
-  ok(fresh.nodes["sheet-title"].textContent.includes("出發準備"), "shortcut opens the plan");
-  fresh.run("brief()");
-  ok(
-    !fresh.nodes.sub.textContent.includes("派助手查「" + fresh.run("TOPIC(" + JSON.stringify(hot) + ")") + "」"),
-    "advice changes once assistants are assigned",
-  );
+  const auto = h.config().research;
+  eq(auto.length, 2, "both assistants assigned by default");
+  const pool = h.run("G.venueView(s).find(v=>v.id==='market').pool");
+  const known = h.run("s.player.known");
+  ok(auto.every((t) => !known.includes(t)), "auto research skips known topics");
+  ok(!pool.some((t) => !known.includes(t)) || pool.includes(auto[0]), "auto research starts with the venue's unknown topics");
+  ok(h.nodes["sheet-body"].innerHTML.includes("已派："), "plan detail shows the assignment");
+  h.run("choose('prepare',{topic:" + JSON.stringify(auto[0]) + "})");
+  ok(!h.config().research.includes(auto[0]), "assistants never duplicate the player's own research");
+  eq(h.config().research.length, 2, "assistants topped up after changing action");
+  // Opening advice: with nothing researched at a venue, 小葉 says prepare first instead of a blind street visit.
+  const fresh = harness({ s: state(1, "heir"), cfg: { research: [] }, action: null, tutorialDone: true });
+  const a = fresh.run("advice()");
+  if (fresh.run("G.venueView(s).every(v=>!v.pool.some(t=>s.player.known.includes(t)))"))
+    ok(/先查/.test(a.pick.text), "no researched venue: 小葉 recommends preparing first");
+  ok(/離當選線|當選線上/.test(a.title), "advice states the vote gap");
+  // Debate day: 小葉 sends the player to the debate.
+  const debate = harness({ s: state(24, "newcomer"), cfg: { research: [] }, action: null, tutorialDone: true });
+  debate.run("s.day=G.DEBATE_ROUND");
+  eq(debate.run("advice().pick.text"), "出席政見會", "debate day is not missed");
+  eq(debate.run("briefDue()"), true, "小葉 speaks up on the debate day");
+  debate.run("s.day=4;s.budget.available=9e6");
+  eq(debate.run("briefDue()"), false, "小葉 stays quiet on ordinary later rounds");
 }
 // Consecutive research selection stays in the same panel and cannot exceed capacity.
 {
@@ -370,7 +351,7 @@ function harness(initial, opts = {}) {
     action: null,
     tutorialDone: true,
   });
-  h.run("choose('canvass',{venue:'street'});team()");
+  h.run("choose('canvass',{venue:'street'});cfg.research=[];team()");
   const title = h.nodes["sheet-title"].textContent;
   for (const id of ["health", "childcare", "housing"])
     h.click({ action: "research", id });
@@ -391,6 +372,7 @@ function harness(initial, opts = {}) {
       tutorialDone: true,
     });
   h.run("choose('canvass',{venue:'street'})");
+  const uiResearch = clone(h.config().research);
   ok(
     h.nodes["sheet-foot"].children.at(-1).textContent.includes("出門去保儀路口"),
     "destination on the committing action",
@@ -477,7 +459,7 @@ function harness(initial, opts = {}) {
   const reload = harness(h.snapshot());
   eq(reload.state(), settled, "reload preserves result exactly");
   // Same actions through the bare engine produce the identical campaign state.
-  G.begin(base, "canvass", { research: [], booth: false, venue: "street" });
+  G.begin(base, "canvass", { research: uiResearch, booth: false, venue: "street" });
   G.arrive(base);
   G.answer(base, answer.id);
   G.next(base);
@@ -790,10 +772,12 @@ for (const background of ["newcomer", "heir", "incumbent"]) {
         G.respondCrisis(baseline, "apologize");
         h.run("handleCrisis('apologize')");
       }
-      G.begin(baseline, "fundraise", { research: [], booth: false });
+      h.run("choose('fundraise')");
+      const research = clone(h.config().research);
+      G.begin(baseline, "fundraise", { research, booth: false });
       G.arrive(baseline);
       G.next(baseline);
-      h.run("choose('fundraise');depart();finishTravel()");
+      h.run("depart();finishTravel()");
       eq(h.state().phase, "recap", background + " round " + round + " result first");
       h.run("continueResult()");
       eq(

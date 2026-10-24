@@ -2055,3 +2055,18 @@ select {
     display: none;
   }
 }
+
+@media (max-width: 900px) {
+  .dock .dock-helpers {
+    justify-self: start;
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #2f5d50;
+    font: inherit;
+    font-size: 13px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    text-align: left;
+  }
+}

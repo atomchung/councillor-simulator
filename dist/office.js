@@ -497,6 +497,9 @@ function syncDock() {
   if (!show) return;
   const a = advice();
   $("dock-tip").textContent = a.title + " " + a.sub;
+  $("dock-helpers").hidden = !cfg.research?.length;
+  $("dock-helpers").textContent = cfg.research?.length ? `小葉已排助手查：${cfg.research.map(TOPIC).join("、")}（點此更換）` : "";
+  $("dock-helpers").onclick = team;
   $("dock-pick").textContent = a.pick.text;
   $("dock-pick").onclick = a.pick.fn;
   $("dock-own").textContent = action ? "回到我排的行程" : "自己排行程";
@@ -596,6 +599,26 @@ function hotUnknownTopic() {
       .sort((a, b) => (issues[b] || 0) - (issues[a] || 0))[0] || null
   );
 }
+// Topics nobody has read yet, hottest first; those asked at the chosen venue lead.
+function researchCandidates() {
+  const issues = s.polls?.at(-1)?.issues || s.landscape?.weights || {},
+    known = s.player.known || [],
+    venue = ["canvass", "rally"].includes(action) ? G.venueView(s).find((v) => v.id === (cfg.venue || "market")) : null,
+    pool = venue?.pool || [];
+  return G.availableTopics(s)
+    .map((t) => t.id)
+    .filter((t) => t !== "tip" && !known.includes(t) && !(action === "prepare" && cfg.topic === t))
+    .sort((a, b) => Number(pool.includes(b)) - Number(pool.includes(a)) || (issues[b] || 0) - (issues[a] || 0));
+}
+// 小葉 fills every free assistant with research by default; the player can still change it in the research sheet.
+function autoResearch() {
+  if (s.phase !== "plan") return;
+  cfg.research = (cfg.research || []).filter((t) => !(action === "prepare" && cfg.topic === t));
+  for (const t of researchCandidates()) {
+    if (freeHelpers() <= 0) break;
+    if (!cfg.research.includes(t)) cfg.research.push(t);
+  }
+}
 function researchEntry() {
   if (!capacity()) return "";
   const picked = (cfg.research || []).map(TOPIC);
@@ -603,13 +626,14 @@ function researchEntry() {
 }
 // Staff advice picks from current state: last result, rounds left, unread issues, race gap.
 // 小葉 every round: where the vote stands, the pace needed, and one concrete next step built from current state.
+// She plays a sound baseline (prepare before talking, attend the debate, keep funds, go where you can answer)
+// and leaves the high-ceiling combos (chiefs plus rallies, digging and exposing, risky deals) to the player.
 function advice() {
   const last = s.journal.at(-1),
     r = G.raceView(s),
     gapRaw = Math.max(0, r.line - r.you),
     left = G.DAYS - s.day + 1,
     free = freeHelpers(),
-    hot = hotUnknownTopic(),
     known = s.player.known || [],
     venues = G.venueView(s),
     score = (v) => v.pool.filter((t) => known.includes(t)).length,
@@ -629,36 +653,42 @@ function advice() {
     (gapRaw
       ? `剩 ${left} 回合，每回合要多拿約 ${num(Math.ceil(gapRaw / left))} 票。`
       : `剩 ${left} 回合，守住就好。`);
-  const canvassAt = (v) => () => {
-    choose("canvass", { venue: v.id });
+  const go = (id, extra) => () => {
+    choose(id, extra);
     planDetail();
   };
+  const canvassAt = (v) => go("canvass", { venue: v.id });
+  const helpers = () => (cfg.research?.length ? `助手已排好查「${cfg.research.map(TOPIC).join("、")}」。` : "");
   let tip, pick;
   const fresh = researched.find((t) => venues.some((v) => v.pool.includes(t)));
-  if (fresh) {
+  if (s.day === G.DEBATE_ROUND && action !== "debate") {
+    tip = "今天是政見發表會，缺席會被重罰，一定要出席。";
+    pick = { text: "出席政見會", fn: go("debate") };
+  } else if (s.budget.available < 100000) {
+    tip = "經費快見底，先募款，下回合才有錢出門。";
+    pick = { text: "去募款", fn: go("fundraise") };
+  } else if (!score(best)) {
+    // Nothing researched anywhere yet: talking now loses votes to follow-up questions.
+    const v = venues.find((x) => x.pool.length) || best,
+      topic = [...v.pool].sort((a, b) => ((s.polls?.at(-1)?.issues || {})[b] || 0) - ((s.polls?.at(-1)?.issues || {})[a] || 0))[0];
+    tip = `還沒有題目查過，直接去街訪會被追問扣票。先查「${TOPIC(topic)}」，助手同時查其他題，下回合去${v.title}。`;
+    pick = { text: `先查「${TOPIC(topic)}」`, fn: go("prepare", { topic }) };
+  } else if (fresh) {
     const v = venues.find((x) => x.pool.includes(fresh));
-    tip = `助手查好「${TOPIC(fresh)}」，去${v.title}講它。`;
+    tip = `「${TOPIC(fresh)}」查好了，去${v.title}講它。`;
     pick = { text: `去${v.title}街訪`, fn: canvassAt(v) };
   } else if (left <= 2) {
     tip = `最後衝刺，去${best.title}拉票。`;
     pick = { text: `去${best.title}街訪`, fn: canvassAt(best) };
-  } else if (s.budget.available < 100000) {
-    tip = "經費快見底，先募款，下回合才有錢出門。";
-    pick = { text: "去募款", fn: () => (choose("fundraise"), planDetail()) };
-  } else if (free && hot) {
-    tip = `派助手查「${TOPIC(hot)}」，你先去${best.title}街訪。`;
-    pick = {
-      text: `派助手＋去${best.title}`,
-      fn: () => {
-        cfg.research = [...new Set([...(cfg.research || []), hot])];
-        canvassAt(best)();
-      },
-    };
   } else {
-    tip = `去${best.title}街訪，那裡 ${score(best)} 個議題你有資料。`;
+    tip = `去${best.title}街訪，那裡 ${score(best)} 個議題你答得出來。`;
     pick = { text: `去${best.title}街訪`, fn: canvassAt(best) };
   }
-  return { title, sub: pace + tip, pick, researched, free, hot };
+  return { title, sub: pace + tip, pick, researched, free, helpers };
+}
+// 小葉 opens rounds one and two, then steps back: she speaks up again only on the debate day or when funds run low.
+function briefDue() {
+  return s.day <= 2 || s.day === G.DEBATE_ROUND || s.budget.available < 100000;
 }
 function brief() {
   if (s.phase !== "plan") return resume();
@@ -701,6 +731,7 @@ function choose(id, extra = {}) {
   cfg.research = cfg.research.filter(
     (t) => t !== cfg.topic || id !== "prepare",
   );
+  autoResearch();
   closePanel();
   sync();
   planDetail();
@@ -2335,6 +2366,7 @@ function result() {
 }
 function resume() {
   if (s.phase === "plan") {
+    if (!(cfg.research || []).length) autoResearch();
     office();
     if (urgent() && s.day > 1 && !seenVisits.includes(s.day)) {
       if (s.crisis?.status !== "pending") visitorEnter(visitorItem());
@@ -2355,7 +2387,7 @@ function resume() {
         visitorEnter(visitorItem());
         later(settleVisitor, 1200);
       }
-      brief();
+      if (briefDue()) brief();
     }
   } else if (s.phase === "travel") travel();
   else if (s.phase === "question") ask();
