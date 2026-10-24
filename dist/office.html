@@ -4,8 +4,8 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>競選辦公室｜可玩整合試版</title>
-    <link rel="stylesheet" href="office.css?v=office-int-9" />
-    <link rel="stylesheet" href="office-result.css?v=office-int-6" />
+    <link rel="stylesheet" href="office.css?v=office-int-12" />
+    <link rel="stylesheet" href="office-result.css?v=office-int-12" />
   </head>
   <body>
     <main class="shell">
@@ -188,18 +188,20 @@
             style="display: none"
           />
           <g id="candidate" transform="translate(681 177)">
-            <svg
-              width="142"
-              height="254"
-              viewBox="223 22 199 356"
-              overflow="hidden"
-            >
-              <image
-                href="assets/matte-toy-v1/game/candidates.webp"
-                width="1536"
-                height="1024"
-              />
-            </svg>
+            <g class="cand-flip">
+              <svg
+                width="142"
+                height="254"
+                viewBox="223 22 199 356"
+                overflow="hidden"
+              >
+                <image
+                  href="assets/matte-toy-v1/game/candidates.webp"
+                  width="1536"
+                  height="1024"
+                />
+              </svg>
+            </g>
           </g>
           <image
             id="desk-mask"
@@ -385,14 +387,6 @@
               競選辦公室
             </text>
           </g>
-          <g class="office-prop ledger">
-            <path
-              d="M820 372H960L970 437H827Z"
-              fill="#e9eee0"
-              stroke="#9a9579"
-              stroke-width="2"
-            />
-          </g>
         </svg>
         <section class="dialogue hidden" id="dialogue" aria-label="人物對話">
           <button class="close" id="dismiss" aria-label="收起對話">×</button>
@@ -409,6 +403,7 @@
         </section>
         <section class="dock" id="dock" hidden aria-label="今天的行動">
           <p id="dock-tip"></p>
+          <button class="dock-helpers" id="dock-helpers" hidden></button>
           <div class="dock-actions">
             <button class="primary" id="dock-pick"></button
             ><button id="dock-own">自己排行程</button>
@@ -434,7 +429,7 @@
     </main>
     <dialog class="sheet" id="sheet" aria-labelledby="sheet-title">
       <header>
-        <h2 id="sheet-title"></h2>
+        <h2 id="sheet-title" tabindex="-1" autofocus></h2>
         <button id="sheet-close" aria-label="關閉面板">×</button>
       </header>
       <div id="sheet-status" role="status" aria-live="polite"></div>
@@ -465,6 +460,6 @@
     <script src="day-engine.js?v=office-1"></script>
     <script src="day-art.js?v=office-1"></script>
     <script src="day-sound.js?v=office-int-7"></script>
-    <script src="office.js?v=office-int-10"></script>
+    <script src="office.js?v=office-int-12"></script>
   </body>
 </html>
